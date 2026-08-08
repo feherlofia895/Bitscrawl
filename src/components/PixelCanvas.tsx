@@ -10,6 +10,8 @@ const CANVAS_SIZE = 32
 const TRANSPARENT = 'transparent'
 const MAX_UNDO_STEPS = 50
 const ZOOM_LEVELS = [1, 2, 3] as const
+const CANVAS_SURFACE_RATIO = 0.9
+const CENTERED_CANVAS_OFFSET = (1 - CANVAS_SURFACE_RATIO) / 2
 
 const pixelPalette = [
   '#241a35',
@@ -133,12 +135,21 @@ export function PixelCanvas({
   const [activeTool, setActiveTool] = useState<DrawingTool>('pencil')
   const [canUndo, setCanUndo] = useState(false)
   const [zoom, setZoom] = useState<(typeof ZOOM_LEVELS)[number]>(1)
-  const [pan, setPan] = useState<CanvasPan>({ x: 0, y: 0 })
+  const [pan, setPan] = useState<CanvasPan>({
+    x: CENTERED_CANVAS_OFFSET,
+    y: CENTERED_CANVAS_OFFSET,
+  })
   const [isPanMode, setIsPanMode] = useState(false)
   const drawingColor = activeTool === 'eraser' ? TRANSPARENT : activeColor
 
   const clampPan = (nextPan: CanvasPan, nextZoom = zoom) => {
-    const minimum = -(nextZoom - 1)
+    const surfaceSize = CANVAS_SURFACE_RATIO * nextZoom
+    if (surfaceSize <= 1) {
+      const centeredOffset = (1 - surfaceSize) / 2
+      return { x: centeredOffset, y: centeredOffset }
+    }
+
+    const minimum = 1 - surfaceSize
     return {
       x: Math.max(minimum, Math.min(0, nextPan.x)),
       y: Math.max(minimum, Math.min(0, nextPan.y)),
@@ -147,12 +158,14 @@ export function PixelCanvas({
 
   const changeZoom = (nextZoom: (typeof ZOOM_LEVELS)[number]) => {
     setPan((currentPan) => {
-      const visibleCenterX = (0.5 - currentPan.x) / zoom
-      const visibleCenterY = (0.5 - currentPan.y) / zoom
+      const currentSurfaceSize = CANVAS_SURFACE_RATIO * zoom
+      const nextSurfaceSize = CANVAS_SURFACE_RATIO * nextZoom
+      const visibleCenterX = (0.5 - currentPan.x) / currentSurfaceSize
+      const visibleCenterY = (0.5 - currentPan.y) / currentSurfaceSize
       return clampPan(
         {
-          x: 0.5 - visibleCenterX * nextZoom,
-          y: 0.5 - visibleCenterY * nextZoom,
+          x: 0.5 - visibleCenterX * nextSurfaceSize,
+          y: 0.5 - visibleCenterY * nextSurfaceSize,
         },
         nextZoom,
       )
@@ -351,6 +364,9 @@ export function PixelCanvas({
     isDrawingRef.current = false
     lastPointRef.current = null
     setCanUndo(false)
+    setZoom(1)
+    setPan({ x: CENTERED_CANVAS_OFFSET, y: CENTERED_CANVAS_OFFSET })
+    setIsPanMode(false)
     const context = canvasRef.current?.getContext('2d')
     context?.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
   }, [roundId])
@@ -470,10 +486,10 @@ export function PixelCanvas({
         <div
           className="pixel-canvas-surface"
           style={{
-            height: `${zoom * 100}%`,
+            height: `${CANVAS_SURFACE_RATIO * zoom * 100}%`,
             left: `${pan.x * 100}%`,
             top: `${pan.y * 100}%`,
-            width: `${zoom * 100}%`,
+            width: `${CANVAS_SURFACE_RATIO * zoom * 100}%`,
           }}
         >
           <canvas
@@ -545,6 +561,9 @@ export function PixelCanvas({
           />
         </div>
       </div>
+      <p className="canvas-navigation-hint">
+        Nagyíts, majd kapcsold be a Mozgatást, hogy a rajzot elhúzd a keretben.
+      </p>
     </section>
   )
 }
