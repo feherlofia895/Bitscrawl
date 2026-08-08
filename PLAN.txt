@@ -162,7 +162,7 @@ Elkészült:
 - A valódi számítógép–telefon próba is sikeresen lezajlott.
 
 
-[ ] 9. NAGYOBB PIXELMUNKATERÜLET ÉS TERMÉSZETES NAGYÍTÁS
+[>] 9. NAGYOBB PIXELMUNKATERÜLET ÉS TERMÉSZETES NAGYÍTÁS
 
 Cél: a 32×32-es rajz egy tágas, átlátszó hátterű munkaterületen jelenjen meg,
 és telefonon is kényelmesen lehessen egyes pixeleken dolgozni.
@@ -183,6 +183,33 @@ Cél: a 32×32-es rajz egy tágas, átlátszó hátterű munkaterületen jelenje
 - Telefonon két ujjal közvetlenül is lehessen mozgatni a nagyított rajzot.
 - Mozgatás és nagyítás közben ne keletkezzen véletlen rajzpont.
 - Néző módban is lehessen nagyítani és mozgatni az élő rajzot.
+
+Elkészült és ellenőrizve:
+
+- A munkaterület kitölti a rajzpanel teljes rendelkezésre álló szélességét, mobilon
+  pedig finoman közelebb ér a képernyő széléhez.
+- Az átlátszó pixeleknél látható marad a sakktáblás munkaterület.
+- A pixelek alaphelyzetben hézagmentesen érnek össze; a finom rács külön kapcsolható.
+- A nagyítás már nem három fix fokozatú: gombbal, egérgörgővel és kétujjas
+  csippentéssel is folyamatosan változtatható.
+- A görgős és csippentős nagyítás a mutató, illetve az ujjak középpontja körül történik.
+- A kétujjas mozdulat egyszerre tud nagyítani és mozgatni; Mozgatás módban egérrel
+  és egy ujjal, nyomva tartva is húzható a rajz.
+- A nagyítás felső határa a munkaterület tényleges méretéhez igazodik.
+- A kétujjas gesztus megkezdésekor a folyamatban lévő ceruzavonás visszaáll, a mobilos
+  kitöltés pedig csak az érintés felengedésekor fut le, hogy ne maradjon véletlen rajz.
+
+- A számítógépes kézi próba sikeres volt.
+- A 390×844 pixeles mobilnézetben nincs vízszintes kilógás, a kezelőszervek legalább
+  44 pixelesek, a nagyítás nem görgeti el az oldalt, a mozgatás és a rácskapcsoló működik.
+- A külső munkaterület és a tényleges, sakktáblás rajzfelület erősebben elkülönül.
+- A mobilnézeti próba során nem jelent meg böngészőhiba.
+
+Még hátra van a pont teljes lezárásához:
+
+- A valódi telefon kétujjas csippentését és a véletlen rajzpontok elkerülését röviden
+  kézzel is ellenőrizni kell, mert a böngészős mobilnézet nem tud valódi többujjas
+  érintést hitelesen előállítani.
 
 
 [ ] 10. NYOLCSZÍNŰ PALETTA ÉS KOMPAKT ESZKÖZTÁR
