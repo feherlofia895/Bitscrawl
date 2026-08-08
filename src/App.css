@@ -37,6 +37,7 @@
 }
 
 .prototype-badge,
+.backend-badge,
 .feature-row span,
 .step-label,
 .canvas-label,
@@ -53,6 +54,37 @@ footer {
   color: var(--ink);
   background: var(--yellow);
   border: 2px solid var(--ink);
+}
+
+.topbar-statuses {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.backend-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 2px solid var(--ink);
+}
+
+.status-dot {
+  width: 9px;
+  height: 9px;
+  background: var(--yellow);
+  border: 1px solid var(--ink);
+}
+
+.backend-badge[data-status='online'] .status-dot {
+  background: #39b98a;
+}
+
+.backend-badge[data-status='offline'] .status-dot {
+  background: #ff6b6b;
 }
 
 .hero {
@@ -237,6 +269,16 @@ button:active {
   box-shadow: none;
 }
 
+button:disabled,
+input:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+button:disabled:hover {
+  transform: none;
+}
+
 button:focus-visible,
 a:focus-visible {
   outline: 3px solid var(--blue);
@@ -301,6 +343,135 @@ footer {
   color: var(--muted);
 }
 
+.waiting-room {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.72fr) minmax(0, 1.28fr);
+  gap: clamp(28px, 6vw, 72px);
+  align-items: start;
+  padding: clamp(48px, 8vw, 92px) 0 64px;
+}
+
+.room-summary,
+.players-panel {
+  border: 3px solid var(--ink);
+  box-shadow: 10px 10px 0 var(--ink);
+}
+
+.room-summary {
+  padding: clamp(24px, 4vw, 42px);
+  background: var(--yellow);
+}
+
+.room-summary h1,
+.players-heading h2 {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--display-font);
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+
+.room-summary h1 {
+  font-size: clamp(2.2rem, 5vw, 4rem);
+}
+
+.room-code {
+  display: block;
+  margin: 22px 0;
+  font-family: var(--pixel-font);
+  font-size: clamp(2rem, 6vw, 4.1rem);
+  letter-spacing: 0.14em;
+  line-height: 1;
+}
+
+.copy-button {
+  width: 100%;
+  background: var(--paper);
+}
+
+.room-note {
+  margin: 24px 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.players-panel {
+  padding: clamp(24px, 4vw, 42px);
+  background: var(--mint);
+}
+
+.players-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.players-heading h2 {
+  font-size: clamp(2rem, 4vw, 3.4rem);
+}
+
+.player-count,
+.host-badge {
+  font-family: var(--pixel-font);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.player-count {
+  flex: 0 0 auto;
+  padding: 10px 12px;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+}
+
+.player-list {
+  display: grid;
+  gap: 10px;
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.player-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 54px;
+  padding: 8px 12px;
+  background: color-mix(in srgb, var(--paper) 78%, transparent);
+  border: 2px solid var(--ink);
+}
+
+.player-avatar {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  color: var(--paper);
+  background: var(--violet-dark);
+  border: 2px solid var(--ink);
+  font-family: var(--pixel-font);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.player-name {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+  font-weight: 850;
+}
+
+.host-badge {
+  padding: 6px 8px;
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+}
+
 @media (max-width: 760px) {
   .app-shell {
     width: min(100% - 24px, 560px);
@@ -312,6 +483,18 @@ footer {
 
   .prototype-badge {
     font-size: 0.62rem;
+  }
+
+  .topbar-statuses {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+  }
+
+  .backend-badge,
+  .prototype-badge {
+    padding: 5px 7px;
+    font-size: 0.58rem;
   }
 
   .hero {
@@ -330,6 +513,16 @@ footer {
 
   .lobby-card {
     grid-template-columns: 1fr;
+  }
+
+  .waiting-room {
+    grid-template-columns: 1fr;
+    padding-top: 42px;
+  }
+
+  .room-summary,
+  .players-panel {
+    box-shadow: 7px 7px 0 var(--ink);
   }
 
   .join-row {
