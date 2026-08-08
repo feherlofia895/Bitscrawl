@@ -894,7 +894,7 @@ footer {
 
 .pixel-canvas-surface {
   position: absolute;
-  overflow: hidden;
+  overflow: visible;
   background-color: color-mix(in srgb, var(--paper) 68%, var(--slate));
   background-image:
     linear-gradient(45deg, rgb(255 255 255 / 72%) 25%, transparent 25%),
@@ -903,10 +903,10 @@ footer {
     linear-gradient(-45deg, transparent 75%, rgb(255 255 255 / 72%) 75%);
   background-position:
     0 0,
-    0 8px,
-    8px -8px,
-    -8px 0;
-  background-size: 16px 16px;
+    0 calc(100% / 32),
+    calc(100% / 32) calc(-100% / 32),
+    calc(-100% / 32) 0;
+  background-size: calc(200% / 32) calc(200% / 32);
   border: 3px solid var(--ink);
   box-shadow: 7px 7px 0 rgb(36 26 53 / 42%);
   box-sizing: border-box;
@@ -917,6 +917,7 @@ footer {
   inset: 0;
   pointer-events: none;
   content: '';
+  z-index: 2;
   opacity: 0;
   background-image:
     linear-gradient(var(--grid-line) 1px, transparent 1px),
@@ -928,7 +929,43 @@ footer {
   opacity: 1;
 }
 
+.pixel-coordinate-ruler {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 5px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.pixel-coordinate-ruler span {
+  display: grid;
+  place-items: center;
+}
+
+.pixel-coordinate-ruler.is-horizontal {
+  bottom: calc(100% + 3px);
+  left: 0;
+  width: 100%;
+  height: 8px;
+  grid-template-columns: repeat(32, minmax(0, 1fr));
+}
+
+.pixel-coordinate-ruler.is-vertical {
+  top: 0;
+  right: calc(100% + 3px);
+  width: 8px;
+  height: 100%;
+  grid-template-rows: repeat(32, minmax(0, 1fr));
+}
+
 .drawing-canvas {
+  position: relative;
+  z-index: 1;
   display: block;
   width: 100%;
   height: 100%;

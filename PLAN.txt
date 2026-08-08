@@ -258,6 +258,28 @@ Elkészült és ellenőrizve:
   mezőkkel, nyolc oszlopban jelenik meg, így a 16 szín csak két sort foglal el.
 
 
+[x] 10/A. PIXELHELYES HÁTTÉR ÉS KOORDINÁTÁK
+
+- Az átlátszó vászon sakktáblájának egy kockája pontosan egy rajzolható pixel méretével
+  egyezzen meg, és nagyításkor együtt méreteződjön a 32×32-es rajzzal.
+- Legyen külön „Koordináták” kapcsoló a Rács kapcsoló mellett.
+- Bekapcsolva felül és bal oldalon 1-től 32-ig jelenjen meg a pixelek számozása.
+- A koordináták és a rács egymástól függetlenül kapcsolhatók legyenek.
+- Nagyításkor és mozgatáskor a számozás maradjon a megfelelő sorokhoz és oszlopokhoz igazítva.
+- A megoldást asztali és mobilnézetben is ellenőrizzük, majd frissítjük a nyilvános
+  Cloudflare Pages-verziót.
+
+Elkészült és ellenőrizve:
+
+- A sakktábla minden mezője pontosan egy 32×32-es rajzpixel méretű, és együtt nagyítódik
+  a vászonnal.
+- A külön Koordináták kapcsoló felül és bal oldalon 1–32-ig számozza a pixeleket.
+- A számozás a ráccsal egymástól függetlenül kapcsolható, nagyítás és mozgatás közben
+  pedig a megfelelő sorokhoz és oszlopokhoz igazítva marad.
+- Asztali és 390×844 pixeles mobilnézetben nincs vízszintes oldalkilógás; a koordináták
+  cellaszélessége mérés szerint megegyezik egy rajzpixel szélességével.
+
+
 [ ] 11. SZOBACHAT ÉS TITKOS MEGFEJTÉSMEZŐ
 
 - A szobának legyen külön beszélgetős chatje a váróteremben és a játék alatt.
@@ -360,6 +382,11 @@ MVP UTÁNI KÖVETKEZŐ LEHETŐSÉGEK
 
 
 MÉG MEGBESZÉLENDŐ AZ IMPLEMENTÁLÁS ELŐTT
+
+HOLNAPI ELSŐ LÉPÉS:
+
+- Mielőtt új implementációba kezdünk, közösen végigvesszük az alábbi kérdéseket,
+  töröljük vagy lezárjuk a már eldöntött pontokat, majd ezek alapján folytatjuk a tervet.
 
 - A nyolc végleges palettaszín pontos értéke és sorrendje. Javaslat: előbb készítsünk
   néhány apró mintarajzot ugyanazzal a két vagy három palettaváltozattal.
