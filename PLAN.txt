@@ -52,7 +52,7 @@ Kézi próba egy játékossal PC-ről és egy másikkal telefonról, majd automa
 - Az ötfős próba után ugyanazzal az öt játékossal új meccs induljon.
 
 
-[ ] 4. KAPCSOLATMEGSZAKADÁS ÉS VISSZATÉRÉS
+[x] 4. KAPCSOLATMEGSZAKADÁS ÉS VISSZATÉRÉS
 
 - Oldalfrissítés után a játékos kapja vissza a saját helyét és állapotát.
 - Rövid internetkimaradás után álljon helyre a rajz és a kör állapota.
@@ -60,6 +60,19 @@ Kézi próba egy játékossal PC-ről és egy másikkal telefonról, majd automa
 - Legyen egyszerű szabály arra, ha a host kilép.
 - A már helyesen tippelő játékos állapota frissítés után is maradjon meg.
 - Ne jelenjen meg kétszer ugyanaz a chat- vagy rajzesemény.
+
+Elkészült szabályok:
+- A játékos az URL-ben lévő szobakód és a megmaradó névtelen munkamenet alapján
+  automatikusan visszakapja a korábbi helyét.
+- A kliens 10 másodpercenként szerveroldali jelenlétjelzést küld.
+- 45 másodpercnél rövidebb kimaradás után teljes szoba-, kör-, rajz- és
+  chatállapot töltődik újra.
+- 45 másodpercnél régebben elérhetetlen host szerepét a legrégebben bent lévő
+  aktív játékos kapja meg.
+- A 45 másodpercnél régebben elérhetetlen rajzoló köre lezárul, majd a játék az
+  aktív játékosokkal folytatódik.
+- Kézi böngészős oldalfrissítési próba és automatizált kétjátékos host-/rajzoló-
+  kiesési próba sikeresen lefutott.
 
 
 [ ] 5. MULTIPLAYER-BIZTONSÁGI ELLENŐRZÉS

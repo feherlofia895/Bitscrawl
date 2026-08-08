@@ -22,18 +22,21 @@ import {
   joinRoom,
   loadLobby,
   restartGame,
+  resumeRoom,
   setRoomTestMode,
   startGame,
   subscribeToLobby,
+  touchRoomPresence,
   type Lobby,
 } from './lib/lobby'
 import { checkSupabaseConnection } from './lib/supabase'
 
-type BackendStatus = 'checking' | 'online' | 'offline'
+type BackendStatus = 'checking' | 'online' | 'reconnecting' | 'offline'
 
 const backendStatusLabels: Record<BackendStatus, string> = {
   checking: 'Szerver: ellenőrzés',
   online: 'Szerver: online',
+  reconnecting: 'Szerver: újracsatlakozás',
   offline: 'Szerver: offline',
 }
 
@@ -85,6 +88,9 @@ function App() {
   const [backendStatus, setBackendStatus] =
     useState<BackendStatus>('checking')
   const [isBusy, setIsBusy] = useState(false)
+  const [isRestoringRoom, setIsRestoringRoom] = useState(
+    getInitialRoomCode().length === 6,
+  )
   const [isStartingGame, setIsStartingGame] = useState(false)
   const [isChoosingWord, setIsChoosingWord] = useState(false)
   const [isChangingTestMode, setIsChangingTestMode] = useState(false)
@@ -95,6 +101,30 @@ function App() {
   const [roundView, setRoundView] = useState<RoundView | null>(null)
   const [drawEvents, setDrawEvents] = useState<DrawEvent[]>([])
   const [roundMessages, setRoundMessages] = useState<RoundMessage[]>([])
+
+  const hydrateLobby = useCallback(
+    async (entry: Parameters<typeof loadLobby>[0]) => {
+      const nextLobby = await loadLobby(entry)
+      const nextRoundView =
+        nextLobby.room.status === 'playing'
+          ? await loadRoundView(nextLobby.room.id)
+          : null
+      const [nextDrawEvents, nextRoundMessages] = nextRoundView
+        ? await Promise.all([
+            loadDrawEvents(nextRoundView.round_id),
+            loadRoundMessages(nextRoundView.round_id),
+          ])
+        : [[], []]
+
+      setLobby(nextLobby)
+      setRoundView(nextRoundView)
+      setDrawEvents(nextDrawEvents)
+      setRoundMessages(nextRoundMessages)
+
+      return nextLobby
+    },
+    [],
+  )
 
   useEffect(() => {
     const controller = new AbortController()
@@ -112,6 +142,54 @@ function App() {
     }
   }, [])
 
+  useEffect(() => {
+    const code = getInitialRoomCode()
+    if (code.length !== 6) {
+      setIsRestoringRoom(false)
+      return
+    }
+
+    let cancelled = false
+    setMessage('Korábbi szobatagság keresése…')
+
+    const restore = async () => {
+      try {
+        const entry = await resumeRoom(code)
+        if (cancelled) return
+
+        if (!entry) {
+          setMessage(
+            'Ezen az eszközön még nem voltál a szobában. Adj meg egy nevet a csatlakozáshoz.',
+          )
+          return
+        }
+
+        await hydrateLobby(entry)
+        if (cancelled) return
+
+        setRoomCode(entry.roomCode)
+        setBackendStatus('online')
+        setMessage('Visszatértél a korábbi helyedre a szobában.')
+      } catch (error) {
+        if (!cancelled) {
+          setMessage(
+            error instanceof Error
+              ? error.message
+              : 'Nem sikerült visszaállítani a szobát.',
+          )
+        }
+      } finally {
+        if (!cancelled) setIsRestoringRoom(false)
+      }
+    }
+
+    void restore()
+
+    return () => {
+      cancelled = true
+    }
+  }, [hydrateLobby])
+
   const activeRoomId = lobby?.room.id
   const activePlayerId = lobby?.playerId
   const activeUserId = lobby?.currentUserId
@@ -120,31 +198,22 @@ function App() {
     if (!activeRoomId || !activePlayerId || !activeUserId) return
 
     try {
-      const nextLobby = await loadLobby({
+      await hydrateLobby({
         currentUserId: activeUserId,
         playerId: activePlayerId,
         roomCode: lobby?.room.code ?? '',
         roomId: activeRoomId,
       })
-      const nextRoundView =
-        nextLobby.room.status === 'playing'
-          ? await loadRoundView(nextLobby.room.id)
-          : null
-      const [nextDrawEvents, nextRoundMessages] = nextRoundView
-        ? await Promise.all([
-            loadDrawEvents(nextRoundView.round_id),
-            loadRoundMessages(nextRoundView.round_id),
-          ])
-        : [[], []]
-
-      setLobby(nextLobby)
-      setRoundView(nextRoundView)
-      setDrawEvents(nextDrawEvents)
-      setRoundMessages(nextRoundMessages)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Nem frissült a szoba.')
     }
-  }, [activePlayerId, activeRoomId, activeUserId, lobby?.room.code])
+  }, [
+    activePlayerId,
+    activeRoomId,
+    activeUserId,
+    hydrateLobby,
+    lobby?.room.code,
+  ])
 
   const activeRoundId = roundView?.round_id
   const refreshDrawEvents = useCallback(async () => {
@@ -178,8 +247,69 @@ function App() {
       () => void refreshLobby(),
       () => void refreshDrawEvents(),
       () => void refreshRoundMessages(),
+      (status) => {
+        setBackendStatus(
+          status === 'connected'
+            ? 'online'
+            : status === 'reconnecting'
+              ? 'reconnecting'
+              : 'offline',
+        )
+      },
     )
   }, [activeRoomId, refreshDrawEvents, refreshLobby, refreshRoundMessages])
+
+  useEffect(() => {
+    if (!activeRoomId) return
+
+    let heartbeatRunning = false
+
+    const heartbeat = async (refreshAfter = false) => {
+      if (heartbeatRunning || !navigator.onLine) return
+      heartbeatRunning = true
+
+      try {
+        const result = await touchRoomPresence(activeRoomId)
+        setBackendStatus('online')
+
+        if (refreshAfter || result.host_changed || result.round_finished) {
+          await refreshLobby()
+        }
+
+        if (result.host_changed) {
+          setMessage('A korábbi host kiesett, ezért új hostot választottunk.')
+        } else if (result.round_finished) {
+          setMessage('A rajzoló kiesett, ezért a kör lezárult.')
+        }
+      } catch {
+        setBackendStatus(navigator.onLine ? 'reconnecting' : 'offline')
+      } finally {
+        heartbeatRunning = false
+      }
+    }
+
+    const handleOnline = () => {
+      setBackendStatus('reconnecting')
+      void heartbeat(true)
+    }
+    const handleOffline = () => setBackendStatus('offline')
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') void heartbeat(true)
+    }
+
+    void heartbeat(true)
+    const intervalId = window.setInterval(() => void heartbeat(), 10_000)
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.clearInterval(intervalId)
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [activeRoomId, refreshLobby])
 
   const trimmedName = playerName.trim()
   const normalizedRoomCode = useMemo(
@@ -214,13 +344,9 @@ function App() {
         action === 'create'
           ? await createRoom(trimmedName)
           : await joinRoom(trimmedName, code ?? '')
-      const nextLobby = await loadLobby(entry)
+      await hydrateLobby(entry)
 
       window.history.replaceState({}, '', `?room=${entry.roomCode}`)
-      setLobby(nextLobby)
-      setRoundView(null)
-      setDrawEvents([])
-      setRoundMessages([])
       setRoomCode(entry.roomCode)
       setMessage('Sikeresen beléptél a várószobába.')
     } catch (error) {
@@ -408,6 +534,8 @@ function App() {
       first.joined_at.localeCompare(second.joined_at) ||
       first.id - second.id,
   )
+  const playerIsOnline = (lastSeenAt: string) =>
+    Date.now() - new Date(lastSeenAt).getTime() < 45_000
 
   return (
     <main className="app-shell">
@@ -478,6 +606,7 @@ function App() {
               {(gameIsFinished ? rankedPlayers : lobby.players).map((player, index) => {
                 const isHost = player.user_id === lobby.room.host_user_id
                 const isCurrentPlayer = player.user_id === lobby.currentUserId
+                const isOnline = playerIsOnline(player.last_seen_at)
 
                 return (
                   <li key={player.id}>
@@ -490,6 +619,9 @@ function App() {
                       {isCurrentPlayer ? ' (te)' : ''}
                     </span>
                     {isHost ? <span className="host-badge">Host</span> : null}
+                    {!isOnline ? (
+                      <span className="offline-player-badge">Nincs kapcsolat</span>
+                    ) : null}
                     {roomIsLocked ? (
                       <strong className="score-badge">{player.score} pont</strong>
                     ) : null}
@@ -514,7 +646,8 @@ function App() {
                 {roundView?.round_status === 'finished' ? (
                   <div className="round-result">
                     <span>
-                      Kör vége. A megfejtés: <b>{roundView.chosen_word}</b>.
+                      Kör vége. A megfejtés:{' '}
+                      <b>{roundView.chosen_word ?? 'nem választott szót'}</b>.
                     </span>
                     <span>
                       {roundView.correct_guess_count} helyes megfejtés érkezett.
@@ -722,7 +855,7 @@ function App() {
                 <span>Játékosnév</span>
                 <input
                   autoComplete="nickname"
-                  disabled={isBusy}
+                  disabled={isBusy || isRestoringRoom}
                   id="player-name"
                   maxLength={16}
                   onChange={(event) => setPlayerName(event.target.value)}
@@ -734,11 +867,15 @@ function App() {
 
               <button
                 className="primary-button"
-                disabled={isBusy}
+                disabled={isBusy || isRestoringRoom}
                 onClick={handleCreateRoom}
                 type="button"
               >
-                {isBusy ? 'Kapcsolódás…' : 'Szoba létrehozása'}
+                {isRestoringRoom
+                  ? 'Korábbi szoba keresése…'
+                  : isBusy
+                    ? 'Kapcsolódás…'
+                    : 'Szoba létrehozása'}
               </button>
 
               <div className="divider" aria-hidden="true">
@@ -750,7 +887,7 @@ function App() {
                   <span>Szobakód</span>
                   <input
                     autoCapitalize="characters"
-                    disabled={isBusy}
+                    disabled={isBusy || isRestoringRoom}
                     id="room-code"
                     maxLength={6}
                     onChange={(event) =>
@@ -771,7 +908,7 @@ function App() {
                 </label>
                 <button
                   className="secondary-button"
-                  disabled={isBusy}
+                  disabled={isBusy || isRestoringRoom}
                   onClick={handleJoinRoom}
                   type="button"
                 >
@@ -789,7 +926,7 @@ function App() {
 
       <footer>
         <span>Bitscrawl MVP</span>
-        <span>10. mérföldkő · vászonnagyító és ötfős teszt</span>
+        <span>11. mérföldkő · kapcsolat-helyreállítás</span>
       </footer>
     </main>
   )

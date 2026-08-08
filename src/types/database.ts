@@ -61,6 +61,7 @@ export type Database = {
           display_name: string
           id: number
           joined_at: string
+          last_seen_at: string
           room_id: number
           score: number
           user_id: string
@@ -69,6 +70,7 @@ export type Database = {
           display_name: string
           id?: never
           joined_at?: string
+          last_seen_at?: string
           room_id: number
           score?: number
           user_id: string
@@ -77,6 +79,7 @@ export type Database = {
           display_name?: string
           id?: never
           joined_at?: string
+          last_seen_at?: string
           room_id?: number
           score?: number
           user_id?: string
@@ -285,6 +288,15 @@ export type Database = {
           started_at: string
         }[]
       }
+      resume_room: {
+        Args: { room_code: string }
+        Returns: {
+          normalized_room_code: string
+          player_id: number
+          player_name: string
+          room_id: number
+        }[]
+      }
       set_room_test_mode: {
         Args: { target_room_id: number; test_mode_enabled: boolean }
         Returns: {
@@ -312,6 +324,15 @@ export type Database = {
       submit_pixel_changes: {
         Args: { pixel_changes: Json; target_round_id: number }
         Returns: number
+      }
+      touch_room_presence: {
+        Args: { target_room_id: number }
+        Returns: {
+          host_changed: boolean
+          host_user_id: string
+          round_finished: boolean
+          server_now: string
+        }[]
       }
     }
     Enums: {

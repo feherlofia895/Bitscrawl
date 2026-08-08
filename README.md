@@ -21,6 +21,8 @@ Online, többjátékos pixel art rajzolós-kitalálós játék korai prototípus
 - szerveroldali, gyorsaságalapú pontozás
 - játékosonként három rajz, automatikus körváltás és végeredmény
 - új játék indítása ugyanazzal a társasággal
+- automatikus visszatérés oldalfrissítés után és rövid kimaradás utáni újraszinkronizálás
+- kiesett host automatikus átadása és kiesett rajzoló körének biztonságos lezárása
 - RLS-sel védett táblák és ellenőrzött szobaműveletek
 
 ## Supabase beállítás
@@ -56,5 +58,14 @@ el a játékot.
 npm run lint
 npm run build
 ```
+
+A kapcsolat-helyreállítás kétjátékos integrációs próbája fejlesztői ellenőrzéshez:
+
+```bash
+node --env-file=.env.local scripts/verify-connection-recovery.mjs
+```
+
+A teszt körülbelül egy percig fut: két külön játékost hoz létre, majd ellenőrzi
+a 45 másodperces türelmi időt, a hostátadást és a következő kör indulását.
 
 Az adatbázis változásai a `supabase/migrations` mappában találhatók.
