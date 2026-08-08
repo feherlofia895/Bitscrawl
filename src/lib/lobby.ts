@@ -165,6 +165,7 @@ export function subscribeToLobby(
   roomId: number,
   onChange: () => void,
   onDrawChange: () => void = onChange,
+  onMessageChange: () => void = onChange,
 ) {
   let reconciliationTimeout: ReturnType<typeof setTimeout> | undefined
 
@@ -209,6 +210,16 @@ export function subscribeToLobby(
         table: 'round_draw_events',
       },
       onDrawChange,
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        filter: `room_id=eq.${roomId}`,
+        schema: 'public',
+        table: 'round_messages',
+      },
+      onMessageChange,
     )
     .subscribe((status) => {
       if (status !== 'SUBSCRIBED') return

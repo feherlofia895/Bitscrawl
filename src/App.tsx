@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import './App.css'
 import { PixelCanvas } from './components/PixelCanvas'
+import { RoundChat } from './components/RoundChat'
 import {
   chooseRoundWord,
   loadDrawEvents,
+  loadRoundMessages,
   loadRoundView,
+  submitGuess,
   submitPixelChanges,
   type DrawEvent,
+  type RoundMessage,
   type RoundView,
 } from './lib/game'
 import {
@@ -82,6 +86,7 @@ function App() {
   const [lobby, setLobby] = useState<Lobby | null>(null)
   const [roundView, setRoundView] = useState<RoundView | null>(null)
   const [drawEvents, setDrawEvents] = useState<DrawEvent[]>([])
+  const [roundMessages, setRoundMessages] = useState<RoundMessage[]>([])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -117,13 +122,17 @@ function App() {
         nextLobby.room.status === 'playing'
           ? await loadRoundView(nextLobby.room.id)
           : null
-      const nextDrawEvents = nextRoundView
-        ? await loadDrawEvents(nextRoundView.round_id)
-        : []
+      const [nextDrawEvents, nextRoundMessages] = nextRoundView
+        ? await Promise.all([
+            loadDrawEvents(nextRoundView.round_id),
+            loadRoundMessages(nextRoundView.round_id),
+          ])
+        : [[], []]
 
       setLobby(nextLobby)
       setRoundView(nextRoundView)
       setDrawEvents(nextDrawEvents)
+      setRoundMessages(nextRoundMessages)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Nem frissült a szoba.')
     }
@@ -142,14 +151,27 @@ function App() {
     }
   }, [activeRoundId])
 
+  const refreshRoundMessages = useCallback(async () => {
+    if (!activeRoundId) return
+
+    try {
+      setRoundMessages(await loadRoundMessages(activeRoundId))
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : 'Nem frissült a chat.',
+      )
+    }
+  }, [activeRoundId])
+
   useEffect(() => {
     if (!activeRoomId) return
     return subscribeToLobby(
       activeRoomId,
       () => void refreshLobby(),
       () => void refreshDrawEvents(),
+      () => void refreshRoundMessages(),
     )
-  }, [activeRoomId, refreshDrawEvents, refreshLobby])
+  }, [activeRoomId, refreshDrawEvents, refreshLobby, refreshRoundMessages])
 
   const trimmedName = playerName.trim()
   const normalizedRoomCode = useMemo(
@@ -190,6 +212,7 @@ function App() {
       setLobby(nextLobby)
       setRoundView(null)
       setDrawEvents([])
+      setRoundMessages([])
       setRoomCode(entry.roomCode)
       setMessage('Sikeresen beléptél a várószobába.')
     } catch (error) {
@@ -449,21 +472,38 @@ function App() {
             )}
 
             {roundView?.round_status === 'drawing' ? (
-              <PixelCanvas
-                canDraw={roundView.is_drawer}
-                events={drawEvents}
-                onError={(error) =>
-                  setMessage(
-                    error instanceof Error
-                      ? error.message
-                      : 'Nem sikerült elküldeni a pixelmódosítást.',
-                  )
-                }
-                onSubmit={(changes) =>
-                  submitPixelChanges(roundView.round_id, changes)
-                }
-                roundId={roundView.round_id}
-              />
+              <div className="round-play-area">
+                <PixelCanvas
+                  canDraw={roundView.is_drawer}
+                  events={drawEvents}
+                  onError={(error) =>
+                    setMessage(
+                      error instanceof Error
+                        ? error.message
+                        : 'Nem sikerült elküldeni a pixelmódosítást.',
+                    )
+                  }
+                  onSubmit={(changes) =>
+                    submitPixelChanges(roundView.round_id, changes)
+                  }
+                  roundId={roundView.round_id}
+                />
+                <RoundChat
+                  currentUserId={lobby.currentUserId}
+                  isDrawer={roundView.is_drawer}
+                  messages={roundMessages}
+                  onError={(error) =>
+                    setMessage(
+                      error instanceof Error
+                        ? error.message
+                        : 'Nem sikerült elküldeni a tippet.',
+                    )
+                  }
+                  onSubmit={(guess) => submitGuess(roundView.round_id, guess)}
+                  players={lobby.players}
+                  roundId={roundView.round_id}
+                />
+              </div>
             ) : null}
 
             <p className="status-message" aria-live="polite">
@@ -599,7 +639,7 @@ function App() {
 
       <footer>
         <span>PixelGuess MVP</span>
-        <span>5. mérföldkő · élő pixelvászon</span>
+        <span>6. mérföldkő · chat és megfejtés</span>
       </footer>
     </main>
   )

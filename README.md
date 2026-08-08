@@ -16,6 +16,7 @@ Online, többjátékos pixel art rajzolós-kitalálós játék korai prototípus
 - host által kapcsolható egyszemélyes teszt mód
 - 32×32-as HTML Canvas ceruzával, radírral és nyolcszínű palettával
 - szerver által ellenőrzött, változásalapú élő pixelrajzolás
+- valós idejű chat és szerveroldali, ékezetfüggetlen megfejtés-ellenőrzés
 - RLS-sel védett táblák és ellenőrzött szobaműveletek
 
 ## Supabase beállítás
