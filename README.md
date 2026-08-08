@@ -45,6 +45,11 @@ npm install
 npm run dev
 ```
 
+Windows alatt a `start-bitscrawl.cmd` fájlra is duplán kattinthatsz. A böngésző
+automatikusan megnyílik; a parancsablakot hagyd nyitva játék közben. Az ugyanazon
+a Wi-Fi-hálózaton lévő telefon jelenleg a `http://192.168.0.112:5173/` címen éri
+el a játékot.
+
 ## Ellenőrzés
 
 ```bash
