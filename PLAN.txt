@@ -212,7 +212,7 @@ Még hátra van a pont teljes lezárásához:
   érintést hitelesen előállítani.
 
 
-[ ] 10. NYOLCSZÍNŰ PALETTA ÉS KOMPAKT ESZKÖZTÁR
+[x] 10. NYOLCSZÍNŰ PALETTA ÉS KOMPAKT ESZKÖZTÁR
 
 - Az alapértelmezett palettában maradjon pontosan nyolc rajzszín és a jelenlegi
   fanyar Bitscrawl-hangulat.
@@ -236,6 +236,24 @@ Még hátra van a pont teljes lezárásához:
   alapszín és mindegyik összehangolt, sötétebb árnyékváltozata.
 - A szoba beállítása határozza meg, hogy a meccs 8 vagy 16 színt használ; ezt a szerver
   tárolja, és játék közben ne lehessen önkényesen átváltani.
+
+Elkészült és ellenőrizve:
+
+- A nyolc alapszín egy közös színforrásból érkezik, és pontosan megegyezik a Bitscrawl
+  felület fő tinta-, papír-, ibolya-, menta-, sárga-, korall-, kék- és palaszíneivel.
+- A 16 színű mód mind a nyolc alapszínt egy összehangolt, sötétebb árnyékpárral egészíti ki.
+- A host a várószobában választhat 8 vagy 16 színt; az alapérték 8, és elindult meccsnél
+  a szerver már nem enged váltani.
+- A szerver csak a kiválasztott palettához tartozó pixelváltozásokat fogadja el.
+- A ceruza, radír, kitöltés, visszavonás és mozgatás külön cserélhető SVG-ikont kapott,
+  magyar súgóval és akadálymentes névvel.
+- Elkészült az egyenes vonal, a téglalap vagy négyzet és az ellipszis vagy kör eszköz.
+  Húzás közben helyi előnézet látszik, elengedéskor egyetlen visszavonható művelet készül,
+  és multiplayerben csak a végleges pixelek kerülnek továbbításra.
+- A célzott szerverteszt igazolta a 8/16 színkorlátozást, a hostjogot és a meccs közbeni
+  váltás tiltását. A böngészős alakzatpróba, lint és production build sikeres volt.
+- 390×844-es mobilnézetben nincs vízszintes kilógás; az eszközgombok legalább 46×48,
+  a 16 színű paletta mezői pedig 63×63 pixeles érintési célterületet adnak.
 
 
 [ ] 11. SZOBACHAT ÉS TITKOS MEGFEJTÉSMEZŐ

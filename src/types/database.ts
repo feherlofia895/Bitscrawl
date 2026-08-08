@@ -102,6 +102,7 @@ export type Database = {
           host_user_id: string
           id: number
           max_players: number
+          palette_size: number
           started_at: string | null
           status: string
           test_mode: boolean
@@ -113,6 +114,7 @@ export type Database = {
           host_user_id: string
           id?: never
           max_players?: number
+          palette_size?: number
           started_at?: string | null
           status?: string
           test_mode?: boolean
@@ -124,6 +126,7 @@ export type Database = {
           host_user_id?: string
           id?: never
           max_players?: number
+          palette_size?: number
           started_at?: string | null
           status?: string
           test_mode?: boolean
@@ -311,6 +314,13 @@ export type Database = {
         Returns: {
           room_id: number
           test_mode: boolean
+        }[]
+      }
+      set_room_palette_size: {
+        Args: { palette_size_value: number; target_room_id: number }
+        Returns: {
+          palette_size: number
+          room_id: number
         }[]
       }
       start_game: {

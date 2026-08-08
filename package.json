@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test:leave-room": "node --env-file=.env.local scripts/verify-leave-room.mjs",
+    "test:palette-modes": "node --env-file=.env.local scripts/verify-palette-modes.mjs",
     "deploy": "npm run build && wrangler pages deploy dist --project-name bitscrawl --branch main"
   },
   "dependencies": {

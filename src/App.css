@@ -80,7 +80,7 @@ footer {
 }
 
 .backend-badge[data-status='online'] .status-dot {
-  background: #39b98a;
+  background: var(--mint);
 }
 
 .backend-badge[data-status='reconnecting'] .status-dot {
@@ -88,7 +88,7 @@ footer {
 }
 
 .backend-badge[data-status='offline'] .status-dot {
-  background: #ff6b6b;
+  background: var(--coral);
 }
 
 .hero {
@@ -163,7 +163,7 @@ footer {
   grid-template-columns: repeat(12, 1fr);
   aspect-ratio: 1;
   overflow: hidden;
-  background-color: #ffffff;
+  background-color: var(--paper);
   background-image:
     linear-gradient(var(--grid-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
@@ -248,7 +248,7 @@ input:focus {
 }
 
 input::placeholder {
-  color: #756e7f;
+  color: var(--slate);
 }
 
 button {
@@ -398,13 +398,13 @@ footer {
   width: 100%;
   margin-top: 10px;
   color: var(--ink);
-  background: color-mix(in srgb, #ff6b6b 45%, var(--paper));
+  background: color-mix(in srgb, var(--coral) 45%, var(--paper));
   border: 2px solid var(--ink);
   box-shadow: 3px 3px 0 var(--ink);
 }
 
 .leave-room-button:hover:not(:disabled) {
-  background: #ffb2b2;
+  background: color-mix(in srgb, var(--coral) 55%, var(--paper));
 }
 
 .room-note {
@@ -446,7 +446,7 @@ footer {
 .offline-player-badge {
   padding: 5px 7px;
   color: var(--ink);
-  background: #ffb2b2;
+  background: color-mix(in srgb, var(--coral) 55%, var(--paper));
   border: 2px solid var(--ink);
   font-family: var(--pixel-font);
   font-size: 0.62rem;
@@ -661,7 +661,7 @@ footer {
 }
 
 .round-timer[data-unlimited='true'] {
-  background: #91e6c5;
+  background: color-mix(in srgb, var(--mint) 62%, var(--paper));
 }
 
 .round-label {
@@ -736,16 +736,27 @@ footer {
 }
 
 .tool-buttons {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
 .tool-buttons button {
-  min-height: 42px;
+  display: grid;
+  width: 46px;
+  min-height: 46px;
+  padding: 9px;
+  place-items: center;
   color: var(--ink);
   background: var(--paper);
   box-shadow: 3px 3px 0 var(--ink);
+}
+
+.tool-buttons img,
+.canvas-zoom-controls img {
+  width: 22px;
+  height: 22px;
+  color: inherit;
 }
 
 .tool-buttons button[aria-pressed='true'] {
@@ -761,7 +772,14 @@ footer {
 .drawing-palette {
   display: grid;
   grid-template-columns: repeat(8, minmax(0, 1fr));
-  gap: 6px;
+  gap: 7px;
+  padding: 10px;
+  background: color-mix(in srgb, var(--slate) 24%, var(--paper));
+  border: 2px solid var(--ink);
+}
+
+.drawing-palette[data-palette-size='16'] {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
 }
 
 .drawing-palette button {
@@ -776,9 +794,44 @@ footer {
   outline-offset: 2px;
 }
 
+.palette-mode-fieldset {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 12px;
+  border: 2px solid var(--ink);
+}
+
+.palette-mode-fieldset legend {
+  padding: 0 6px;
+  font-family: var(--pixel-font);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.palette-mode-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.palette-mode-buttons button {
+  min-height: 44px;
+  color: var(--ink);
+  background: var(--paper);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.palette-mode-buttons button[aria-pressed='true'] {
+  background: var(--mint);
+}
+
 .canvas-zoom-controls {
   display: grid;
-  grid-template-columns: auto repeat(6, minmax(42px, auto));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 7px;
   align-items: center;
   width: min(100%, 680px);
@@ -792,6 +845,10 @@ footer {
   font-weight: 900;
   text-align: center;
   text-transform: uppercase;
+}
+
+.canvas-zoom-controls span {
+  text-align: left;
 }
 
 .canvas-zoom-controls button {
@@ -818,7 +875,7 @@ footer {
   aspect-ratio: 1;
   margin: 0 auto;
   overflow: hidden;
-  background-color: #b9aec7;
+  background-color: color-mix(in srgb, var(--violet) 32%, var(--slate));
   background-image: radial-gradient(
     circle,
     rgb(36 26 53 / 22%) 1px,
@@ -835,7 +892,7 @@ footer {
 .pixel-canvas-surface {
   position: absolute;
   overflow: hidden;
-  background-color: #d8d1e2;
+  background-color: color-mix(in srgb, var(--paper) 68%, var(--slate));
   background-image:
     linear-gradient(45deg, rgb(255 255 255 / 72%) 25%, transparent 25%),
     linear-gradient(-45deg, rgb(255 255 255 / 72%) 25%, transparent 25%),
@@ -941,7 +998,7 @@ footer {
   max-height: 360px;
   padding: 10px;
   overflow-y: auto;
-  background: #ffffff;
+  background: var(--paper);
   border: 2px solid var(--ink);
 }
 
@@ -1101,6 +1158,10 @@ footer {
   }
 
   .drawing-palette {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .drawing-palette[data-palette-size='16'] {
     grid-template-columns: repeat(4, 1fr);
   }
 
