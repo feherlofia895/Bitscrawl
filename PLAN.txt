@@ -96,13 +96,25 @@ Elkészült ellenőrzések:
   játékosnál a teszt mód továbbra is 15 másodperces.
 
 
-[ ] 6. MOBILOS JÁTSZHATÓSÁG ÉS EGYSZERŰ SZÓLISTA
+[x] 6. MOBILOS JÁTSZHATÓSÁG ÉS EGYSZERŰ SZÓLISTA
 
 - A rajzolás, chat és időzítő kis képernyőn is kényelmesen használható legyen.
 - Egyértelmű legyen, ki rajzol és mikor következik a következő kör.
 - Kapcsolati és szerverhibák érthető magyar üzenetet kapjanak.
 - Kezdetben csak kevés, könnyen rajzolható magyar szó legyen a játékban.
 - A szólista átnézése: ne legyen kétértelmű vagy túl nehéz szó.
+
+Elkészült:
+
+- A rajznézet mobilon szélesebb lett, a vezérlők legalább 44 pixeles érintési
+  célterületet kaptak, és 360 pixeles képernyőn sincs vízszintes kilógás.
+- A vászon egy külön, mintás rajznézetben jelenik meg. Nagyításkor maga a
+  32×32-es rajz nő meg, majd a Mozgatás eszközzel elhúzható a keretben.
+- A nagyítás és az elhúzás 390×844 és 360×800 méretű mobilnézetben is
+  ellenőrizve lett.
+- A szerveroldali szóbank 40 rövid, konkrét és könnyen rajzolható magyar szót
+  tartalmaz. A készlet a négy beküldött témából válogat, de a kategóriák még
+  nem befolyásolják a játékmenetet.
 
 
 [ ] 7. NYILVÁNOS TESZTVÁLTOZAT

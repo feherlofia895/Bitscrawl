@@ -936,7 +936,7 @@ function App() {
 
       <footer>
         <span>Bitscrawl MVP</span>
-        <span>12. mérföldkő · multiplayer-biztonság</span>
+        <span>13. mérföldkő · mobil rajznézet és szólista</span>
       </footer>
     </main>
   )
