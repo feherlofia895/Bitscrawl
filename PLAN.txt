@@ -125,6 +125,21 @@ Elkészült:
 - Teljes meccs kipróbálása két külön hálózatról.
 - Alapvető hibajelzés vagy naplózás hozzáadása, ha szükséges.
 
+Elkészült eddig:
+
+- A production frontend ingyenes Cloudflare Pages tárhelyen, HTTPS-en elérhető:
+  https://bitscrawl.pages.dev/
+- A buildbe csak a Supabase URL és a böngészőbe szánt publishable kulcs kerül;
+  `service_role` vagy más titkos kulcs nincs benne.
+- Két független böngészős klienssel sikerült szobát létrehozni, csatlakozni,
+  meccset indítani, élő pixelváltozást küldeni és ékezet nélkül megfejteni.
+- A publikus mobilnézet 390×844 méreten kilógás és böngészőhiba nélkül működik.
+- A kihelyezés megismételhető az `npm run deploy` paranccsal.
+
+Még hátra van a pont lezárásához:
+
+- Egy teljes meccs kézi végigjátszása számítógépről és mobilinternetes telefonról.
+
 
 [ ] 8. PWA – TELEPÍTHETŐ Bitscrawl
 

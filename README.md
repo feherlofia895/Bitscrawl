@@ -2,6 +2,8 @@
 
 Online, többjátékos pixel art rajzolós-kitalálós játék korai prototípusa.
 
+Nyilvános tesztváltozat: **https://bitscrawl.pages.dev/**
+
 ## Jelenlegi állapot
 
 - React + TypeScript + Vite kliens
@@ -52,6 +54,28 @@ Windows alatt a `start-bitscrawl.cmd` fájlra is duplán kattinthatsz. A böngé
 automatikusan megnyílik; a parancsablakot hagyd nyitva játék közben. Az ugyanazon
 a Wi-Fi-hálózaton lévő telefon jelenleg a `http://192.168.0.112:5173/` címen éri
 el a játékot.
+
+## Nyilvános kihelyezés
+
+A frontend a `bitscrawl` nevű ingyenes Cloudflare Pages projektben fut. A Vite
+build a helyi, Git által figyelmen kívül hagyott `.env.local` fájlból olvassa a
+Supabase URL-t és a publishable kulcsot. `service_role` vagy más titkos kulcsot
+tilos a kliensoldali buildbe tenni.
+
+Első használatkor jelentkezz be a Cloudflare-fiókba:
+
+```bash
+npx wrangler login
+```
+
+Ezután az aktuális production build kihelyezése:
+
+```bash
+npm run deploy
+```
+
+A parancs előbb elkészíti a `dist` mappát, majd feltölti a `main` production
+ágra. A publikus cím HTTPS-t használ, és nem szükséges hozzá saját domain.
 
 ## Ellenőrzés
 
