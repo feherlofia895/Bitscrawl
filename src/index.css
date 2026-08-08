@@ -1,13 +1,18 @@
 :root {
   --ink: #241a35;
-  --paper: #fffaf0;
+  --paper: #f7f3e8;
   --page: #f2ecff;
   --muted: #625a6d;
   --violet: #9b7ede;
   --violet-dark: #6446a6;
-  --mint: #a8e6cf;
+  --mint: #4ecdc4;
   --yellow: #ffd166;
   --blue: #4d96ff;
+  --coral: #ff6b6b;
+  --olive: #8fa66a;
+  --red: #b83f4d;
+  --rust: #c9825b;
+  --slate: #7b8794;
   --grid-line: #e4ddea;
   --display-font: 'Arial Black', 'Segoe UI Black', system-ui, sans-serif;
   --pixel-font: ui-monospace, 'Cascadia Mono', Consolas, monospace;

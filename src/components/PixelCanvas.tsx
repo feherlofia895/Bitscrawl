@@ -5,6 +5,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import type { DrawEvent, PixelChange } from '../lib/game'
+import { colorsForPalette, type PaletteSize } from '../lib/palette'
 
 const CANVAS_SIZE = 32
 const TRANSPARENT = 'transparent'
@@ -14,28 +15,30 @@ const ZOOM_BUTTON_STEP = 0.5
 const CANVAS_SURFACE_RATIO = 0.93
 const CENTERED_CANVAS_OFFSET = (1 - CANVAS_SURFACE_RATIO) / 2
 
-const pixelPalette = [
-  '#241a35',
-  '#f7f3e8',
-  '#9b7ede',
-  '#4ecdc4',
-  '#ffd166',
-  '#ff6b6b',
-  '#4d96ff',
-  '#7b8794',
-]
-
 type PixelCanvasProps = {
   canDraw: boolean
   events: DrawEvent[]
   onError: (error: unknown) => void
   onSubmit: (changes: PixelChange[]) => Promise<unknown>
+  paletteSize: PaletteSize
   roundId: number
 }
 
 type PixelPoint = { x: number; y: number }
-type DrawingTool = 'pencil' | 'eraser' | 'fill'
+type DrawingTool =
+  | 'pencil'
+  | 'eraser'
+  | 'fill'
+  | 'line'
+  | 'rectangle'
+  | 'ellipse'
 type PixelMutation = PixelChange & { before: string }
+type ShapeTool = Extract<DrawingTool, 'line' | 'rectangle' | 'ellipse'>
+type ShapeGesture = {
+  current: PixelPoint
+  start: PixelPoint
+  tool: ShapeTool
+}
 type CanvasPan = { x: number; y: number }
 type PanGesture = {
   origin: CanvasPan
@@ -93,6 +96,79 @@ function pointsOnLine(from: PixelPoint, to: PixelPoint) {
   return points
 }
 
+function uniquePoints(points: PixelPoint[]) {
+  return [...new Map(points.map((point) => [pixelKey(point), point])).values()]
+}
+
+function pointsOnRectangle(from: PixelPoint, to: PixelPoint) {
+  const left = Math.min(from.x, to.x)
+  const right = Math.max(from.x, to.x)
+  const top = Math.min(from.y, to.y)
+  const bottom = Math.max(from.y, to.y)
+  const points: PixelPoint[] = []
+
+  for (let x = left; x <= right; x += 1) {
+    points.push({ x, y: top }, { x, y: bottom })
+  }
+  for (let y = top; y <= bottom; y += 1) {
+    points.push({ x: left, y }, { x: right, y })
+  }
+
+  return uniquePoints(points)
+}
+
+function pointsOnEllipse(from: PixelPoint, to: PixelPoint) {
+  const left = Math.min(from.x, to.x)
+  const right = Math.max(from.x, to.x)
+  const top = Math.min(from.y, to.y)
+  const bottom = Math.max(from.y, to.y)
+  if (left === right || top === bottom) return pointsOnLine(from, to)
+
+  const centerX = (left + right) / 2
+  const centerY = (top + bottom) / 2
+  const radiusX = (right - left) / 2
+  const radiusY = (bottom - top) / 2
+  const samples = Math.max(24, Math.ceil(2 * Math.PI * Math.max(radiusX, radiusY) * 2))
+  const points: PixelPoint[] = []
+
+  for (let index = 0; index < samples; index += 1) {
+    const angle = (index / samples) * Math.PI * 2
+    points.push({
+      x: Math.round(centerX + Math.cos(angle) * radiusX),
+      y: Math.round(centerY + Math.sin(angle) * radiusY),
+    })
+  }
+
+  return uniquePoints(points)
+}
+
+function pointsForShape(gesture: ShapeGesture) {
+  if (gesture.tool === 'line') {
+    return pointsOnLine(gesture.start, gesture.current)
+  }
+  if (gesture.tool === 'rectangle') {
+    return pointsOnRectangle(gesture.start, gesture.current)
+  }
+  return pointsOnEllipse(gesture.start, gesture.current)
+}
+
+function isShapeTool(tool: DrawingTool): tool is ShapeTool {
+  return tool === 'line' || tool === 'rectangle' || tool === 'ellipse'
+}
+
+const toolButtons: Array<{
+  icon: string
+  label: string
+  tool: DrawingTool
+}> = [
+  { icon: 'pencil', label: 'Ceruza', tool: 'pencil' },
+  { icon: 'eraser', label: 'Radír', tool: 'eraser' },
+  { icon: 'fill', label: 'Kitöltés', tool: 'fill' },
+  { icon: 'line', label: 'Egyenes vonal', tool: 'line' },
+  { icon: 'rectangle', label: 'Négyzet vagy téglalap', tool: 'rectangle' },
+  { icon: 'ellipse', label: 'Kör vagy ellipszis', tool: 'ellipse' },
+]
+
 function connectedPixels(pixels: string[], start: PixelPoint) {
   const targetColor = pixels[start.y * CANVAS_SIZE + start.x]
   const result: PixelPoint[] = []
@@ -133,8 +209,10 @@ export function PixelCanvas({
   events,
   onError,
   onSubmit,
+  paletteSize,
   roundId,
 }: PixelCanvasProps) {
+  const pixelPalette = colorsForPalette(paletteSize)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const canvasFrameRef = useRef<HTMLDivElement>(null)
   const pixelsRef = useRef<string[]>(
@@ -155,8 +233,9 @@ export function PixelCanvas({
   } | null>(null)
   const lastPointRef = useRef<PixelPoint | null>(null)
   const activeStrokeRef = useRef<Map<string, PixelMutation> | null>(null)
+  const shapeGestureRef = useRef<ShapeGesture | null>(null)
   const undoHistoryRef = useRef<PixelMutation[][]>([])
-  const [activeColor, setActiveColor] = useState(pixelPalette[0])
+  const [activeColor, setActiveColor] = useState(pixelPalette[0].hex)
   const [activeTool, setActiveTool] = useState<DrawingTool>('pencil')
   const [canUndo, setCanUndo] = useState(false)
   const [zoom, setZoom] = useState(MIN_ZOOM)
@@ -242,6 +321,21 @@ export function PixelCanvas({
       context.fillStyle = change.color
       context.fillRect(change.x, change.y, 1, 1)
     }
+  }
+
+  const redrawCanvas = (previewPoints: PixelPoint[] = []) => {
+    const context = canvasRef.current?.getContext('2d')
+    if (!context) return
+
+    context.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
+    pixelsRef.current.forEach((color, index) => {
+      if (color === TRANSPARENT) return
+      context.fillStyle = color
+      context.fillRect(index % CANVAS_SIZE, Math.floor(index / CANVAS_SIZE), 1, 1)
+    })
+
+    context.fillStyle = activeColor
+    previewPoints.forEach(({ x, y }) => context.fillRect(x, y, 1, 1))
   }
 
   const flushPendingChanges = () => {
@@ -372,6 +466,35 @@ export function PixelCanvas({
     flushPendingChanges()
   }
 
+  const previewShape = (point: PixelPoint) => {
+    const gesture = shapeGestureRef.current
+    if (!gesture) return
+    gesture.current = point
+    redrawCanvas(pointsForShape(gesture))
+  }
+
+  const finishShape = (point?: PixelPoint) => {
+    const gesture = shapeGestureRef.current
+    if (!gesture) return
+    if (point) gesture.current = point
+
+    const mutations = pointsForShape(gesture).map((pixel) => ({
+      ...pixel,
+      before: pixelsRef.current[pixel.y * CANVAS_SIZE + pixel.x],
+      color: activeColor,
+    }))
+    shapeGestureRef.current = null
+    mutations.forEach(queueChange)
+    saveUndoStep(mutations)
+    flushPendingChanges()
+    redrawCanvas()
+  }
+
+  const cancelShape = () => {
+    shapeGestureRef.current = null
+    redrawCanvas()
+  }
+
   const undoLastStep = () => {
     if (isDrawingRef.current) return
 
@@ -474,6 +597,7 @@ export function PixelCanvas({
     pendingChangesRef.current.clear()
     undoHistoryRef.current = []
     activeStrokeRef.current = null
+    shapeGestureRef.current = null
     isDrawingRef.current = false
     isPanningRef.current = false
     panGestureRef.current = null
@@ -493,6 +617,12 @@ export function PixelCanvas({
     const context = canvasRef.current?.getContext('2d')
     context?.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
   }, [roundId])
+
+  useEffect(() => {
+    if (!pixelPalette.some((color) => color.hex === activeColor)) {
+      setActiveColor(pixelPalette[0].hex)
+    }
+  }, [activeColor, paletteSize, pixelPalette])
 
   useEffect(() => {
     events.forEach((event) => {
@@ -534,42 +664,44 @@ export function PixelCanvas({
       {canDraw ? (
         <div className="pixel-toolbar" aria-label="Rajzeszközök">
           <div className="tool-buttons">
+            {toolButtons.map(({ icon, label, tool }) => (
+              <button
+                aria-label={label}
+                aria-pressed={activeTool === tool}
+                key={tool}
+                onClick={() => selectDrawingTool(tool)}
+                title={label}
+                type="button"
+              >
+                <img alt="" aria-hidden="true" src={`/icons/tools/${icon}.svg`} />
+              </button>
+            ))}
             <button
-              aria-pressed={activeTool === 'pencil'}
-              onClick={() => selectDrawingTool('pencil')}
+              aria-label="Visszavonás"
+              disabled={!canUndo}
+              onClick={undoLastStep}
+              title="Visszavonás"
               type="button"
             >
-              Ceruza
-            </button>
-            <button
-              aria-pressed={activeTool === 'eraser'}
-              onClick={() => selectDrawingTool('eraser')}
-              type="button"
-            >
-              Radír
-            </button>
-            <button
-              aria-pressed={activeTool === 'fill'}
-              onClick={() => selectDrawingTool('fill')}
-              type="button"
-            >
-              Kitöltés
-            </button>
-            <button disabled={!canUndo} onClick={undoLastStep} type="button">
-              Visszavonás
+              <img alt="" aria-hidden="true" src="/icons/tools/undo.svg" />
             </button>
           </div>
-          <div className="drawing-palette" aria-label="Színpaletta">
+          <div
+            className="drawing-palette"
+            data-palette-size={paletteSize}
+            aria-label={`${paletteSize} színű paletta`}
+          >
             {pixelPalette.map((color) => (
               <button
-                aria-label={`Szín ${color}`}
-                aria-pressed={activeColor === color}
-                key={color}
+                aria-label={`${color.name}, ${color.hex}`}
+                aria-pressed={activeColor === color.hex}
+                key={color.hex}
                 onClick={() => {
-                  setActiveColor(color)
+                  setActiveColor(color.hex)
                   selectDrawingTool('pencil')
                 }}
-                style={{ backgroundColor: color }}
+                style={{ backgroundColor: color.hex }}
+                title={color.name}
                 type="button"
               />
             ))}
@@ -604,12 +736,14 @@ export function PixelCanvas({
           100%
         </button>
         <button
+          aria-label="Mozgatás"
           aria-pressed={isPanMode}
           disabled={zoom === MIN_ZOOM}
           onClick={() => setIsPanMode((current) => !current)}
+          title="Mozgatás"
           type="button"
         >
-          Mozgatás
+          <img alt="" aria-hidden="true" src="/icons/tools/pan.svg" />
         </button>
         <button
           aria-pressed={showGrid}
@@ -652,6 +786,10 @@ export function PixelCanvas({
                 finishPan()
                 return
               }
+              if (shapeGestureRef.current) {
+                cancelShape()
+                return
+              }
               finishStroke()
             }}
             onPointerDown={(event) => {
@@ -667,6 +805,7 @@ export function PixelCanvas({
                 activePointersRef.current.size >= 2
               ) {
                 cancelActiveStroke()
+                cancelShape()
                 pendingTouchFillRef.current = null
                 finishPan()
                 startPinch()
@@ -695,6 +834,16 @@ export function PixelCanvas({
                 return
               }
 
+              if (isShapeTool(activeTool)) {
+                shapeGestureRef.current = {
+                  current: point,
+                  start: point,
+                  tool: activeTool,
+                }
+                redrawCanvas([point])
+                return
+              }
+
               activeStrokeRef.current = new Map()
               isDrawingRef.current = true
               drawTo(point)
@@ -716,6 +865,11 @@ export function PixelCanvas({
 
               if (isPanningRef.current) {
                 movePan(event)
+                return
+              }
+
+              if (canDraw && shapeGestureRef.current) {
+                previewShape(pointFromEvent(event))
                 return
               }
 
@@ -746,6 +900,11 @@ export function PixelCanvas({
 
               if (isPanningRef.current) {
                 finishPan()
+                return
+              }
+
+              if (canDraw && shapeGestureRef.current) {
+                finishShape(pointFromEvent(event))
                 return
               }
 

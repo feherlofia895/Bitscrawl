@@ -24,12 +24,14 @@ import {
   loadLobby,
   restartGame,
   resumeRoom,
+  setRoomPaletteSize,
   setRoomTestMode,
   startGame,
   subscribeToLobby,
   touchRoomPresence,
   type Lobby,
 } from './lib/lobby'
+import { basePalette, type PaletteSize } from './lib/palette'
 import { checkSupabaseConnection } from './lib/supabase'
 
 type BackendStatus = 'checking' | 'online' | 'reconnecting' | 'offline'
@@ -41,16 +43,7 @@ const backendStatusLabels: Record<BackendStatus, string> = {
   offline: 'Szerver: offline',
 }
 
-const palette = [
-  '#241a35',
-  '#f7f3e8',
-  '#9b7ede',
-  '#4ecdc4',
-  '#ffd166',
-  '#ff6b6b',
-  '#4d96ff',
-  '#7b8794',
-]
+const palette = basePalette.map((color) => color.hex)
 
 const previewPixels = [
   '000444444000',
@@ -95,6 +88,7 @@ function App() {
   const [isStartingGame, setIsStartingGame] = useState(false)
   const [isChoosingWord, setIsChoosingWord] = useState(false)
   const [isChangingTestMode, setIsChangingTestMode] = useState(false)
+  const [isChangingPaletteSize, setIsChangingPaletteSize] = useState(false)
   const [isFinishingRound, setIsFinishingRound] = useState(false)
   const [isAdvancingRound, setIsAdvancingRound] = useState(false)
   const [isRestartingGame, setIsRestartingGame] = useState(false)
@@ -436,6 +430,27 @@ function App() {
       )
     } finally {
       setIsChangingTestMode(false)
+    }
+  }
+
+  const handlePaletteSizeChange = async (paletteSize: PaletteSize) => {
+    if (!lobby || lobby.room.palette_size === paletteSize) return
+
+    setIsChangingPaletteSize(true)
+    setMessage('Színpaletta frissítése…')
+
+    try {
+      await setRoomPaletteSize(lobby.room.id, paletteSize)
+      await refreshLobby()
+      setMessage(`${paletteSize} színű paletta kiválasztva.`)
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Nem sikerült módosítani a színpalettát.',
+      )
+    } finally {
+      setIsChangingPaletteSize(false)
     }
   }
 
@@ -785,6 +800,27 @@ function App() {
               </div>
             ) : isHost ? (
               <div className="start-game-controls">
+                <fieldset className="palette-mode-fieldset">
+                  <legend>Meccs palettája</legend>
+                  <div className="palette-mode-buttons">
+                    {([8, 16] as const).map((paletteSize) => (
+                      <button
+                        aria-pressed={lobby.room.palette_size === paletteSize}
+                        disabled={isChangingPaletteSize || isStartingGame}
+                        key={paletteSize}
+                        onClick={() => void handlePaletteSizeChange(paletteSize)}
+                        type="button"
+                      >
+                        {paletteSize} szín
+                      </button>
+                    ))}
+                  </div>
+                  <span>
+                    {lobby.room.palette_size === 8
+                      ? 'Gyors, letisztult alapmód.'
+                      : 'Az alapszínek és összehangolt árnyékaik.'}
+                  </span>
+                </fieldset>
                 <button
                   aria-pressed={lobby.room.test_mode}
                   className="test-mode-button"
@@ -804,6 +840,7 @@ function App() {
                   disabled={
                     isStartingGame ||
                     isChangingTestMode ||
+                    isChangingPaletteSize ||
                     lobby.players.length < minimumPlayers
                   }
                   onClick={() => void handleStartGame()}
@@ -834,6 +871,7 @@ function App() {
                   onSubmit={(changes) =>
                     submitPixelChanges(roundView.round_id, changes)
                   }
+                  paletteSize={lobby.room.palette_size as PaletteSize}
                   roundId={roundView.round_id}
                 />
                 <RoundChat

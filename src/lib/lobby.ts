@@ -1,4 +1,5 @@
 import type { Database } from '../types/database'
+import type { PaletteSize } from './palette'
 import { ensurePlayerSession, supabase } from './supabase'
 
 export type Room = Database['public']['Tables']['rooms']['Row']
@@ -30,6 +31,7 @@ const lobbyErrorMessages: Record<string, string> = {
   NOT_ENOUGH_ACTIVE_PLAYERS:
     'A játék indításához legalább 2 kapcsolódó játékos kell.',
   NOT_ROOM_HOST: 'Csak a szoba hostja indíthatja el a játékot.',
+  PALETTE_SIZE_INVALID: 'A paletta csak 8 vagy 16 színű lehet.',
   GAME_NOT_FINISHED: 'Az új játék csak a meccs végén indítható.',
   ROOM_MEMBERSHIP_NOT_FOUND: 'Már nem vagy tagja ennek a szobának.',
   PLAYER_NAME_INVALID: 'A játékosnév 2–16 karakter hosszú legyen.',
@@ -173,6 +175,27 @@ export async function setRoomTestMode(roomId: number, enabled: boolean) {
       .rpc('set_room_test_mode', {
         target_room_id: roomId,
         test_mode_enabled: enabled,
+      })
+      .single()
+
+    if (error) throw error
+
+    return data
+  } catch (error) {
+    throw readableLobbyError(error)
+  }
+}
+
+export async function setRoomPaletteSize(
+  roomId: number,
+  paletteSize: PaletteSize,
+) {
+  try {
+    await ensurePlayerSession()
+    const { data, error } = await supabase
+      .rpc('set_room_palette_size', {
+        palette_size_value: paletteSize,
+        target_room_id: roomId,
       })
       .single()
 
