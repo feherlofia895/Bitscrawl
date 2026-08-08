@@ -11,6 +11,8 @@ Online, többjátékos pixel art rajzolós-kitalálós játék korai prototípus
 - valós időben frissülő játékoslista
 - legalább 2 főnél, kizárólag a host által indítható meccs
 - valós idejű várószoba → játék állapotváltás
+- szerver által kiosztott rajzoló és három titkos szólehetőség
+- csak a rajzoló számára látható szóválasztás
 - RLS-sel védett táblák és ellenőrzött szobaműveletek
 
 ## Supabase beállítás
