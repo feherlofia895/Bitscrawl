@@ -8,6 +8,7 @@ import type { DrawEvent, PixelChange } from '../lib/game'
 
 const CANVAS_SIZE = 32
 const TRANSPARENT = 'transparent'
+const MAX_UNDO_STEPS = 50
 
 const pixelPalette = [
   '#241a35',
@@ -29,6 +30,12 @@ type PixelCanvasProps = {
 }
 
 type PixelPoint = { x: number; y: number }
+type DrawingTool = 'pencil' | 'eraser' | 'fill'
+type PixelMutation = PixelChange & { before: string }
+
+function pixelKey(point: PixelPoint) {
+  return `${point.x}-${point.y}`
+}
 
 function pointsOnLine(from: PixelPoint, to: PixelPoint) {
   const points: PixelPoint[] = []
@@ -58,6 +65,41 @@ function pointsOnLine(from: PixelPoint, to: PixelPoint) {
   return points
 }
 
+function connectedPixels(pixels: string[], start: PixelPoint) {
+  const targetColor = pixels[start.y * CANVAS_SIZE + start.x]
+  const result: PixelPoint[] = []
+  const queue = [start.y * CANVAS_SIZE + start.x]
+  const visited = new Uint8Array(CANVAS_SIZE * CANVAS_SIZE)
+  visited[queue[0]] = 1
+
+  for (let queueIndex = 0; queueIndex < queue.length; queueIndex += 1) {
+    const index = queue[queueIndex]
+    const x = index % CANVAS_SIZE
+    const y = Math.floor(index / CANVAS_SIZE)
+    result.push({ x, y })
+
+    const neighbours = [
+      x > 0 ? index - 1 : -1,
+      x < CANVAS_SIZE - 1 ? index + 1 : -1,
+      y > 0 ? index - CANVAS_SIZE : -1,
+      y < CANVAS_SIZE - 1 ? index + CANVAS_SIZE : -1,
+    ]
+
+    neighbours.forEach((neighbour) => {
+      if (
+        neighbour >= 0 &&
+        visited[neighbour] === 0 &&
+        pixels[neighbour] === targetColor
+      ) {
+        visited[neighbour] = 1
+        queue.push(neighbour)
+      }
+    })
+  }
+
+  return result
+}
+
 export function PixelCanvas({
   canDraw,
   events,
@@ -75,8 +117,12 @@ export function PixelCanvas({
   const sendQueueRef = useRef<Promise<unknown>>(Promise.resolve())
   const isDrawingRef = useRef(false)
   const lastPointRef = useRef<PixelPoint | null>(null)
+  const activeStrokeRef = useRef<Map<string, PixelMutation> | null>(null)
+  const undoHistoryRef = useRef<PixelMutation[][]>([])
   const [activeColor, setActiveColor] = useState(pixelPalette[0])
-  const [lastPencilColor, setLastPencilColor] = useState(pixelPalette[0])
+  const [activeTool, setActiveTool] = useState<DrawingTool>('pencil')
+  const [canUndo, setCanUndo] = useState(false)
+  const drawingColor = activeTool === 'eraser' ? TRANSPARENT : activeColor
 
   const paintPixel = (change: PixelChange) => {
     pixelsRef.current[change.y * CANVAS_SIZE + change.x] = change.color
@@ -114,11 +160,52 @@ export function PixelCanvas({
     flushTimerRef.current = window.setTimeout(flushPendingChanges, 80)
   }
 
-  const queuePixel = (point: PixelPoint) => {
-    const change = { ...point, color: activeColor }
+  const queueChange = (change: PixelChange) => {
+    const index = change.y * CANVAS_SIZE + change.x
+    if (pixelsRef.current[index] === change.color) return false
+
     paintPixel(change)
-    pendingChangesRef.current.set(`${point.x}-${point.y}`, change)
+    pendingChangesRef.current.set(pixelKey(change), change)
     scheduleFlush()
+    return true
+  }
+
+  const saveUndoStep = (mutations: PixelMutation[]) => {
+    const changedMutations = mutations.filter(
+      (mutation) => mutation.before !== mutation.color,
+    )
+    if (changedMutations.length === 0) return
+
+    undoHistoryRef.current.push(changedMutations)
+    if (undoHistoryRef.current.length > MAX_UNDO_STEPS) {
+      undoHistoryRef.current.shift()
+    }
+    setCanUndo(true)
+  }
+
+  const finishStroke = () => {
+    if (activeStrokeRef.current) {
+      saveUndoStep([...activeStrokeRef.current.values()])
+    }
+    activeStrokeRef.current = null
+    isDrawingRef.current = false
+    lastPointRef.current = null
+    flushPendingChanges()
+  }
+
+  const queueStrokePixel = (point: PixelPoint) => {
+    const index = point.y * CANVAS_SIZE + point.x
+    const before = pixelsRef.current[index]
+    if (before === drawingColor) return
+
+    const key = pixelKey(point)
+    const existingMutation = activeStrokeRef.current?.get(key)
+    if (existingMutation) {
+      existingMutation.color = drawingColor
+    } else {
+      activeStrokeRef.current?.set(key, { ...point, before, color: drawingColor })
+    }
+    queueChange({ ...point, color: drawingColor })
   }
 
   const pointFromEvent = (event: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -143,14 +230,48 @@ export function PixelCanvas({
 
   const drawTo = (point: PixelPoint) => {
     const from = lastPointRef.current ?? point
-    pointsOnLine(from, point).forEach(queuePixel)
+    pointsOnLine(from, point).forEach(queueStrokePixel)
     lastPointRef.current = point
+  }
+
+  const fillArea = (point: PixelPoint) => {
+    const originalPixels = [...pixelsRef.current]
+    const targetColor = originalPixels[point.y * CANVAS_SIZE + point.x]
+    if (targetColor === activeColor) return
+
+    const mutations = connectedPixels(originalPixels, point).map((pixel) => ({
+      ...pixel,
+      before: targetColor,
+      color: activeColor,
+    }))
+    mutations.forEach(queueChange)
+    saveUndoStep(mutations)
+    flushPendingChanges()
+  }
+
+  const undoLastStep = () => {
+    if (isDrawingRef.current) return
+
+    flushPendingChanges()
+    const mutations = undoHistoryRef.current.pop()
+    if (!mutations) return
+
+    mutations.forEach(({ before, x, y }) => {
+      queueChange({ x, y, color: before })
+    })
+    flushPendingChanges()
+    setCanUndo(undoHistoryRef.current.length > 0)
   }
 
   useEffect(() => {
     pixelsRef.current.fill(TRANSPARENT)
     appliedEventIdsRef.current.clear()
     pendingChangesRef.current.clear()
+    undoHistoryRef.current = []
+    activeStrokeRef.current = null
+    isDrawingRef.current = false
+    lastPointRef.current = null
+    setCanUndo(false)
     const context = canvasRef.current?.getContext('2d')
     context?.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
   }, [roundId])
@@ -188,18 +309,28 @@ export function PixelCanvas({
         <div className="pixel-toolbar" aria-label="Rajzeszközök">
           <div className="tool-buttons">
             <button
-              aria-pressed={activeColor !== TRANSPARENT}
-              onClick={() => setActiveColor(lastPencilColor)}
+              aria-pressed={activeTool === 'pencil'}
+              onClick={() => setActiveTool('pencil')}
               type="button"
             >
               Ceruza
             </button>
             <button
-              aria-pressed={activeColor === TRANSPARENT}
-              onClick={() => setActiveColor(TRANSPARENT)}
+              aria-pressed={activeTool === 'eraser'}
+              onClick={() => setActiveTool('eraser')}
               type="button"
             >
               Radír
+            </button>
+            <button
+              aria-pressed={activeTool === 'fill'}
+              onClick={() => setActiveTool('fill')}
+              type="button"
+            >
+              Kitöltés
+            </button>
+            <button disabled={!canUndo} onClick={undoLastStep} type="button">
+              Visszavonás
             </button>
           </div>
           <div className="drawing-palette" aria-label="Színpaletta">
@@ -210,7 +341,7 @@ export function PixelCanvas({
                 key={color}
                 onClick={() => {
                   setActiveColor(color)
-                  setLastPencilColor(color)
+                  setActiveTool('pencil')
                 }}
                 style={{ backgroundColor: color }}
                 type="button"
@@ -225,27 +356,38 @@ export function PixelCanvas({
           aria-label={canDraw ? 'Rajzolható 32×32 pixeles vászon' : 'Élő pixelrajz'}
           className="drawing-canvas"
           height={CANVAS_SIZE}
-          onPointerCancel={() => {
-            isDrawingRef.current = false
-            lastPointRef.current = null
-            flushPendingChanges()
+          onContextMenu={(event) => event.preventDefault()}
+          onPointerCancel={(event) => {
+            if (!event.isPrimary) return
+            finishStroke()
           }}
           onPointerDown={(event) => {
-            if (!canDraw) return
+            if (!canDraw || !event.isPrimary) return
+            event.preventDefault()
+            const point = pointFromEvent(event)
+
+            if (activeTool === 'fill') {
+              fillArea(point)
+              return
+            }
+
             event.currentTarget.setPointerCapture(event.pointerId)
+            activeStrokeRef.current = new Map()
             isDrawingRef.current = true
-            drawTo(pointFromEvent(event))
+            drawTo(point)
           }}
           onPointerMove={(event) => {
-            if (!canDraw || !isDrawingRef.current) return
+            if (!canDraw || !event.isPrimary || !isDrawingRef.current) return
+            event.preventDefault()
             drawTo(pointFromEvent(event))
           }}
           onPointerUp={(event) => {
-            if (!canDraw) return
-            event.currentTarget.releasePointerCapture(event.pointerId)
-            isDrawingRef.current = false
-            lastPointRef.current = null
-            flushPendingChanges()
+            if (!canDraw || !event.isPrimary || !isDrawingRef.current) return
+            event.preventDefault()
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+              event.currentTarget.releasePointerCapture(event.pointerId)
+            }
+            finishStroke()
           }}
           ref={canvasRef}
           width={CANVAS_SIZE}

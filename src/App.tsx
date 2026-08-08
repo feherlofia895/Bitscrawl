@@ -789,7 +789,7 @@ function App() {
 
       <footer>
         <span>Bitscrawl MVP</span>
-        <span>8. mérföldkő · teljes meccs és pontozás</span>
+        <span>9. mérföldkő · pixelrajzoló eszközök</span>
       </footer>
     </main>
   )

@@ -410,7 +410,7 @@ footer {
 }
 
 .players-heading h2 {
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
   font-size: clamp(2rem, 3.5vw, 3.1rem);
 }
 
@@ -720,6 +720,12 @@ footer {
   background: var(--mint);
 }
 
+.tool-buttons button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+  box-shadow: none;
+}
+
 .drawing-palette {
   display: grid;
   grid-template-columns: repeat(8, minmax(0, 1fr));
@@ -745,7 +751,10 @@ footer {
   overflow: hidden;
   background: #ffffff;
   border: 3px solid var(--ink);
+  overscroll-behavior: contain;
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .pixel-canvas-frame::after {
@@ -766,6 +775,8 @@ footer {
   cursor: crosshair;
   image-rendering: pixelated;
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .round-play-area {
@@ -948,6 +959,14 @@ footer {
     box-shadow: 7px 7px 0 var(--ink);
   }
 
+  .players-heading {
+    gap: 10px;
+  }
+
+  .players-heading h2 {
+    font-size: 1.8rem;
+  }
+
   .join-row {
     grid-template-columns: 1fr;
   }
@@ -962,6 +981,10 @@ footer {
 
   .drawing-palette {
     grid-template-columns: repeat(4, 1fr);
+  }
+
+  .tool-buttons button {
+    min-height: 48px;
   }
 
   footer {
