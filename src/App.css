@@ -83,6 +83,10 @@ footer {
   background: #39b98a;
 }
 
+.backend-badge[data-status='reconnecting'] .status-dot {
+  background: var(--yellow);
+}
+
 .backend-badge[data-status='offline'] .status-dot {
   background: #ff6b6b;
 }
@@ -422,6 +426,17 @@ footer {
 .host-badge {
   font-family: var(--pixel-font);
   font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.offline-player-badge {
+  padding: 5px 7px;
+  color: var(--ink);
+  background: #ffb2b2;
+  border: 2px solid var(--ink);
+  font-family: var(--pixel-font);
+  font-size: 0.62rem;
   font-weight: 900;
   text-transform: uppercase;
 }

@@ -18,10 +18,17 @@ type RoomEntry = {
   roomId: number
 }
 
+export type LobbyConnectionStatus =
+  | 'connected'
+  | 'reconnecting'
+  | 'disconnected'
+
 const lobbyErrorMessages: Record<string, string> = {
   AUTH_REQUIRED: 'Nem sikerült létrehozni a játékos-munkamenetet.',
   GAME_ALREADY_STARTED: 'Ez a meccs már elindult.',
   NOT_ENOUGH_PLAYERS: 'A játék indításához legalább 2 játékos kell.',
+  NOT_ENOUGH_ACTIVE_PLAYERS:
+    'A játék indításához legalább 2 kapcsolódó játékos kell.',
   NOT_ROOM_HOST: 'Csak a szoba hostja indíthatja el a játékot.',
   GAME_NOT_FINISHED: 'Az új játék csak a meccs végén indítható.',
   PLAYER_NAME_INVALID: 'A játékosnév 2–16 karakter hosszú legyen.',
@@ -107,6 +114,43 @@ export function joinRoom(playerName: string, roomCode: string) {
   return getRoomEntry('join', playerName, roomCode)
 }
 
+export async function resumeRoom(roomCode: string): Promise<RoomEntry | null> {
+  try {
+    const user = await ensurePlayerSession()
+    const { data, error } = await supabase
+      .rpc('resume_room', { room_code: roomCode })
+      .single()
+
+    if (error) {
+      if (error.message.includes('ROOM_MEMBERSHIP_NOT_FOUND')) return null
+      throw error
+    }
+
+    return {
+      currentUserId: user.id,
+      playerId: data.player_id,
+      roomCode: data.normalized_room_code,
+      roomId: data.room_id,
+    }
+  } catch (error) {
+    throw readableLobbyError(error)
+  }
+}
+
+export async function touchRoomPresence(roomId: number) {
+  try {
+    await ensurePlayerSession()
+    const { data, error } = await supabase
+      .rpc('touch_room_presence', { target_room_id: roomId })
+      .single()
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    throw readableLobbyError(error)
+  }
+}
+
 export async function setRoomTestMode(roomId: number, enabled: boolean) {
   try {
     await ensurePlayerSession()
@@ -183,6 +227,7 @@ export function subscribeToLobby(
   onChange: () => void,
   onDrawChange: () => void = onChange,
   onMessageChange: () => void = onChange,
+  onConnectionChange?: (status: LobbyConnectionStatus) => void,
 ) {
   let reconciliationTimeout: ReturnType<typeof setTimeout> | undefined
 
@@ -239,8 +284,19 @@ export function subscribeToLobby(
       onMessageChange,
     )
     .subscribe((status) => {
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        onConnectionChange?.('reconnecting')
+        return
+      }
+
+      if (status === 'CLOSED') {
+        onConnectionChange?.('disconnected')
+        return
+      }
+
       if (status !== 'SUBSCRIBED') return
 
+      onConnectionChange?.('connected')
       onChange()
       reconciliationTimeout = setTimeout(onChange, 1_000)
     })
