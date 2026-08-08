@@ -280,6 +280,15 @@ export type Database = {
           room_id: number
         }[]
       }
+      leave_room: {
+        Args: { target_room_id: number }
+        Returns: {
+          host_changed: boolean
+          host_user_id: string | null
+          room_deleted: boolean
+          round_finished: boolean
+        }[]
+      }
       restart_game: {
         Args: { target_room_id: number }
         Returns: {

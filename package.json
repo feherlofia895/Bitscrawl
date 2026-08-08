@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "test:leave-room": "node --env-file=.env.local scripts/verify-leave-room.mjs",
     "deploy": "npm run build && wrangler pages deploy dist --project-name bitscrawl --branch main"
   },
   "dependencies": {

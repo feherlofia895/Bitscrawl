@@ -139,9 +139,163 @@ Elkészült:
   mobilinternetes telefonról.
 
 
-[ ] 8. PWA – TELEPÍTHETŐ Bitscrawl
+[x] 8. KILÉPÉS A SZOBÁBÓL
 
-Csak a stabil, nyilvános webes változat után.
+- A váróteremben és a meccs alatt is legyen jól látható Kilépés gomb.
+- A gomb ne csak a főmenüt nyissa meg: a játékos szerveroldalon is hagyja el a szobát.
+- Kilépés után a szobakód kerüljön ki az URL-ből, és jelenjen meg a főmenü.
+- Aktív meccsből történő kilépés előtt legyen rövid megerősítés.
+- Host vagy rajzoló kilépésekor a már elkészített hostátadási és körváltási szabályok
+  azonnal fussanak le; ne kelljen kivárni a kapcsolatmegszakadási időt.
+- PC-ről és telefonról is ellenőrizzük a kilépést, majd a visszacsatlakozást.
+
+Elkészült:
+
+- A Kilépés gomb a váróteremben, játék közben és a végeredménynél is elérhető.
+- Folyamatban lévő meccsnél megerősítést kér, a váróteremből azonnal kilép.
+- A szerver törli a játékos szobatagságát, és az utolsó játékos után a szobát is.
+- A kilépő host szerepét azonnal megkapja a következő játékos.
+- A kilépő rajzoló aktív köre azonnal lezárul.
+- Kilépés után a szobakód eltűnik az URL-ből, és a főmenü jelenik meg.
+- Három elkülönített játékosmunkamenetes integrációs teszt, lint, production build és
+  asztali böngészős várótermi próba sikeresen lefutott.
+- A valódi számítógép–telefon próba is sikeresen lezajlott.
+
+
+[>] 9. NAGYOBB PIXELMUNKATERÜLET ÉS TERMÉSZETES NAGYÍTÁS
+
+Cél: a 32×32-es rajz egy tágas, átlátszó hátterű munkaterületen jelenjen meg,
+és telefonon is kényelmesen lehessen egyes pixeleken dolgozni.
+
+- A rajz mögötti munkaterület töltse ki jobban a rendelkezésre álló webes teret.
+- A rajzolt pixelek érjenek közvetlenül egymáshoz; ne legyen közöttük látható hézag.
+- A szerkesztést segítő pixelrács külön, finom réteg legyen, amely szükség esetén
+  kikapcsolható, és ne csökkentse a ténylegesen megrajzolt pixelek méretét.
+- Alaphelyzetben a rajz finom margóval igazodjon a képernyő széléhez, és mobilon
+  is automatikusan méreteződjön a rendelkezésre álló helyhez.
+- Nagyításkor a rajz túlnyúlhat a látható munkaterületen; a felhasználó mozgatással
+  érhesse el a kilógó részeket, az oldal azonban ne kapjon vízszintes görgetősávot.
+- PC-n az egérgörgővel, telefonon kétujjas csippentéssel lehessen nagyítani és
+  kicsinyíteni.
+- A nagyítás az egérmutató, illetve a két ujj középpontja körül történjen.
+- A jelenlegi mínusz, plusz és 100% gombok maradjanak meg biztos tartalékként.
+- Mozgatás módban kattintás vagy érintés nyomva tartása közben húzható legyen a rajz.
+- Telefonon két ujjal közvetlenül is lehessen mozgatni a nagyított rajzot.
+- Mozgatás és nagyítás közben ne keletkezzen véletlen rajzpont.
+- Néző módban is lehessen nagyítani és mozgatni az élő rajzot.
+
+Elkészült és ellenőrizve:
+
+- A munkaterület kitölti a rajzpanel teljes rendelkezésre álló szélességét, mobilon
+  pedig finoman közelebb ér a képernyő széléhez.
+- Az átlátszó pixeleknél látható marad a sakktáblás munkaterület.
+- A pixelek alaphelyzetben hézagmentesen érnek össze; a finom rács külön kapcsolható.
+- A nagyítás már nem három fix fokozatú: gombbal, egérgörgővel és kétujjas
+  csippentéssel is folyamatosan változtatható.
+- A görgős és csippentős nagyítás a mutató, illetve az ujjak középpontja körül történik.
+- A kétujjas mozdulat egyszerre tud nagyítani és mozgatni; Mozgatás módban egérrel
+  és egy ujjal, nyomva tartva is húzható a rajz.
+- A nagyítás felső határa a munkaterület tényleges méretéhez igazodik.
+- A kétujjas gesztus megkezdésekor a folyamatban lévő ceruzavonás visszaáll, a mobilos
+  kitöltés pedig csak az érintés felengedésekor fut le, hogy ne maradjon véletlen rajz.
+
+- A számítógépes kézi próba sikeres volt.
+- A 390×844 pixeles mobilnézetben nincs vízszintes kilógás, a kezelőszervek legalább
+  44 pixelesek, a nagyítás nem görgeti el az oldalt, a mozgatás és a rácskapcsoló működik.
+- A külső munkaterület és a tényleges, sakktáblás rajzfelület erősebben elkülönül.
+- A mobilnézeti próba során nem jelent meg böngészőhiba.
+
+Még hátra van a pont teljes lezárásához:
+
+- A valódi telefon kétujjas csippentését és a véletlen rajzpontok elkerülését röviden
+  kézzel is ellenőrizni kell, mert a böngészős mobilnézet nem tud valódi többujjas
+  érintést hitelesen előállítani.
+
+
+[ ] 10. NYOLCSZÍNŰ PALETTA ÉS KOMPAKT ESZKÖZTÁR
+
+- Az alapértelmezett palettában maradjon pontosan nyolc rajzszín és a jelenlegi
+  fanyar Bitscrawl-hangulat.
+- A mostani jól működő színek többségét tartsuk meg.
+- Legyen egy univerzális sötét árnyékszín és egy világos fényszín.
+- A középszínek egymással is alkossanak használható árnyék- és fénykapcsolatokat,
+  hogy nyolc színből is térhatású pixel art készülhessen.
+- A paletta sorrendje legyen következetes: sötéttől a világos, majd a hangsúlyszínek.
+- A ceruza, radír, kitöltés, visszavonás és mozgatás kisebb, Aseprite-szerű ikonokat
+  kapjon, de a telefonos érintési terület maradjon legalább 44×44 pixel.
+- Az ikonok külön, könnyen cserélhető SVG-fájlok legyenek, hogy később saját rajzokra
+  cserélhessük őket a működés átírása nélkül.
+- Minden ikonnak maradjon magyar neve, súgócímkéje és akadálymentes megnevezése.
+- Új eszközök: egyenes vonal, kör és négyzet.
+- Az alakzat húzás közben előnézetet mutasson, elengedéskor egyetlen műveletként
+  kerüljön a rajzra, és egy lépésben legyen visszavonható.
+- Az első változatban az alakzatok egy pixel vastag körvonalat rajzoljanak.
+- Multiplayerben csak a véglegesített alakzat pixelváltozásait továbbítsuk.
+- A nyolcszínű paletta maradjon az alapértelmezett, könnyen tanulható változat.
+- Készüljön hozzá egy választható, tizenhat színű bővített paletta: ugyanaz a nyolc
+  alapszín és mindegyik összehangolt, sötétebb árnyékváltozata.
+- A szoba beállítása határozza meg, hogy a meccs 8 vagy 16 színt használ; ezt a szerver
+  tárolja, és játék közben ne lehessen önkényesen átváltani.
+
+
+[ ] 11. SZOBACHAT ÉS TITKOS MEGFEJTÉSMEZŐ
+
+- A szobának legyen külön beszélgetős chatje a váróteremben és a játék alatt.
+- A megfejtést külön mezőbe kelljen beírni; az ne számítson chatüzenetnek.
+- Hibás megfejtést csak a beküldő és a szerver lásson, így egy elírás ne segítsen
+  a többi játékosnak.
+- Helyes megfejtéskor csak a játékos neve és a siker ténye jelenjen meg mindenkinek.
+- Az ékezetek, kis- és nagybetűk, valamint felesleges szóközök figyelmen kívül hagyása
+  maradjon meg.
+- A megfejtés ellenőrzése és a pontozás továbbra is kizárólag szerveroldalon történjen.
+- A chat és a megfejtés telefonon is legyen egyszerre könnyen elérhető, de ne vegye
+  el a helyet a rajztól.
+
+
+[ ] 12. FŐMENÜ, PANELEK ÉS SZEBB FELUGRÓ ABLAKOK
+
+- Készüljön valódi főmenü külön, jól felismerhető lehetőségekkel: játék indítása,
+  csatlakozás, később elérhető szobák, beállítások és információk.
+- A főmenü ne egy hosszú, görgetendő oldal legyen; a másodlagos részek külön nézetben
+  vagy panelben nyíljanak meg.
+- A böngésző egyszerű megerősítő ablaka helyett legyen saját Bitscrawl-stílusú modal.
+- Mobilon a chat nyitható alsó panelként jelenjen meg, olvasatlanüzenet-jelzővel, hogy
+  ne kelljen folyamatosan a rajz és a chat között görgetni.
+- Asztali nézetben a chat maradhasson oldalsó panelként, hogy a rajz közben is látszódjon.
+- A megfejtésmező a chattől továbbra is elkülönítve, gyorsan elérhető maradjon.
+- A panelek bezárhatók legyenek vissza gombbal, Escape billentyűvel és érinthető
+  bezárógombbal, az éppen beírt szöveg véletlen elvesztése nélkül.
+
+
+[ ] 13. UI-, BETŰKÉSZLET- ÉS MOBILOS FINOMHANGOLÁS
+
+- A jelenlegi oldal színei és fanyar vizuális hangulata maradjon meg.
+- A jelenlegi általános, mesterséges sablonhatású betűkészletet cseréljük egy
+  karakteresebb megoldásra, amely támogatja a magyar ékezeteket és jól olvasható mobilon.
+- A címek kaphatnak visszafogott pixeljátékos karaktert, a hosszabb szövegek azonban
+  maradjanak egyszerűek és könnyen olvashatók.
+- A kiválasztott webfont legyen ingyenesen felhasználható, helyben tárolható és ne
+  lassítsa észrevehetően az első betöltést.
+- Az eszköztár, paletta, chat és megfejtés vizuálisan egyértelműen különüljön el.
+- A fontos kezelőszervek férjenek el 360 pixel széles telefonon is.
+- Ne legyen véletlen oldalnagyítás, szövegkijelölés vagy oldalmozgatás rajzolás közben.
+- A billentyűzet megnyitásakor a chat és a megfejtés mező ne takarja el teljesen a játékot.
+- Ellenőrizzük az álló mobilos, fekvő mobilos és asztali elrendezést.
+
+
+[ ] 14. TELJES VISSZAELLENŐRZÉS
+
+- Kétjátékos teljes meccs számítógép és mobilinternetet használó telefon között.
+- Ötjátékos automatizált meccspróba az új funkciók után.
+- Kilépés és hostátadás váróteremben, játék alatt és rajzolói kör közben.
+- Görgős, csippentős és gombos nagyítás, valamint egérrel és ujjal történő mozgatás.
+- Minden rajzeszköz, alakzatelőnézet, visszavonás és valós idejű továbbítás ellenőrzése.
+- Chat, hibás megfejtés elrejtése, helyes megfejtés és pontozás ellenőrzése.
+
+
+[ ] 15. PWA – TELEPÍTHETŐ Bitscrawl
+
+Csak a fenti kezelhetőségi változtatások stabil nyilvános próbája után.
 
 - Web app manifest.
 - Bitscrawl név, színek és alkalmazásikonok.
@@ -151,14 +305,60 @@ Csak a stabil, nyilvános webes változat után.
 - A multiplayerhez továbbra is internetkapcsolat szükséges; teljes offline játék nem cél.
 
 
-[ ] 9. MVP KIADÁSI ELLENŐRZÉS
+[ ] 16. MVP KIADÁSI ELLENŐRZÉS
 
 - Legalább két játékossal többször végigjátszható teljes meccs.
 - Nincs ismert játékot megakasztó hiba.
-- Telefonon és PC-n használható rajzolás és tippelés.
+- Telefonon és PC-n használható rajzolás, chat és megfejtés.
 - A titkos szó, pontozás, rajzoló és időzítés szerveroldalon védett.
 - Ugyanazzal a társasággal új játék indítható.
 - Rövid README a játék elindításához, teszteléséhez és publikálásához.
+
+
+MVP UTÁNI KÖVETKEZŐ LEHETŐSÉGEK
+
+[ ] 17. ELÉRHETŐ SZOBÁK
+
+- A host dönthesse el, hogy a szoba csak kóddal érhető el vagy megjelenik a nyilvános
+  szobalistában; az alapértelmezett beállítás egyelőre maradjon kódos.
+- Csak csatlakozásra váró, nem megtelt és nem elindított szobák jelenjenek meg.
+- A listában elég legyen a szoba neve, host neve, játékosszám, palettamód és egy
+  Csatlakozás gomb; titkos vagy belső adat ne kerüljön ki.
+- Legyen frissítés, egyszerű keresés és egyértelmű üres állapot.
+- A nyilvános lista előtt tervezzük meg a kéretlen szobanevek, spamelés és túl sok
+  szobalétrehozás alapvető védelmét.
+
+
+[ ] 18. FELHASZNÁLÓI FIÓKOK
+
+- A vendégként, azonnali névvel történő játék továbbra is maradjon lehetséges.
+- Később opcionális Supabase-fiók kapcsolható a vendéghez, az egész játék újraírása nélkül.
+- Első fiókos változatként elég lehet a megjelenített név és az elmentett alapbeállítások.
+- Barátlista, ranglista, statisztika és kozmetikai elemek csak külön későbbi lépések legyenek.
+- A fiókok előtt külön tervezzük meg az adatkezelést, névfoglalást, törlést és a vendégfiók
+  végleges fiókká alakítását.
+
+
+MÉG MEGBESZÉLENDŐ AZ IMPLEMENTÁLÁS ELŐTT
+
+- A nyolc végleges palettaszín pontos értéke és sorrendje. Javaslat: előbb készítsünk
+  néhány apró mintarajzot ugyanazzal a két vagy három palettaváltozattal.
+- A 16 színű paletta árnyékszínei egyszerűen sötétebbek legyenek-e, vagy kissé más
+  színárnyalat felé is tolódjanak. Javaslat: enyhén hidegebb árnyékok karakteresebbek.
+- A kör és négyzet első változata csak körvonalas legyen-e. Javaslat: igen; a kitöltött
+  alakzat később külön kapcsoló lehet, ha valóban szükséges.
+- A nagyítás legnagyobb mértéke. Javaslat: ne fix számot válasszunk előre, hanem a
+  32×32-es rajz és a munkaterület tényleges mérete alapján korlátozzuk.
+- A szobachat üzenetei új meccs indításakor megmaradjanak-e. Javaslat: a társaság
+  együtt maradásáig igen, de új szoba létrehozásakor ne.
+- Saját eszközikonok ajánlott formátuma. Javaslat: átlátszó hátterű, egyszínű SVG,
+  egységes 16×16-os rajzterülettel, amelyet a felület 20–24 pixelesen jelenít meg.
+- A Kilépés gomb kérjen-e mindig megerősítést. Javaslat: csak folyamatban lévő
+  meccsnél, a váróteremben ne.
+- A főmenü és a chat mobilos panelje pontosan milyen elrendezést kapjon. Javaslat:
+  implementálás előtt készítsünk egy egyszerű kattintható vagy képi vázlatot.
+- A végleges betűkészlet kiválasztásakor hasonlítsunk össze 2–3, magyar ékezeteket
+  biztosan támogató változatot ugyanazon a Bitscrawl-képernyőn.
 
 
 NEM RÉSZE AZ ELSŐ MVP-NEK

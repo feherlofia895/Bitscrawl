@@ -9,8 +9,9 @@ import type { DrawEvent, PixelChange } from '../lib/game'
 const CANVAS_SIZE = 32
 const TRANSPARENT = 'transparent'
 const MAX_UNDO_STEPS = 50
-const ZOOM_LEVELS = [1, 2, 3] as const
-const CANVAS_SURFACE_RATIO = 0.9
+const MIN_ZOOM = 1
+const ZOOM_BUTTON_STEP = 0.5
+const CANVAS_SURFACE_RATIO = 0.93
 const CENTERED_CANVAS_OFFSET = (1 - CANVAS_SURFACE_RATIO) / 2
 
 const pixelPalette = [
@@ -40,6 +41,24 @@ type PanGesture = {
   origin: CanvasPan
   startX: number
   startY: number
+}
+type PointerPosition = { clientX: number; clientY: number }
+type PinchGesture = {
+  contentX: number
+  contentY: number
+  startDistance: number
+  startZoom: number
+}
+
+function pointerDistance(first: PointerPosition, second: PointerPosition) {
+  return Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY)
+}
+
+function pointerMidpoint(first: PointerPosition, second: PointerPosition) {
+  return {
+    clientX: (first.clientX + second.clientX) / 2,
+    clientY: (first.clientY + second.clientY) / 2,
+  }
 }
 
 function pixelKey(point: PixelPoint) {
@@ -128,19 +147,39 @@ export function PixelCanvas({
   const isDrawingRef = useRef(false)
   const isPanningRef = useRef(false)
   const panGestureRef = useRef<PanGesture | null>(null)
+  const activePointersRef = useRef(new Map<number, PointerPosition>())
+  const pinchGestureRef = useRef<PinchGesture | null>(null)
+  const pendingTouchFillRef = useRef<{
+    pointerId: number
+    point: PixelPoint
+  } | null>(null)
   const lastPointRef = useRef<PixelPoint | null>(null)
   const activeStrokeRef = useRef<Map<string, PixelMutation> | null>(null)
   const undoHistoryRef = useRef<PixelMutation[][]>([])
   const [activeColor, setActiveColor] = useState(pixelPalette[0])
   const [activeTool, setActiveTool] = useState<DrawingTool>('pencil')
   const [canUndo, setCanUndo] = useState(false)
-  const [zoom, setZoom] = useState<(typeof ZOOM_LEVELS)[number]>(1)
+  const [zoom, setZoom] = useState(MIN_ZOOM)
+  const zoomRef = useRef(MIN_ZOOM)
   const [pan, setPan] = useState<CanvasPan>({
     x: CENTERED_CANVAS_OFFSET,
     y: CENTERED_CANVAS_OFFSET,
   })
+  const panRef = useRef<CanvasPan>({
+    x: CENTERED_CANVAS_OFFSET,
+    y: CENTERED_CANVAS_OFFSET,
+  })
   const [isPanMode, setIsPanMode] = useState(false)
+  const [showGrid, setShowGrid] = useState(false)
   const drawingColor = activeTool === 'eraser' ? TRANSPARENT : activeColor
+
+  const maximumZoom = () => {
+    const frameWidth = canvasFrameRef.current?.getBoundingClientRect().width ?? 680
+    return Math.max(3, Math.min(8, 2048 / (frameWidth * CANVAS_SURFACE_RATIO)))
+  }
+
+  const clampZoom = (nextZoom: number) =>
+    Math.max(MIN_ZOOM, Math.min(maximumZoom(), nextZoom))
 
   const clampPan = (nextPan: CanvasPan, nextZoom = zoom) => {
     const surfaceSize = CANVAS_SURFACE_RATIO * nextZoom
@@ -156,32 +195,37 @@ export function PixelCanvas({
     }
   }
 
-  const changeZoom = (nextZoom: (typeof ZOOM_LEVELS)[number]) => {
-    setPan((currentPan) => {
-      const currentSurfaceSize = CANVAS_SURFACE_RATIO * zoom
-      const nextSurfaceSize = CANVAS_SURFACE_RATIO * nextZoom
-      const visibleCenterX = (0.5 - currentPan.x) / currentSurfaceSize
-      const visibleCenterY = (0.5 - currentPan.y) / currentSurfaceSize
-      return clampPan(
-        {
-          x: 0.5 - visibleCenterX * nextSurfaceSize,
-          y: 0.5 - visibleCenterY * nextSurfaceSize,
-        },
-        nextZoom,
-      )
-    })
-    setZoom(nextZoom)
-    if (nextZoom === 1) setIsPanMode(false)
+  const updatePan = (nextPan: CanvasPan, nextZoom = zoomRef.current) => {
+    const clampedPan = clampPan(nextPan, nextZoom)
+    panRef.current = clampedPan
+    setPan(clampedPan)
   }
 
-  const stepZoom = (direction: -1 | 1) => {
-    const currentIndex = ZOOM_LEVELS.indexOf(zoom)
-    const nextIndex = Math.max(
-      0,
-      Math.min(ZOOM_LEVELS.length - 1, currentIndex + direction),
+  const changeZoom = (
+    requestedZoom: number,
+    anchor: CanvasPan = { x: 0.5, y: 0.5 },
+  ) => {
+    const currentZoom = zoomRef.current
+    const nextZoom = clampZoom(requestedZoom)
+    const currentSurfaceSize = CANVAS_SURFACE_RATIO * currentZoom
+    const nextSurfaceSize = CANVAS_SURFACE_RATIO * nextZoom
+    const contentX = (anchor.x - panRef.current.x) / currentSurfaceSize
+    const contentY = (anchor.y - panRef.current.y) / currentSurfaceSize
+
+    updatePan(
+      {
+        x: anchor.x - contentX * nextSurfaceSize,
+        y: anchor.y - contentY * nextSurfaceSize,
+      },
+      nextZoom,
     )
-    changeZoom(ZOOM_LEVELS[nextIndex])
+    zoomRef.current = nextZoom
+    setZoom(nextZoom)
+    if (nextZoom === MIN_ZOOM) setIsPanMode(false)
   }
+
+  const stepZoom = (direction: -1 | 1) =>
+    changeZoom(zoomRef.current + direction * ZOOM_BUTTON_STEP)
 
   const selectDrawingTool = (tool: DrawingTool) => {
     setActiveTool(tool)
@@ -257,6 +301,21 @@ export function PixelCanvas({
     flushPendingChanges()
   }
 
+  const cancelActiveStroke = () => {
+    activeStrokeRef.current?.forEach(({ before, x, y }) => {
+      paintPixel({ x, y, color: before })
+      pendingChangesRef.current.set(pixelKey({ x, y }), {
+        x,
+        y,
+        color: before,
+      })
+    })
+    if (activeStrokeRef.current?.size) scheduleFlush()
+    activeStrokeRef.current = null
+    isDrawingRef.current = false
+    lastPointRef.current = null
+  }
+
   const queueStrokePixel = (point: PixelPoint) => {
     const index = point.y * CANVAS_SIZE + point.x
     const before = pixelsRef.current[index]
@@ -330,7 +389,7 @@ export function PixelCanvas({
   const startPan = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId)
     panGestureRef.current = {
-      origin: pan,
+      origin: panRef.current,
       startX: event.clientX,
       startY: event.clientY,
     }
@@ -342,17 +401,71 @@ export function PixelCanvas({
     const frameBounds = canvasFrameRef.current?.getBoundingClientRect()
     if (!gesture || !frameBounds) return
 
-    setPan(
-      clampPan({
+    updatePan({
         x: gesture.origin.x + (event.clientX - gesture.startX) / frameBounds.width,
         y: gesture.origin.y + (event.clientY - gesture.startY) / frameBounds.height,
-      }),
-    )
+    })
   }
 
   const finishPan = () => {
     isPanningRef.current = false
     panGestureRef.current = null
+  }
+
+  const startPinch = () => {
+    const frameBounds = canvasFrameRef.current?.getBoundingClientRect()
+    const pointers = [...activePointersRef.current.values()].slice(0, 2)
+    if (!frameBounds || pointers.length < 2) return
+
+    const midpoint = pointerMidpoint(pointers[0], pointers[1])
+    const anchorX = (midpoint.clientX - frameBounds.left) / frameBounds.width
+    const anchorY = (midpoint.clientY - frameBounds.top) / frameBounds.height
+    const currentSurfaceSize = CANVAS_SURFACE_RATIO * zoomRef.current
+
+    pinchGestureRef.current = {
+      contentX: (anchorX - panRef.current.x) / currentSurfaceSize,
+      contentY: (anchorY - panRef.current.y) / currentSurfaceSize,
+      startDistance: Math.max(1, pointerDistance(pointers[0], pointers[1])),
+      startZoom: zoomRef.current,
+    }
+  }
+
+  const movePinch = () => {
+    const gesture = pinchGestureRef.current
+    const frameBounds = canvasFrameRef.current?.getBoundingClientRect()
+    const pointers = [...activePointersRef.current.values()].slice(0, 2)
+    if (!gesture || !frameBounds || pointers.length < 2) return
+
+    const midpoint = pointerMidpoint(pointers[0], pointers[1])
+    const anchorX = (midpoint.clientX - frameBounds.left) / frameBounds.width
+    const anchorY = (midpoint.clientY - frameBounds.top) / frameBounds.height
+    const nextZoom = clampZoom(
+      gesture.startZoom *
+        (pointerDistance(pointers[0], pointers[1]) / gesture.startDistance),
+    )
+    const nextSurfaceSize = CANVAS_SURFACE_RATIO * nextZoom
+
+    updatePan(
+      {
+        x: anchorX - gesture.contentX * nextSurfaceSize,
+        y: anchorY - gesture.contentY * nextSurfaceSize,
+      },
+      nextZoom,
+    )
+    zoomRef.current = nextZoom
+    setZoom(nextZoom)
+    if (nextZoom === MIN_ZOOM) setIsPanMode(false)
+  }
+
+  const handleWheel = (event: WheelEvent) => {
+    event.preventDefault()
+    const frameBounds = canvasFrameRef.current?.getBoundingClientRect()
+    if (!frameBounds) return
+
+    changeZoom(zoomRef.current * Math.exp(-event.deltaY * 0.0015), {
+      x: (event.clientX - frameBounds.left) / frameBounds.width,
+      y: (event.clientY - frameBounds.top) / frameBounds.height,
+    })
   }
 
   useEffect(() => {
@@ -362,10 +475,20 @@ export function PixelCanvas({
     undoHistoryRef.current = []
     activeStrokeRef.current = null
     isDrawingRef.current = false
+    isPanningRef.current = false
+    panGestureRef.current = null
+    activePointersRef.current.clear()
+    pinchGestureRef.current = null
+    pendingTouchFillRef.current = null
     lastPointRef.current = null
     setCanUndo(false)
-    setZoom(1)
-    setPan({ x: CENTERED_CANVAS_OFFSET, y: CENTERED_CANVAS_OFFSET })
+    zoomRef.current = MIN_ZOOM
+    setZoom(MIN_ZOOM)
+    panRef.current = {
+      x: CENTERED_CANVAS_OFFSET,
+      y: CENTERED_CANVAS_OFFSET,
+    }
+    setPan(panRef.current)
     setIsPanMode(false)
     const context = canvasRef.current?.getContext('2d')
     context?.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
@@ -378,6 +501,14 @@ export function PixelCanvas({
       appliedEventIdsRef.current.add(event.id)
     })
   }, [events])
+
+  useEffect(() => {
+    const frame = canvasFrameRef.current
+    if (!frame) return
+
+    frame.addEventListener('wheel', handleWheel, { passive: false })
+    return () => frame.removeEventListener('wheel', handleWheel)
+  }, [])
 
   useEffect(
     () => () => {
@@ -450,41 +581,48 @@ export function PixelCanvas({
         <span>Nagyító</span>
         <button
           aria-label="Kicsinyítés"
-          disabled={zoom === ZOOM_LEVELS[0]}
+          disabled={zoom <= MIN_ZOOM}
           onClick={() => stepZoom(-1)}
           type="button"
         >
           −
         </button>
-        <output aria-live="polite">{zoom}×</output>
+        <output aria-live="polite">{Math.round(zoom * 100)}%</output>
         <button
           aria-label="Nagyítás"
-          disabled={zoom === ZOOM_LEVELS.at(-1)}
+          disabled={zoom >= maximumZoom()}
           onClick={() => stepZoom(1)}
           type="button"
         >
           +
         </button>
         <button
-          disabled={zoom === 1}
-          onClick={() => changeZoom(1)}
+          disabled={zoom === MIN_ZOOM}
+          onClick={() => changeZoom(MIN_ZOOM)}
           type="button"
         >
           100%
         </button>
         <button
           aria-pressed={isPanMode}
-          disabled={zoom === 1}
+          disabled={zoom === MIN_ZOOM}
           onClick={() => setIsPanMode((current) => !current)}
           type="button"
         >
           Mozgatás
         </button>
+        <button
+          aria-pressed={showGrid}
+          onClick={() => setShowGrid((current) => !current)}
+          type="button"
+        >
+          Rács
+        </button>
       </div>
 
       <div className="pixel-canvas-frame" ref={canvasFrameRef}>
         <div
-          className="pixel-canvas-surface"
+          className={`pixel-canvas-surface${showGrid ? ' show-grid' : ''}`}
           style={{
             height: `${CANVAS_SURFACE_RATIO * zoom * 100}%`,
             left: `${pan.x * 100}%`,
@@ -500,7 +638,16 @@ export function PixelCanvas({
             height={CANVAS_SIZE}
             onContextMenu={(event) => event.preventDefault()}
             onPointerCancel={(event) => {
-              if (!event.isPrimary) return
+              activePointersRef.current.delete(event.pointerId)
+              if (pendingTouchFillRef.current?.pointerId === event.pointerId) {
+                pendingTouchFillRef.current = null
+              }
+              if (pinchGestureRef.current) {
+                if (activePointersRef.current.size < 2) {
+                  pinchGestureRef.current = null
+                }
+                return
+              }
               if (isPanningRef.current) {
                 finishPan()
                 return
@@ -508,8 +655,25 @@ export function PixelCanvas({
               finishStroke()
             }}
             onPointerDown={(event) => {
-              if (!event.isPrimary) return
               event.preventDefault()
+              activePointersRef.current.set(event.pointerId, {
+                clientX: event.clientX,
+                clientY: event.clientY,
+              })
+              event.currentTarget.setPointerCapture(event.pointerId)
+
+              if (
+                event.pointerType === 'touch' &&
+                activePointersRef.current.size >= 2
+              ) {
+                cancelActiveStroke()
+                pendingTouchFillRef.current = null
+                finishPan()
+                startPinch()
+                return
+              }
+
+              if (activePointersRef.current.size > 1) return
 
               if (isPanMode && zoom > 1) {
                 startPan(event)
@@ -520,18 +684,35 @@ export function PixelCanvas({
               const point = pointFromEvent(event)
 
               if (activeTool === 'fill') {
+                if (event.pointerType === 'touch') {
+                  pendingTouchFillRef.current = {
+                    pointerId: event.pointerId,
+                    point,
+                  }
+                  return
+                }
                 fillArea(point)
                 return
               }
 
-              event.currentTarget.setPointerCapture(event.pointerId)
               activeStrokeRef.current = new Map()
               isDrawingRef.current = true
               drawTo(point)
             }}
             onPointerMove={(event) => {
-              if (!event.isPrimary) return
               event.preventDefault()
+
+              if (activePointersRef.current.has(event.pointerId)) {
+                activePointersRef.current.set(event.pointerId, {
+                  clientX: event.clientX,
+                  clientY: event.clientY,
+                })
+              }
+
+              if (pinchGestureRef.current) {
+                movePinch()
+                return
+              }
 
               if (isPanningRef.current) {
                 movePan(event)
@@ -542,10 +723,25 @@ export function PixelCanvas({
               drawTo(pointFromEvent(event))
             }}
             onPointerUp={(event) => {
-              if (!event.isPrimary) return
               event.preventDefault()
+              const wasPinching = pinchGestureRef.current !== null
+              activePointersRef.current.delete(event.pointerId)
               if (event.currentTarget.hasPointerCapture(event.pointerId)) {
                 event.currentTarget.releasePointerCapture(event.pointerId)
+              }
+
+              if (wasPinching) {
+                if (activePointersRef.current.size < 2) {
+                  pinchGestureRef.current = null
+                }
+                return
+              }
+
+              if (pendingTouchFillRef.current?.pointerId === event.pointerId) {
+                const { point } = pendingTouchFillRef.current
+                pendingTouchFillRef.current = null
+                fillArea(point)
+                return
               }
 
               if (isPanningRef.current) {
@@ -562,7 +758,8 @@ export function PixelCanvas({
         </div>
       </div>
       <p className="canvas-navigation-hint">
-        Nagyíts, majd kapcsold be a Mozgatást, hogy a rajzot elhúzd a keretben.
+        Görgess a vásznon vagy csippents két ujjal a nagyításhoz. Mozgatás módban
+        nyomva tartva húzhatod a rajzot.
       </p>
     </section>
   )
