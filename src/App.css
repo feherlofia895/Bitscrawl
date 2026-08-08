@@ -398,13 +398,13 @@ footer {
   width: 100%;
   margin-top: 10px;
   color: var(--ink);
-  background: color-mix(in srgb, var(--coral) 45%, var(--paper));
+  background: color-mix(in srgb, var(--rust) 58%, var(--paper));
   border: 2px solid var(--ink);
   box-shadow: 3px 3px 0 var(--ink);
 }
 
 .leave-room-button:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--coral) 55%, var(--paper));
+  background: color-mix(in srgb, var(--rust) 72%, var(--paper));
 }
 
 .room-note {
@@ -771,18 +771,21 @@ footer {
 
 .drawing-palette {
   display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-columns: repeat(8, 34px);
   gap: 7px;
+  width: fit-content;
+  max-width: 100%;
   padding: 10px;
   background: color-mix(in srgb, var(--slate) 24%, var(--paper));
   border: 2px solid var(--ink);
 }
 
 .drawing-palette[data-palette-size='16'] {
-  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-columns: repeat(8, 34px);
 }
 
 .drawing-palette button {
+  width: 34px;
   min-height: 0;
   padding: 0;
   aspect-ratio: 1;
@@ -826,7 +829,7 @@ footer {
 }
 
 .palette-mode-buttons button[aria-pressed='true'] {
-  background: var(--mint);
+  background: var(--olive);
 }
 
 .canvas-zoom-controls {
@@ -1158,11 +1161,17 @@ footer {
   }
 
   .drawing-palette {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(8, clamp(22px, 7vw, 28px));
+    gap: 3px;
+    padding: 8px;
   }
 
   .drawing-palette[data-palette-size='16'] {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(8, clamp(22px, 7vw, 28px));
+  }
+
+  .drawing-palette button {
+    width: clamp(22px, 7vw, 28px);
   }
 
   .canvas-zoom-controls {
@@ -1182,6 +1191,10 @@ footer {
 
   .pixel-editor {
     padding: 8px;
+  }
+
+  .pixel-editor-heading {
+    flex-wrap: wrap;
   }
 
   .pixel-canvas-frame {

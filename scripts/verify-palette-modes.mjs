@@ -83,13 +83,33 @@ try {
   )
 
   await rpc(host8, 'submit_pixel_changes', {
-    pixel_changes: [{ x: 0, y: 0, color: '#9b7ede' }],
+    pixel_changes: [
+      { x: 0, y: 0, color: '#8fa66a' },
+      { x: 1, y: 0, color: '#c9825b' },
+    ],
     target_round_id: round8,
   })
   await rpc(host16, 'submit_pixel_changes', {
-    pixel_changes: [{ x: 0, y: 0, color: '#6446a6' }],
+    pixel_changes: [
+      { x: 0, y: 0, color: '#e8d7b8' },
+      { x: 1, y: 0, color: '#5f7443' },
+      { x: 2, y: 0, color: '#8f4f35' },
+    ],
     target_round_id: round16,
   })
+
+  const rejectedOldColors = await host16.rpc('submit_pixel_changes', {
+    pixel_changes: [
+      { x: 3, y: 0, color: '#f7f3e8' },
+      { x: 4, y: 0, color: '#7b8794' },
+      { x: 5, y: 0, color: '#120d1c' },
+    ],
+    target_round_id: round16,
+  })
+  assert(
+    rejectedOldColors.error?.message.includes('PIXEL_CHANGES_INVALID'),
+    'A lecserélt színek továbbra is elküldhetők maradtak.',
+  )
 
   const lateChange = await host16.rpc('set_room_palette_size', {
     palette_size_value: 8,
@@ -105,6 +125,7 @@ try {
       baseColorAccepted: true,
       event: 'palette-modes-ok',
       lateChangeBlocked: true,
+      oldColorsBlocked: true,
       shadowAcceptedIn16: true,
       shadowBlockedIn8: true,
     }),

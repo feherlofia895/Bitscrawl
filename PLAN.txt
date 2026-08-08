@@ -233,15 +233,17 @@ Még hátra van a pont teljes lezárásához:
 - Multiplayerben csak a véglegesített alakzat pixelváltozásait továbbítsuk.
 - A nyolcszínű paletta maradjon az alapértelmezett, könnyen tanulható változat.
 - Készüljön hozzá egy választható, tizenhat színű bővített paletta: ugyanaz a nyolc
-  alapszín és mindegyik összehangolt, sötétebb árnyékváltozata.
+  alapszín és mindegyik összehangolt tónusváltozata.
 - A szoba beállítása határozza meg, hogy a meccs 8 vagy 16 színt használ; ezt a szerver
   tárolja, és játék közben ne lehessen önkényesen átváltani.
 
 Elkészült és ellenőrizve:
 
-- A nyolc alapszín egy közös színforrásból érkezik, és pontosan megegyezik a Bitscrawl
-  felület fő tinta-, papír-, ibolya-, menta-, sárga-, korall-, kék- és palaszíneivel.
-- A 16 színű mód mind a nyolc alapszínt egy összehangolt, sötétebb árnyékpárral egészíti ki.
+- A nyolc alapszín egy közös színforrásból érkezik, és a Bitscrawl felület színvilágához
+  igazodik. A korábbi fehéret tompa olíva (`#8FA66A`), a szürkét fanyar rozsda
+  (`#C9825B`) váltotta; ezek UI-hangsúlyszínként is megjelennek.
+- A 16 színű mód összehangolt tónuspárokat ad. A tintafekete korábbi, alig látható
+  sötét párja helyett világos csontfény segíti a fénykiemelést.
 - A host a várószobában választhat 8 vagy 16 színt; az alapérték 8, és elindult meccsnél
   a szerver már nem enged váltani.
 - A szerver csak a kiválasztott palettához tartozó pixelváltozásokat fogadja el.
@@ -252,8 +254,8 @@ Elkészült és ellenőrizve:
   és multiplayerben csak a végleges pixelek kerülnek továbbításra.
 - A célzott szerverteszt igazolta a 8/16 színkorlátozást, a hostjogot és a meccs közbeni
   váltás tiltását. A böngészős alakzatpróba, lint és production build sikeres volt.
-- 390×844-es mobilnézetben nincs vízszintes kilógás; az eszközgombok legalább 46×48,
-  a 16 színű paletta mezői pedig 63×63 pixeles érintési célterületet adnak.
+- A paletta asztali nézetben 34 pixeles, mobilon a képernyőhöz igazodó 22–28 pixeles
+  mezőkkel, nyolc oszlopban jelenik meg, így a 16 szín csak két sort foglal el.
 
 
 [ ] 11. SZOBACHAT ÉS TITKOS MEGFEJTÉSMEZŐ
