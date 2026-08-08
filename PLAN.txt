@@ -1,0 +1,119 @@
+Bitscrawl MVP – FEJLESZTÉSI TERV
+Frissítve: 2026-08-08
+
+Jelölések:
+[x] elkészült
+[>] folyamatban
+[ ] még hátra van
+
+
+[x] 1. A 9. MÉRFÖLDKŐ LEZÁRÁSA
+
+- A kitöltés, visszavonás és mobilos rajzolási javítások ellenőrzése.
+- A GitHub PR #8 beolvasztása a main ágba.
+- Tiszta main ág létrehozása a következő fejlesztéshez.
+
+
+[ ] 2. CSAK A PIXELVÁSZNAT NAGYÍTÓ ESZKÖZ
+
+Cél: telefonon könnyebb legyen pontosan egy pixelt kijelölni anélkül, hogy
+az egész weboldal felnagyulna.
+
+- Nagyító eszköz a rajzeszközök között.
+- Nagyítás és kicsinyítés több fokozatban.
+- Egy gombbal visszaállítható 100%-ra.
+- Csak a 32×32-as vászon nagyul; a chat, az időzítő és a gombok nem.
+- Nagyított állapotban a vászon mozgatható, hogy minden széle elérhető legyen.
+- Mozgatás közben ne kerüljön véletlen pixel a rajzra.
+- Telefonon az oldal ne görgessen vagy nagyuljon rajzolás közben.
+- PC-n egérrel, telefonon érintéssel is működjön.
+
+Első egyszerű változat:
+- 1×, 2× és 3× nagyítás.
+- Külön mozgatás mód nagyított állapotban.
+- Csippentős nagyítás csak később, ha valóban szükséges.
+
+
+[ ] 3. TELJES KÉTEMBERES MULTIPLAYER PRÓBA
+
+Egy játékos PC-ről, egy másik telefonról játsszon végig egy teljes meccset.
+
+- Szobalétrehozás, meghívó link és csatlakozás.
+- Csak a host indíthatja el a játékot.
+- Csak a kijelölt rajzoló rajzolhat és láthatja a titkos szót.
+- A másik játékos élőben, helyes sorrendben látja a pixelváltozásokat.
+- A chat mindkét eszközön azonnal frissül.
+- Kis- és nagybetű, ékezet és felesleges szóköz ne okozzon időveszteséget.
+- Helyes megfejtés után megfelelő pontot kapjon a tippelő és a rajzoló.
+- Minden játékos háromszor legyen rajzoló.
+- Működjön az időlimit, körváltás, végeredmény és az új játék.
+- Elindult meccshez új játékos ne tudjon csatlakozni.
+
+
+[ ] 4. KAPCSOLATMEGSZAKADÁS ÉS VISSZATÉRÉS
+
+- Oldalfrissítés után a játékos kapja vissza a saját helyét és állapotát.
+- Rövid internetkimaradás után álljon helyre a rajz és a kör állapota.
+- Kilépő rajzoló ne akassza meg végleg a meccset.
+- Legyen egyszerű szabály arra, ha a host kilép.
+- A már helyesen tippelő játékos állapota frissítés után is maradjon meg.
+- Ne jelenjen meg kétszer ugyanaz a chat- vagy rajzesemény.
+
+
+[ ] 5. MULTIPLAYER-BIZTONSÁGI ELLENŐRZÉS
+
+- A kliens ne tudjon pontszámot módosítani.
+- A nem rajzoló ne tudja lekérni a titkos szót.
+- Másik szobába tartozó játékos ne lásson vagy módosítson adatot.
+- Illetéktelen játékos ne rajzolhasson, ne választhasson szót és ne léptethessen kört.
+- A szerver maradjon felelős az időzítésért, megfejtésért és pontozásért.
+- Supabase RLS-szabályok és szerveroldali függvények ellenőrzése.
+
+
+[ ] 6. MOBILOS JÁTSZHATÓSÁG ÉS EGYSZERŰ SZÓLISTA
+
+- A rajzolás, chat és időzítő kis képernyőn is kényelmesen használható legyen.
+- Egyértelmű legyen, ki rajzol és mikor következik a következő kör.
+- Kapcsolati és szerverhibák érthető magyar üzenetet kapjanak.
+- Kezdetben csak kevés, könnyen rajzolható magyar szó legyen a játékban.
+- A szólista átnézése: ne legyen kétértelmű vagy túl nehéz szó.
+
+
+[ ] 7. NYILVÁNOS TESZTVÁLTOZAT
+
+- A frontend kihelyezése HTTPS-címre.
+- A Supabase éles beállításainak és engedélyezett webcímeinek ellenőrzése.
+- Környezeti változók biztonságos beállítása.
+- Teljes meccs kipróbálása két külön hálózatról.
+- Alapvető hibajelzés vagy naplózás hozzáadása, ha szükséges.
+
+
+[ ] 8. PWA – TELEPÍTHETŐ Bitscrawl
+
+Csak a stabil, nyilvános webes változat után.
+
+- Web app manifest.
+- Bitscrawl név, színek és alkalmazásikonok.
+- Telepíthetőség Androidon és számítógépen.
+- iPhone kezdőképernyős megjelenés ellenőrzése.
+- Egyszerű és biztonságos frissítési stratégia.
+- A multiplayerhez továbbra is internetkapcsolat szükséges; teljes offline játék nem cél.
+
+
+[ ] 9. MVP KIADÁSI ELLENŐRZÉS
+
+- Legalább két játékossal többször végigjátszható teljes meccs.
+- Nincs ismert játékot megakasztó hiba.
+- Telefonon és PC-n használható rajzolás és tippelés.
+- A titkos szó, pontozás, rajzoló és időzítés szerveroldalon védett.
+- Ugyanazzal a társasággal új játék indítható.
+- Rövid README a játék elindításához, teszteléséhez és publikálásához.
+
+
+NEM RÉSZE AZ ELSŐ MVP-NEK
+
+- Android és iOS natív csomag Capacitorral.
+- Felhasználói fiókok, barátlista és ranglista.
+- Galéria, mentett rajzok és közösségi szavazás.
+- Saját szócsomagok, tematikus módok és achievementek.
+- 16×16, 64×64 és különleges palettás játékmódok.
