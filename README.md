@@ -4,6 +4,16 @@ Online, többjátékos pixel art rajzolós-kitalálós játék korai prototípus
 
 ## Helyi indítás
 
+Másold le a környezeti mintafájlt `.env.local` néven, majd töltsd ki a saját
+Supabase projekted publishable adataival. Titkos vagy `service_role` kulcsot
+soha ne tegyél a böngészős alkalmazásba.
+
+```powershell
+Copy-Item .env.example .env.local
+```
+
+macOS vagy Linux alatt ugyanez: `cp .env.example .env.local`.
+
 ```bash
 npm install
 npm run dev
@@ -16,4 +26,5 @@ npm run lint
 npm run build
 ```
 
-Az első mérföldkő csak a React + TypeScript + Vite projektalapot és a helyi kezdőképernyőt tartalmazza. A Supabase szobák és a multiplayer következő lépések.
+A Supabase klienskapcsolat már be van kötve, de adatbázistáblák, online szobák
+és multiplayer játékmenet még nincsenek létrehozva.

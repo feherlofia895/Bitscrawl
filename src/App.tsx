@@ -1,5 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import './App.css'
+import { checkSupabaseConnection } from './lib/supabase'
+
+type BackendStatus = 'checking' | 'online' | 'offline'
+
+const backendStatusLabels: Record<BackendStatus, string> = {
+  checking: 'Szerver: ellenőrzés',
+  online: 'Szerver: online',
+  offline: 'Szerver: offline',
+}
 
 const palette = [
   '#241a35',
@@ -33,6 +42,24 @@ function App() {
   const [message, setMessage] = useState(
     'Ez még a helyi kezdőképernyő. Az online szobákat a következő mérföldkőben kötjük be.',
   )
+  const [backendStatus, setBackendStatus] =
+    useState<BackendStatus>('checking')
+
+  useEffect(() => {
+    const controller = new AbortController()
+    const timeoutId = window.setTimeout(() => controller.abort(), 5_000)
+
+    checkSupabaseConnection(controller.signal).then((isOnline) => {
+      if (!controller.signal.aborted) {
+        setBackendStatus(isOnline ? 'online' : 'offline')
+      }
+    })
+
+    return () => {
+      window.clearTimeout(timeoutId)
+      controller.abort()
+    }
+  }, [])
 
   const trimmedName = playerName.trim()
   const normalizedRoomCode = useMemo(
@@ -79,7 +106,17 @@ function App() {
           </span>
           <span>PixelGuess</span>
         </a>
-        <span className="prototype-badge">Korai prototípus</span>
+        <div className="topbar-statuses">
+          <span
+            className="backend-badge"
+            data-status={backendStatus}
+            aria-live="polite"
+          >
+            <span className="status-dot" aria-hidden="true" />
+            {backendStatusLabels[backendStatus]}
+          </span>
+          <span className="prototype-badge">Korai prototípus</span>
+        </div>
       </header>
 
       <section className="hero" id="top">
