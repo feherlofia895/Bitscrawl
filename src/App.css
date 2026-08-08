@@ -488,6 +488,17 @@ footer {
   margin-top: 0;
 }
 
+.test-mode-button {
+  width: 100%;
+  color: var(--ink);
+  background: var(--paper);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.test-mode-button[aria-pressed='true'] {
+  background: var(--yellow);
+}
+
 .start-game-controls span,
 .host-wait-message {
   color: var(--muted);
@@ -546,6 +557,112 @@ footer {
   background: var(--yellow);
   box-shadow: 3px 3px 0 var(--ink);
   overflow-wrap: anywhere;
+}
+
+.pixel-editor {
+  margin-top: 24px;
+  padding: clamp(14px, 3vw, 24px);
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  box-shadow: 7px 7px 0 var(--ink);
+}
+
+.pixel-editor-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.pixel-editor-heading h3 {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--display-font);
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  line-height: 1;
+}
+
+.draw-mode-badge {
+  flex: 0 0 auto;
+  padding: 7px 9px;
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+  font-family: var(--pixel-font);
+  font-size: 0.62rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.pixel-toolbar {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.tool-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.tool-buttons button {
+  min-height: 42px;
+  color: var(--ink);
+  background: var(--paper);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.tool-buttons button[aria-pressed='true'] {
+  background: var(--mint);
+}
+
+.drawing-palette {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.drawing-palette button {
+  min-height: 0;
+  padding: 0;
+  aspect-ratio: 1;
+  box-shadow: none;
+}
+
+.drawing-palette button[aria-pressed='true'] {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.pixel-canvas-frame {
+  position: relative;
+  width: min(100%, 560px);
+  margin: 0 auto;
+  overflow: hidden;
+  background: #ffffff;
+  border: 3px solid var(--ink);
+  touch-action: none;
+}
+
+.pixel-canvas-frame::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: '';
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: calc(100% / 32) calc(100% / 32);
+}
+
+.drawing-canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  cursor: crosshair;
+  image-rendering: pixelated;
+  touch-action: none;
 }
 
 @media (max-width: 760px) {
@@ -611,6 +728,10 @@ footer {
 
   .word-options {
     grid-template-columns: 1fr;
+  }
+
+  .drawing-palette {
+    grid-template-columns: repeat(4, 1fr);
   }
 
   footer {

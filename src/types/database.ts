@@ -1,3 +1,11 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
 export type Database = {
   __InternalSupabase: {
     PostgrestVersion: '14.15'
@@ -86,6 +94,7 @@ export type Database = {
           max_players: number
           started_at: string | null
           status: string
+          test_mode: boolean
         }
         Insert: {
           code: string
@@ -95,6 +104,7 @@ export type Database = {
           max_players?: number
           started_at?: string | null
           status?: string
+          test_mode?: boolean
         }
         Update: {
           code?: string
@@ -104,8 +114,51 @@ export type Database = {
           max_players?: number
           started_at?: string | null
           status?: string
+          test_mode?: boolean
         }
         Relationships: []
+      }
+      round_draw_events: {
+        Row: {
+          changes: Json
+          created_at: string
+          created_by: string
+          id: number
+          room_id: number
+          round_id: number
+        }
+        Insert: {
+          changes: Json
+          created_at?: string
+          created_by: string
+          id?: never
+          room_id: number
+          round_id: number
+        }
+        Update: {
+          changes?: Json
+          created_at?: string
+          created_by?: string
+          id?: never
+          room_id?: number
+          round_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'round_draw_events_room_id_fkey'
+            columns: ['room_id']
+            isOneToOne: false
+            referencedRelation: 'rooms'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'round_draw_events_round_id_fkey'
+            columns: ['round_id']
+            isOneToOne: false
+            referencedRelation: 'game_rounds'
+            referencedColumns: ['id']
+          },
+        ]
       }
     }
     Views: {
@@ -148,6 +201,13 @@ export type Database = {
           room_id: number
         }[]
       }
+      set_room_test_mode: {
+        Args: { target_room_id: number; test_mode_enabled: boolean }
+        Returns: {
+          room_id: number
+          test_mode: boolean
+        }[]
+      }
       start_game: {
         Args: { target_room_id: number }
         Returns: {
@@ -155,6 +215,10 @@ export type Database = {
           room_status: string
           started_at: string
         }[]
+      }
+      submit_pixel_changes: {
+        Args: { pixel_changes: Json; target_round_id: number }
+        Returns: number
       }
     }
     Enums: {

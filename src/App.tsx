@@ -1,14 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import './App.css'
+import { PixelCanvas } from './components/PixelCanvas'
 import {
   chooseRoundWord,
+  loadDrawEvents,
   loadRoundView,
+  submitPixelChanges,
+  type DrawEvent,
   type RoundView,
 } from './lib/game'
 import {
   createRoom,
   joinRoom,
   loadLobby,
+  setRoomTestMode,
   startGame,
   subscribeToLobby,
   type Lobby,
@@ -73,8 +78,10 @@ function App() {
   const [isBusy, setIsBusy] = useState(false)
   const [isStartingGame, setIsStartingGame] = useState(false)
   const [isChoosingWord, setIsChoosingWord] = useState(false)
+  const [isChangingTestMode, setIsChangingTestMode] = useState(false)
   const [lobby, setLobby] = useState<Lobby | null>(null)
   const [roundView, setRoundView] = useState<RoundView | null>(null)
+  const [drawEvents, setDrawEvents] = useState<DrawEvent[]>([])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -106,21 +113,43 @@ function App() {
         roomCode: lobby?.room.code ?? '',
         roomId: activeRoomId,
       })
-      setLobby(nextLobby)
-      setRoundView(
+      const nextRoundView =
         nextLobby.room.status === 'playing'
           ? await loadRoundView(nextLobby.room.id)
-          : null,
-      )
+          : null
+      const nextDrawEvents = nextRoundView
+        ? await loadDrawEvents(nextRoundView.round_id)
+        : []
+
+      setLobby(nextLobby)
+      setRoundView(nextRoundView)
+      setDrawEvents(nextDrawEvents)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Nem frissült a szoba.')
     }
   }, [activePlayerId, activeRoomId, activeUserId, lobby?.room.code])
 
+  const activeRoundId = roundView?.round_id
+  const refreshDrawEvents = useCallback(async () => {
+    if (!activeRoundId) return
+
+    try {
+      setDrawEvents(await loadDrawEvents(activeRoundId))
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : 'Nem frissült a pixelrajz.',
+      )
+    }
+  }, [activeRoundId])
+
   useEffect(() => {
     if (!activeRoomId) return
-    return subscribeToLobby(activeRoomId, () => void refreshLobby())
-  }, [activeRoomId, refreshLobby])
+    return subscribeToLobby(
+      activeRoomId,
+      () => void refreshLobby(),
+      () => void refreshDrawEvents(),
+    )
+  }, [activeRoomId, refreshDrawEvents, refreshLobby])
 
   const trimmedName = playerName.trim()
   const normalizedRoomCode = useMemo(
@@ -160,6 +189,7 @@ function App() {
       window.history.replaceState({}, '', `?room=${entry.roomCode}`)
       setLobby(nextLobby)
       setRoundView(null)
+      setDrawEvents([])
       setRoomCode(entry.roomCode)
       setMessage('Sikeresen beléptél a várószobába.')
     } catch (error) {
@@ -218,6 +248,31 @@ function App() {
     }
   }
 
+  const handleToggleTestMode = async () => {
+    if (!lobby) return
+
+    setIsChangingTestMode(true)
+    setMessage('Teszt mód frissítése…')
+
+    try {
+      await setRoomTestMode(lobby.room.id, !lobby.room.test_mode)
+      await refreshLobby()
+      setMessage(
+        lobby.room.test_mode
+          ? 'Teszt mód kikapcsolva.'
+          : 'Teszt mód bekapcsolva: egyedül is indíthatsz.',
+      )
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Nem sikerült módosítani a teszt módot.',
+      )
+    } finally {
+      setIsChangingTestMode(false)
+    }
+  }
+
   const handleChooseWord = async (word: string) => {
     if (!roundView) return
 
@@ -241,6 +296,7 @@ function App() {
 
   const isHost = lobby?.room.host_user_id === lobby?.currentUserId
   const gameHasStarted = lobby?.room.status === 'playing'
+  const minimumPlayers = lobby?.room.test_mode ? 1 : 2
   const drawer = lobby?.players.find(
     (player) => player.user_id === roundView?.drawer_user_id,
   )
@@ -350,33 +406,65 @@ function App() {
                   <span>A rajzoló éppen szót választ…</span>
                 ) : roundView?.is_drawer ? (
                   <span>
-                    A választott szavad: <b>{roundView.chosen_word}</b>. A pixelvászon
-                    a következő lépésben érkezik.
+                    A választott szavad: <b>{roundView.chosen_word}</b>.
                   </span>
                 ) : (
-                  <span>
-                    A rajzoló megkapta a szót. A pixelvászon a következő lépésben
-                    érkezik.
-                  </span>
+                  <span>A rajzoló megkapta a szót.</span>
                 )}
               </div>
             ) : isHost ? (
               <div className="start-game-controls">
                 <button
+                  aria-pressed={lobby.room.test_mode}
+                  className="test-mode-button"
+                  disabled={isChangingTestMode || isStartingGame}
+                  onClick={() => void handleToggleTestMode()}
+                  type="button"
+                >
+                  Teszt mód: {lobby.room.test_mode ? 'BE' : 'KI'}
+                </button>
+                <span>
+                  {lobby.room.test_mode
+                    ? 'Egyedül is elindíthatod a meccset.'
+                    : 'Normál módban legalább 2 játékos szükséges.'}
+                </span>
+                <button
                   className="primary-button start-game-button"
-                  disabled={isStartingGame || lobby.players.length < 2}
+                  disabled={
+                    isStartingGame ||
+                    isChangingTestMode ||
+                    lobby.players.length < minimumPlayers
+                  }
                   onClick={() => void handleStartGame()}
                   type="button"
                 >
                   {isStartingGame ? 'Indítás…' : 'Játék indítása'}
                 </button>
-                {lobby.players.length < 2 ? (
+                {lobby.players.length < minimumPlayers ? (
                   <span>Még legalább egy játékosra szükség van.</span>
                 ) : null}
               </div>
             ) : (
               <p className="host-wait-message">A host indítja el a játékot.</p>
             )}
+
+            {roundView?.round_status === 'drawing' ? (
+              <PixelCanvas
+                canDraw={roundView.is_drawer}
+                events={drawEvents}
+                onError={(error) =>
+                  setMessage(
+                    error instanceof Error
+                      ? error.message
+                      : 'Nem sikerült elküldeni a pixelmódosítást.',
+                  )
+                }
+                onSubmit={(changes) =>
+                  submitPixelChanges(roundView.round_id, changes)
+                }
+                roundId={roundView.round_id}
+              />
+            ) : null}
 
             <p className="status-message" aria-live="polite">
               {message}
@@ -511,7 +599,7 @@ function App() {
 
       <footer>
         <span>PixelGuess MVP</span>
-        <span>4. mérföldkő · szóválasztás</span>
+        <span>5. mérföldkő · élő pixelvászon</span>
       </footer>
     </main>
   )

@@ -13,6 +13,9 @@ Online, többjátékos pixel art rajzolós-kitalálós játék korai prototípus
 - valós idejű várószoba → játék állapotváltás
 - szerver által kiosztott rajzoló és három titkos szólehetőség
 - csak a rajzoló számára látható szóválasztás
+- host által kapcsolható egyszemélyes teszt mód
+- 32×32-as HTML Canvas ceruzával, radírral és nyolcszínű palettával
+- szerver által ellenőrzött, változásalapú élő pixelrajzolás
 - RLS-sel védett táblák és ellenőrzött szobaműveletek
 
 ## Supabase beállítás
