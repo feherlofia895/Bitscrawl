@@ -17,6 +17,7 @@ Online, többjátékos pixel art rajzolós-kitalálós játék korai prototípus
 - 32×32-as HTML Canvas ceruzával, radírral és nyolcszínű palettával
 - szerver által ellenőrzött, változásalapú élő pixelrajzolás
 - valós idejű chat és szerveroldali, ékezetfüggetlen megfejtés-ellenőrzés
+- szerver által felügyelt 90 másodperces köridő és gyors, 15 másodperces tesztidő
 - RLS-sel védett táblák és ellenőrzött szobaműveletek
 
 ## Supabase beállítás

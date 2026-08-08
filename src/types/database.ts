@@ -16,6 +16,7 @@ export type Database = {
         Row: {
           created_at: string
           drawer_user_id: string
+          drawing_ends_at: string | null
           drawing_started_at: string | null
           id: number
           room_id: number
@@ -25,6 +26,7 @@ export type Database = {
         Insert: {
           created_at?: string
           drawer_user_id: string
+          drawing_ends_at?: string | null
           drawing_started_at?: string | null
           id?: never
           room_id: number
@@ -34,6 +36,7 @@ export type Database = {
         Update: {
           created_at?: string
           drawer_user_id?: string
+          drawing_ends_at?: string | null
           drawing_started_at?: string | null
           id?: never
           room_id?: number
@@ -226,15 +229,24 @@ export type Database = {
           room_id: number
         }[]
       }
+      finish_expired_round: {
+        Args: { target_round_id: number }
+        Returns: {
+          round_id: number
+          round_status: string
+        }[]
+      }
       get_round_view: {
         Args: { target_room_id: number }
         Returns: {
           chosen_word: string
           drawer_user_id: string
+          drawing_ends_at: string
           is_drawer: boolean
           round_id: number
           round_number: number
           round_status: string
+          server_now: string
           word_options: string[]
         }[]
       }

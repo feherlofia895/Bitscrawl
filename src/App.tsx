@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import './App.css'
 import { PixelCanvas } from './components/PixelCanvas'
 import { RoundChat } from './components/RoundChat'
+import { RoundTimer } from './components/RoundTimer'
 import {
   chooseRoundWord,
+  finishExpiredRound,
   loadDrawEvents,
   loadRoundMessages,
   loadRoundView,
@@ -83,6 +85,7 @@ function App() {
   const [isStartingGame, setIsStartingGame] = useState(false)
   const [isChoosingWord, setIsChoosingWord] = useState(false)
   const [isChangingTestMode, setIsChangingTestMode] = useState(false)
+  const [isFinishingRound, setIsFinishingRound] = useState(false)
   const [lobby, setLobby] = useState<Lobby | null>(null)
   const [roundView, setRoundView] = useState<RoundView | null>(null)
   const [drawEvents, setDrawEvents] = useState<DrawEvent[]>([])
@@ -317,6 +320,28 @@ function App() {
     }
   }
 
+  const handleExpireRound = async () => {
+    if (!roundView || isFinishingRound) return
+
+    setIsFinishingRound(true)
+    setMessage('Lejárt az idő, a kör lezárása…')
+
+    try {
+      await finishExpiredRound(roundView.round_id)
+      await refreshLobby()
+      setMessage('Lejárt az idő!')
+    } catch (error) {
+      await refreshLobby()
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Nem sikerült lezárni a lejárt kört.',
+      )
+    } finally {
+      setIsFinishingRound(false)
+    }
+  }
+
   const isHost = lobby?.room.host_user_id === lobby?.currentUserId
   const gameHasStarted = lobby?.room.status === 'playing'
   const minimumPlayers = lobby?.room.test_mode ? 1 : 2
@@ -408,7 +433,11 @@ function App() {
                     : `${drawer?.display_name ?? 'A rajzoló'} rajzol`}
                 </strong>
 
-                {roundView?.round_status === 'choosing' &&
+                {roundView?.round_status === 'finished' ? (
+                  <span>
+                    Lejárt az idő. A megfejtés: <b>{roundView.chosen_word}</b>.
+                  </span>
+                ) : roundView?.round_status === 'choosing' &&
                 roundView.is_drawer ? (
                   <div className="word-choice-panel">
                     <span>Válassz egy szót:</span>
@@ -434,6 +463,16 @@ function App() {
                 ) : (
                   <span>A rajzoló megkapta a szót.</span>
                 )}
+
+                {roundView?.round_status === 'drawing' &&
+                roundView.drawing_ends_at ? (
+                  <RoundTimer
+                    drawingEndsAt={roundView.drawing_ends_at}
+                    onExpire={() => void handleExpireRound()}
+                    roundId={roundView.round_id}
+                    serverNow={roundView.server_now}
+                  />
+                ) : null}
               </div>
             ) : isHost ? (
               <div className="start-game-controls">
@@ -471,7 +510,7 @@ function App() {
               <p className="host-wait-message">A host indítja el a játékot.</p>
             )}
 
-            {roundView?.round_status === 'drawing' ? (
+            {roundView?.round_status === 'drawing' && !isFinishingRound ? (
               <div className="round-play-area">
                 <PixelCanvas
                   canDraw={roundView.is_drawer}
@@ -639,7 +678,7 @@ function App() {
 
       <footer>
         <span>PixelGuess MVP</span>
-        <span>6. mérföldkő · chat és megfejtés</span>
+        <span>7. mérföldkő · szerveroldali köridő</span>
       </footer>
     </main>
   )
