@@ -18,6 +18,7 @@ export type Database = {
           drawer_user_id: string
           drawing_ends_at: string | null
           drawing_started_at: string | null
+          finished_at: string | null
           id: number
           room_id: number
           round_number: number
@@ -28,6 +29,7 @@ export type Database = {
           drawer_user_id: string
           drawing_ends_at?: string | null
           drawing_started_at?: string | null
+          finished_at?: string | null
           id?: never
           room_id: number
           round_number: number
@@ -38,6 +40,7 @@ export type Database = {
           drawer_user_id?: string
           drawing_ends_at?: string | null
           drawing_started_at?: string | null
+          finished_at?: string | null
           id?: never
           room_id?: number
           round_number?: number
@@ -92,6 +95,7 @@ export type Database = {
         Row: {
           code: string
           created_at: string
+          finished_at: string | null
           host_user_id: string
           id: number
           max_players: number
@@ -102,6 +106,7 @@ export type Database = {
         Insert: {
           code: string
           created_at?: string
+          finished_at?: string | null
           host_user_id: string
           id?: never
           max_players?: number
@@ -112,6 +117,7 @@ export type Database = {
         Update: {
           code?: string
           created_at?: string
+          finished_at?: string | null
           host_user_id?: string
           id?: never
           max_players?: number
@@ -213,6 +219,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      advance_game: {
+        Args: { target_round_id: number }
+        Returns: {
+          next_round_id: number
+          next_round_number: number
+          room_id: number
+          room_status: string
+        }[]
+      }
       choose_round_word: {
         Args: { selected_word: string; target_round_id: number }
         Returns: {
@@ -240,13 +255,17 @@ export type Database = {
         Args: { target_room_id: number }
         Returns: {
           chosen_word: string
+          correct_guess_count: number
           drawer_user_id: string
           drawing_ends_at: string
+          finished_at: string
           is_drawer: boolean
+          next_round_at: string
           round_id: number
           round_number: number
           round_status: string
           server_now: string
+          total_rounds: number
           word_options: string[]
         }[]
       }
@@ -256,6 +275,14 @@ export type Database = {
           normalized_room_code: string
           player_id: number
           room_id: number
+        }[]
+      }
+      restart_game: {
+        Args: { target_room_id: number }
+        Returns: {
+          room_id: number
+          room_status: string
+          started_at: string
         }[]
       }
       set_room_test_mode: {
@@ -276,8 +303,10 @@ export type Database = {
       submit_guess: {
         Args: { submitted_guess: string; target_round_id: number }
         Returns: {
+          awarded_points: number
           is_correct: boolean
           message_id: number
+          round_finished: boolean
         }[]
       }
       submit_pixel_changes: {

@@ -24,13 +24,17 @@ export type RoundMessage = {
 
 export type RoundView = {
   chosen_word: string | null
+  correct_guess_count: number
   drawer_user_id: string
   drawing_ends_at: string | null
+  finished_at: string | null
   is_drawer: boolean
+  next_round_at: string | null
   round_id: number
   round_number: number
   round_status: string
   server_now: string
+  total_rounds: number
   word_options: string[] | null
 }
 
@@ -38,16 +42,34 @@ const gameErrorMessages: Record<string, string> = {
   ALREADY_GUESSED: 'Ezt a szót már megfejtetted.',
   AUTH_REQUIRED: 'Nem sikerült létrehozni a játékos-munkamenetet.',
   DRAWER_CANNOT_GUESS: 'A rajzoló nem küldhet tippet.',
+  GAME_NOT_PLAYING: 'Ez a meccs jelenleg nem fut.',
   GUESS_INVALID: 'A tipp 1–80 karakter hosszú legyen.',
   NOT_ROUND_DRAWER: 'Csak az aktuális rajzoló végezheti ezt a műveletet.',
   PIXEL_CHANGES_INVALID: 'Érvénytelen pixelmódosítás érkezett.',
   ROOM_NOT_FOUND: 'Ez a kör nem érhető el számodra.',
   ROUND_ALREADY_STARTED: 'Ehhez a körhöz már kiválasztották a szót.',
   ROUND_NOT_DRAWING: 'A rajzolás még nem kezdődött el.',
+  ROUND_NOT_FINISHED: 'Ez a kör még nem ért véget.',
   ROUND_NOT_FOUND: 'Nem található aktív kör.',
   ROUND_TIME_EXPIRED: 'Lejárt a kör ideje.',
   ROUND_TIME_REMAINING: 'A kör ideje még nem járt le.',
+  ROUND_TRANSITION_PENDING: 'A következő kör még nem indítható.',
   WORD_NOT_AVAILABLE: 'Ez a szó nem szerepel a választható lehetőségek között.',
+}
+
+export async function advanceGame(roundId: number) {
+  try {
+    await ensurePlayerSession()
+    const { data, error } = await supabase
+      .rpc('advance_game', { target_round_id: roundId })
+      .single()
+
+    if (error) throw error
+
+    return data
+  } catch (error) {
+    throw readableGameError(error)
+  }
 }
 
 export async function finishExpiredRound(roundId: number) {
@@ -163,6 +185,8 @@ export async function loadRoundView(roomId: number): Promise<RoundView> {
       ...data,
       chosen_word: data.chosen_word ?? null,
       drawing_ends_at: data.drawing_ends_at ?? null,
+      finished_at: data.finished_at ?? null,
+      next_round_at: data.next_round_at ?? null,
       word_options: data.word_options ?? null,
     }
   } catch (error) {

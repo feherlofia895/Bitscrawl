@@ -478,6 +478,17 @@ footer {
   border: 2px solid var(--ink);
 }
 
+.score-badge {
+  margin-left: auto;
+  font-family: var(--pixel-font);
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+.player-list[data-ranked='true'] li:first-child {
+  background: var(--yellow);
+}
+
 .start-game-controls {
   display: grid;
   gap: 12px;
@@ -527,6 +538,67 @@ footer {
 
 .round-panel span {
   line-height: 1.5;
+}
+
+.round-result {
+  display: grid;
+  gap: 4px;
+}
+
+.round-transition {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  color: var(--ink);
+  background: var(--mint);
+  border: 2px solid var(--ink);
+}
+
+.round-transition span,
+.round-transition strong {
+  font-family: var(--pixel-font);
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.round-transition span {
+  font-size: 0.62rem;
+}
+
+.round-transition strong {
+  font-size: 1.3rem;
+}
+
+.game-results {
+  display: grid;
+  gap: 8px;
+  margin-top: 22px;
+  padding: 20px;
+  text-align: center;
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+  box-shadow: 5px 5px 0 var(--ink);
+}
+
+.game-results .winner-label {
+  margin: 0;
+  font-family: var(--pixel-font);
+  font-size: 0.65rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.game-results > strong {
+  font-family: var(--display-font);
+  font-size: clamp(2rem, 7vw, 3.6rem);
+  line-height: 0.9;
+}
+
+.game-results > span {
+  font-weight: 800;
 }
 
 .round-timer {

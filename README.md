@@ -1,4 +1,4 @@
-# PixelGuess
+# Bitscrawl
 
 Online, többjátékos pixel art rajzolós-kitalálós játék korai prototípusa.
 
@@ -18,6 +18,9 @@ Online, többjátékos pixel art rajzolós-kitalálós játék korai prototípus
 - szerver által ellenőrzött, változásalapú élő pixelrajzolás
 - valós idejű chat és szerveroldali, ékezetfüggetlen megfejtés-ellenőrzés
 - szerver által felügyelt 90 másodperces köridő és gyors, 15 másodperces tesztidő
+- szerveroldali, gyorsaságalapú pontozás
+- játékosonként három rajz, automatikus körváltás és végeredmény
+- új játék indítása ugyanazzal a társasággal
 - RLS-sel védett táblák és ellenőrzött szobaműveletek
 
 ## Supabase beállítás
@@ -41,6 +44,11 @@ macOS vagy Linux alatt ugyanez: `cp .env.example .env.local`.
 npm install
 npm run dev
 ```
+
+Windows alatt a `start-bitscrawl.cmd` fájlra is duplán kattinthatsz. A böngésző
+automatikusan megnyílik; a parancsablakot hagyd nyitva játék közben. Az ugyanazon
+a Wi-Fi-hálózaton lévő telefon jelenleg a `http://192.168.0.112:5173/` címen éri
+el a játékot.
 
 ## Ellenőrzés
 

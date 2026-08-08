@@ -23,6 +23,7 @@ const lobbyErrorMessages: Record<string, string> = {
   GAME_ALREADY_STARTED: 'Ez a meccs már elindult.',
   NOT_ENOUGH_PLAYERS: 'A játék indításához legalább 2 játékos kell.',
   NOT_ROOM_HOST: 'Csak a szoba hostja indíthatja el a játékot.',
+  GAME_NOT_FINISHED: 'Az új játék csak a meccs végén indítható.',
   PLAYER_NAME_INVALID: 'A játékosnév 2–16 karakter hosszú legyen.',
   PLAYER_NAME_TAKEN: 'Ezt a játékosnevet már használják ebben a szobában.',
   ROOM_ALREADY_STARTED: 'Ez a meccs már elindult, ezért nem lehet csatlakozni.',
@@ -130,6 +131,22 @@ export async function startGame(roomId: number) {
 
     const { data, error } = await supabase
       .rpc('start_game', { target_room_id: roomId })
+      .single()
+
+    if (error) throw error
+
+    return data
+  } catch (error) {
+    throw readableLobbyError(error)
+  }
+}
+
+export async function restartGame(roomId: number) {
+  try {
+    await ensurePlayerSession()
+
+    const { data, error } = await supabase
+      .rpc('restart_game', { target_room_id: roomId })
       .single()
 
     if (error) throw error
