@@ -3,7 +3,9 @@ import './App.css'
 import { PixelCanvas } from './components/PixelCanvas'
 import { RoundChat } from './components/RoundChat'
 import { RoundTimer } from './components/RoundTimer'
+import { RoundTransitionTimer } from './components/RoundTransitionTimer'
 import {
+  advanceGame,
   chooseRoundWord,
   finishExpiredRound,
   loadDrawEvents,
@@ -19,6 +21,7 @@ import {
   createRoom,
   joinRoom,
   loadLobby,
+  restartGame,
   setRoomTestMode,
   startGame,
   subscribeToLobby,
@@ -86,6 +89,8 @@ function App() {
   const [isChoosingWord, setIsChoosingWord] = useState(false)
   const [isChangingTestMode, setIsChangingTestMode] = useState(false)
   const [isFinishingRound, setIsFinishingRound] = useState(false)
+  const [isAdvancingRound, setIsAdvancingRound] = useState(false)
+  const [isRestartingGame, setIsRestartingGame] = useState(false)
   const [lobby, setLobby] = useState<Lobby | null>(null)
   const [roundView, setRoundView] = useState<RoundView | null>(null)
   const [drawEvents, setDrawEvents] = useState<DrawEvent[]>([])
@@ -342,11 +347,66 @@ function App() {
     }
   }
 
+  const handleAdvanceGame = async () => {
+    if (!roundView || isAdvancingRound) return
+
+    setIsAdvancingRound(true)
+    setMessage('A következő kör előkészítése…')
+
+    try {
+      const result = await advanceGame(roundView.round_id)
+      await refreshLobby()
+      setMessage(
+        result.room_status === 'finished'
+          ? 'Véget ért a meccs!'
+          : 'Kezdődik a következő kör!',
+      )
+    } catch (error) {
+      await refreshLobby()
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Nem sikerült elindítani a következő kört.',
+      )
+    } finally {
+      setIsAdvancingRound(false)
+    }
+  }
+
+  const handleRestartGame = async () => {
+    if (!lobby || isRestartingGame) return
+
+    setIsRestartingGame(true)
+    setMessage('Az új meccs előkészítése…')
+
+    try {
+      await restartGame(lobby.room.id)
+      await refreshLobby()
+      setMessage('Elindult az új meccs!')
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Nem sikerült elindítani az új meccset.',
+      )
+    } finally {
+      setIsRestartingGame(false)
+    }
+  }
+
   const isHost = lobby?.room.host_user_id === lobby?.currentUserId
-  const gameHasStarted = lobby?.room.status === 'playing'
+  const gameIsPlaying = lobby?.room.status === 'playing'
+  const gameIsFinished = lobby?.room.status === 'finished'
+  const roomIsLocked = gameIsPlaying || gameIsFinished
   const minimumPlayers = lobby?.room.test_mode ? 1 : 2
   const drawer = lobby?.players.find(
     (player) => player.user_id === roundView?.drawer_user_id,
+  )
+  const rankedPlayers = [...(lobby?.players ?? [])].sort(
+    (first, second) =>
+      second.score - first.score ||
+      first.joined_at.localeCompare(second.joined_at) ||
+      first.id - second.id,
   )
 
   return (
@@ -375,7 +435,11 @@ function App() {
         <section className="waiting-room" id="top" aria-labelledby="room-title">
           <div className="room-summary">
             <p className="step-label">
-              {gameHasStarted ? 'Elindult meccs' : 'Online várószoba'}
+              {gameIsFinished
+                ? 'Meccs vége'
+                : gameIsPlaying
+                  ? 'Elindult meccs'
+                  : 'Online várószoba'}
             </p>
             <h1 id="room-title">Szobakód</h1>
             <strong className="room-code">{lobby.room.code}</strong>
@@ -387,7 +451,7 @@ function App() {
               Meghívó link másolása
             </button>
             <p className="room-note">
-              {gameHasStarted
+              {roomIsLocked
                 ? 'A szoba lezárult, új játékos már nem csatlakozhat.'
                 : 'Oszd meg a kódot vagy a meghívó linket a többiekkel.'}
             </p>
@@ -397,15 +461,21 @@ function App() {
             <div className="players-heading">
               <div>
                 <p className="step-label">Játékosok</p>
-                <h2>{gameHasStarted ? 'Kezdődhet a játék' : 'Várjuk a többieket'}</h2>
+                <h2>
+                  {gameIsFinished
+                    ? 'Végeredmény'
+                    : gameIsPlaying
+                      ? 'Meccs folyamatban'
+                      : 'Várjuk a többieket'}
+                </h2>
               </div>
               <span className="player-count">
                 {lobby.players.length}/{lobby.room.max_players}
               </span>
             </div>
 
-            <ol className="player-list">
-              {lobby.players.map((player) => {
+            <ol className="player-list" data-ranked={gameIsFinished}>
+              {(gameIsFinished ? rankedPlayers : lobby.players).map((player, index) => {
                 const isHost = player.user_id === lobby.room.host_user_id
                 const isCurrentPlayer = player.user_id === lobby.currentUserId
 
@@ -415,18 +485,26 @@ function App() {
                       {player.display_name.slice(0, 1).toUpperCase()}
                     </span>
                     <span className="player-name">
+                      {gameIsFinished ? `${index + 1}. ` : ''}
                       {player.display_name}
                       {isCurrentPlayer ? ' (te)' : ''}
                     </span>
                     {isHost ? <span className="host-badge">Host</span> : null}
+                    {roomIsLocked ? (
+                      <strong className="score-badge">{player.score} pont</strong>
+                    ) : null}
                   </li>
                 )
               })}
             </ol>
 
-            {gameHasStarted ? (
+            {gameIsPlaying ? (
               <div className="round-panel">
-                <p className="round-label">1. kör</p>
+                <p className="round-label">
+                  {roundView
+                    ? `${roundView.round_number}/${roundView.total_rounds}. kör`
+                    : 'Kör betöltése…'}
+                </p>
                 <strong>
                   {roundView?.is_drawer
                     ? 'Te rajzolsz!'
@@ -434,9 +512,14 @@ function App() {
                 </strong>
 
                 {roundView?.round_status === 'finished' ? (
-                  <span>
-                    Lejárt az idő. A megfejtés: <b>{roundView.chosen_word}</b>.
-                  </span>
+                  <div className="round-result">
+                    <span>
+                      Kör vége. A megfejtés: <b>{roundView.chosen_word}</b>.
+                    </span>
+                    <span>
+                      {roundView.correct_guess_count} helyes megfejtés érkezett.
+                    </span>
+                  </div>
                 ) : roundView?.round_status === 'choosing' &&
                 roundView.is_drawer ? (
                   <div className="word-choice-panel">
@@ -473,6 +556,34 @@ function App() {
                     serverNow={roundView.server_now}
                   />
                 ) : null}
+
+                {roundView?.round_status === 'finished' &&
+                roundView.next_round_at ? (
+                  <RoundTransitionTimer
+                    nextRoundAt={roundView.next_round_at}
+                    onReady={() => void handleAdvanceGame()}
+                    roundId={roundView.round_id}
+                    serverNow={roundView.server_now}
+                  />
+                ) : null}
+              </div>
+            ) : gameIsFinished ? (
+              <div className="game-results">
+                <p className="winner-label">A győztes</p>
+                <strong>{rankedPlayers[0]?.display_name ?? 'Nincs játékos'}</strong>
+                <span>{rankedPlayers[0]?.score ?? 0} pont</span>
+                {isHost ? (
+                  <button
+                    className="primary-button start-game-button"
+                    disabled={isRestartingGame}
+                    onClick={() => void handleRestartGame()}
+                    type="button"
+                  >
+                    {isRestartingGame ? 'Indítás…' : 'Új játék ugyanígy'}
+                  </button>
+                ) : (
+                  <span>A host indíthat új játékot ugyanazzal a társasággal.</span>
+                )}
               </div>
             ) : isHost ? (
               <div className="start-game-controls">
@@ -678,7 +789,7 @@ function App() {
 
       <footer>
         <span>Bitscrawl MVP</span>
-        <span>7. mérföldkő · szerveroldali köridő</span>
+        <span>8. mérföldkő · teljes meccs és pontozás</span>
       </footer>
     </main>
   )

@@ -18,6 +18,9 @@ Online, többjátékos pixel art rajzolós-kitalálós játék korai prototípus
 - szerver által ellenőrzött, változásalapú élő pixelrajzolás
 - valós idejű chat és szerveroldali, ékezetfüggetlen megfejtés-ellenőrzés
 - szerver által felügyelt 90 másodperces köridő és gyors, 15 másodperces tesztidő
+- szerveroldali, gyorsaságalapú pontozás
+- játékosonként három rajz, automatikus körváltás és végeredmény
+- új játék indítása ugyanazzal a társasággal
 - RLS-sel védett táblák és ellenőrzött szobaműveletek
 
 ## Supabase beállítás
