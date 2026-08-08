@@ -31,6 +31,7 @@ const lobbyErrorMessages: Record<string, string> = {
     'A játék indításához legalább 2 kapcsolódó játékos kell.',
   NOT_ROOM_HOST: 'Csak a szoba hostja indíthatja el a játékot.',
   GAME_NOT_FINISHED: 'Az új játék csak a meccs végén indítható.',
+  ROOM_MEMBERSHIP_NOT_FOUND: 'Már nem vagy tagja ennek a szobának.',
   PLAYER_NAME_INVALID: 'A játékosnév 2–16 karakter hosszú legyen.',
   PLAYER_NAME_TAKEN: 'Ezt a játékosnevet már használják ebben a szobában.',
   ROOM_ALREADY_STARTED: 'Ez a meccs már elindult, ezért nem lehet csatlakozni.',
@@ -151,6 +152,20 @@ export async function touchRoomPresence(roomId: number) {
   }
 }
 
+export async function leaveRoom(roomId: number) {
+  try {
+    await ensurePlayerSession()
+    const { data, error } = await supabase
+      .rpc('leave_room', { target_room_id: roomId })
+      .single()
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    throw readableLobbyError(error)
+  }
+}
+
 export async function setRoomTestMode(roomId: number, enabled: boolean) {
   try {
     await ensurePlayerSession()
@@ -230,6 +245,7 @@ export function subscribeToLobby(
   onConnectionChange?: (status: LobbyConnectionStatus) => void,
 ) {
   let reconciliationTimeout: ReturnType<typeof setTimeout> | undefined
+  let disposed = false
 
   const channel = supabase
     .channel(`lobby-${roomId}`)
@@ -284,6 +300,8 @@ export function subscribeToLobby(
       onMessageChange,
     )
     .subscribe((status) => {
+      if (disposed) return
+
       if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
         onConnectionChange?.('reconnecting')
         return
@@ -302,6 +320,7 @@ export function subscribeToLobby(
     })
 
   return () => {
+    disposed = true
     if (reconciliationTimeout) clearTimeout(reconciliationTimeout)
     void supabase.removeChannel(channel)
   }

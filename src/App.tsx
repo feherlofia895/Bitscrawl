@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { PixelCanvas } from './components/PixelCanvas'
 import { RoundChat } from './components/RoundChat'
@@ -20,6 +20,7 @@ import {
 import {
   createRoom,
   joinRoom,
+  leaveRoom,
   loadLobby,
   restartGame,
   resumeRoom,
@@ -97,10 +98,12 @@ function App() {
   const [isFinishingRound, setIsFinishingRound] = useState(false)
   const [isAdvancingRound, setIsAdvancingRound] = useState(false)
   const [isRestartingGame, setIsRestartingGame] = useState(false)
+  const [isLeavingRoom, setIsLeavingRoom] = useState(false)
   const [lobby, setLobby] = useState<Lobby | null>(null)
   const [roundView, setRoundView] = useState<RoundView | null>(null)
   const [drawEvents, setDrawEvents] = useState<DrawEvent[]>([])
   const [roundMessages, setRoundMessages] = useState<RoundMessage[]>([])
+  const isLeavingRoomRef = useRef(false)
 
   const hydrateLobby = useCallback(
     async (entry: Parameters<typeof loadLobby>[0]) => {
@@ -116,10 +119,12 @@ function App() {
           ])
         : [[], []]
 
-      setLobby(nextLobby)
-      setRoundView(nextRoundView)
-      setDrawEvents(nextDrawEvents)
-      setRoundMessages(nextRoundMessages)
+      if (!isLeavingRoomRef.current) {
+        setLobby(nextLobby)
+        setRoundView(nextRoundView)
+        setDrawEvents(nextDrawEvents)
+        setRoundMessages(nextRoundMessages)
+      }
 
       return nextLobby
     },
@@ -205,6 +210,7 @@ function App() {
         roomId: activeRoomId,
       })
     } catch (error) {
+      if (isLeavingRoomRef.current) return
       setMessage(error instanceof Error ? error.message : 'Nem frissült a szoba.')
     }
   }, [
@@ -282,7 +288,9 @@ function App() {
           setMessage('A rajzoló kiesett, ezért a kör lezárult.')
         }
       } catch {
-        setBackendStatus(navigator.onLine ? 'reconnecting' : 'offline')
+        if (!isLeavingRoomRef.current) {
+          setBackendStatus(navigator.onLine ? 'reconnecting' : 'offline')
+        }
       } finally {
         heartbeatRunning = false
       }
@@ -332,6 +340,7 @@ function App() {
   ) => {
     if (!checkName()) return
 
+    isLeavingRoomRef.current = false
     setIsBusy(true)
     setMessage(
       action === 'create'
@@ -520,6 +529,44 @@ function App() {
     }
   }
 
+  const handleLeaveRoom = async () => {
+    if (!lobby || isLeavingRoom) return
+
+    if (
+      lobby.room.status === 'playing' &&
+      !window.confirm(
+        'Biztosan kilépsz a folyamatban lévő meccsből?',
+      )
+    ) {
+      return
+    }
+
+    isLeavingRoomRef.current = true
+    setIsLeavingRoom(true)
+    setMessage('Kilépés a szobából…')
+
+    try {
+      await leaveRoom(lobby.room.id)
+      setLobby(null)
+      setRoundView(null)
+      setDrawEvents([])
+      setRoundMessages([])
+      setRoomCode('')
+      window.history.replaceState({}, '', window.location.pathname)
+      setBackendStatus('online')
+      setMessage('Kiléptél a szobából. Létrehozhatsz egy újat vagy csatlakozhatsz másikhoz.')
+    } catch (error) {
+      isLeavingRoomRef.current = false
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Nem sikerült kilépni a szobából.',
+      )
+    } finally {
+      setIsLeavingRoom(false)
+    }
+  }
+
   const isHost = lobby?.room.host_user_id === lobby?.currentUserId
   const gameIsPlaying = lobby?.room.status === 'playing'
   const gameIsFinished = lobby?.room.status === 'finished'
@@ -577,6 +624,14 @@ function App() {
               type="button"
             >
               Meghívó link másolása
+            </button>
+            <button
+              className="leave-room-button"
+              disabled={isLeavingRoom}
+              onClick={() => void handleLeaveRoom()}
+              type="button"
+            >
+              {isLeavingRoom ? 'Kilépés…' : 'Kilépés a szobából'}
             </button>
             <p className="room-note">
               {roomIsLocked

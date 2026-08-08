@@ -394,6 +394,19 @@ footer {
   background: var(--paper);
 }
 
+.leave-room-button {
+  width: 100%;
+  margin-top: 10px;
+  color: var(--ink);
+  background: color-mix(in srgb, #ff6b6b 45%, var(--paper));
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.leave-room-button:hover:not(:disabled) {
+  background: #ffb2b2;
+}
+
 .room-note {
   margin: 24px 0 0;
   color: var(--muted);
