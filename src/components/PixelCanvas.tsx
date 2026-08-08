@@ -14,6 +14,10 @@ const MIN_ZOOM = 1
 const ZOOM_BUTTON_STEP = 0.5
 const CANVAS_SURFACE_RATIO = 0.93
 const CENTERED_CANVAS_OFFSET = (1 - CANVAS_SURFACE_RATIO) / 2
+const PIXEL_COORDINATES = Array.from(
+  { length: CANVAS_SIZE },
+  (_, index) => index + 1,
+)
 
 type PixelCanvasProps = {
   canDraw: boolean
@@ -250,6 +254,7 @@ export function PixelCanvas({
   })
   const [isPanMode, setIsPanMode] = useState(false)
   const [showGrid, setShowGrid] = useState(false)
+  const [showCoordinates, setShowCoordinates] = useState(false)
   const drawingColor = activeTool === 'eraser' ? TRANSPARENT : activeColor
 
   const maximumZoom = () => {
@@ -752,6 +757,13 @@ export function PixelCanvas({
         >
           Rács
         </button>
+        <button
+          aria-pressed={showCoordinates}
+          onClick={() => setShowCoordinates((current) => !current)}
+          type="button"
+        >
+          Koordináták
+        </button>
       </div>
 
       <div className="pixel-canvas-frame" ref={canvasFrameRef}>
@@ -764,6 +776,26 @@ export function PixelCanvas({
             width: `${CANVAS_SURFACE_RATIO * zoom * 100}%`,
           }}
         >
+          {showCoordinates ? (
+            <>
+              <div
+                aria-hidden="true"
+                className="pixel-coordinate-ruler is-horizontal"
+              >
+                {PIXEL_COORDINATES.map((coordinate) => (
+                  <span key={coordinate}>{coordinate}</span>
+                ))}
+              </div>
+              <div
+                aria-hidden="true"
+                className="pixel-coordinate-ruler is-vertical"
+              >
+                {PIXEL_COORDINATES.map((coordinate) => (
+                  <span key={coordinate}>{coordinate}</span>
+                ))}
+              </div>
+            </>
+          ) : null}
           <canvas
             aria-label={canDraw ? 'Rajzolható 32×32 pixeles vászon' : 'Élő pixelrajz'}
             className={`drawing-canvas${isPanMode ? ' is-pan-mode' : ''}${
