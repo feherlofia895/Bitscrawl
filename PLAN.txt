@@ -14,7 +14,7 @@ Jelölések:
 - Tiszta main ág létrehozása a következő fejlesztéshez.
 
 
-[ ] 2. CSAK A PIXELVÁSZNAT NAGYÍTÓ ESZKÖZ
+[x] 2. CSAK A PIXELVÁSZNAT NAGYÍTÓ ESZKÖZ
 
 Cél: telefonon könnyebb legyen pontosan egy pixelt kijelölni anélkül, hogy
 az egész weboldal felnagyulna.
@@ -34,9 +34,10 @@ Első egyszerű változat:
 - Csippentős nagyítás csak később, ha valóban szükséges.
 
 
-[ ] 3. TELJES KÉTEMBERES MULTIPLAYER PRÓBA
+[x] 3. TELJES MULTIPLAYER PRÓBA
 
-Egy játékos PC-ről, egy másik telefonról játsszon végig egy teljes meccset.
+Kézi próba egy játékossal PC-ről és egy másikkal telefonról, majd automatizált
+ötfős, 15 körös teljes meccs öt külön játékosmunkamenettel.
 
 - Szobalétrehozás, meghívó link és csatlakozás.
 - Csak a host indíthatja el a játékot.
@@ -48,6 +49,7 @@ Egy játékos PC-ről, egy másik telefonról játsszon végig egy teljes meccse
 - Minden játékos háromszor legyen rajzoló.
 - Működjön az időlimit, körváltás, végeredmény és az új játék.
 - Elindult meccshez új játékos ne tudjon csatlakozni.
+- Az ötfős próba után ugyanazzal az öt játékossal új meccs induljon.
 
 
 [ ] 4. KAPCSOLATMEGSZAKADÁS ÉS VISSZATÉRÉS
