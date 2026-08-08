@@ -75,7 +75,7 @@ Elkészült szabályok:
   kiesési próba sikeresen lefutott.
 
 
-[ ] 5. MULTIPLAYER-BIZTONSÁGI ELLENŐRZÉS
+[x] 5. MULTIPLAYER-BIZTONSÁGI ELLENŐRZÉS
 
 - A kliens ne tudjon pontszámot módosítani.
 - A nem rajzoló ne tudja lekérni a titkos szót.
@@ -83,6 +83,17 @@ Elkészült szabályok:
 - Illetéktelen játékos ne rajzolhasson, ne választhasson szót és ne léptethessen kört.
 - A szerver maradjon felelős az időzítésért, megfejtésért és pontozásért.
 - Supabase RLS-szabályok és szerveroldali függvények ellenőrzése.
+
+Elkészült ellenőrzések:
+- A kliens minden publikus játéktáblán csak olvasási jogosultságot kapott;
+  minden írás ellenőrzött szerverfüggvényen keresztül történik.
+- A publikus táblák szobatagsághoz kötött RLS-védelemmel rendelkeznek.
+- A titkos szólista és a körök titkai privát sémában, közvetlen jogosultság
+  nélkül, külön RLS-védelemmel maradnak.
+- Elkülönített játékosokkal 20 tiltott hozzáférési és manipulációs esetet
+  ellenőrző integrációs teszt készült és sikeresen lefutott.
+- Egyszemélyes teszt módban a rajzoló korlátlan időt kap; két vagy több
+  játékosnál a teszt mód továbbra is 15 másodperces.
 
 
 [ ] 6. MOBILOS JÁTSZHATÓSÁG ÉS EGYSZERŰ SZÓLISTA

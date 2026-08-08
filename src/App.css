@@ -647,6 +647,10 @@ footer {
   background: var(--red);
 }
 
+.round-timer[data-unlimited='true'] {
+  background: #91e6c5;
+}
+
 .round-label {
   margin: 0;
   color: var(--yellow);

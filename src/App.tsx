@@ -688,6 +688,16 @@ function App() {
                     roundId={roundView.round_id}
                     serverNow={roundView.server_now}
                   />
+                ) : roundView?.round_status === 'drawing' ? (
+                  <div
+                    aria-label="Egyszemélyes teszt mód, nincs időlimit"
+                    className="round-timer"
+                    data-unlimited="true"
+                    role="status"
+                  >
+                    <span>Egyszemélyes teszt</span>
+                    <strong>∞</strong>
+                  </div>
                 ) : null}
 
                 {roundView?.round_status === 'finished' &&
@@ -731,7 +741,7 @@ function App() {
                 </button>
                 <span>
                   {lobby.room.test_mode
-                    ? 'Egyedül is elindíthatod a meccset.'
+                    ? 'Egyedül korlátlan rajzidővel is elindíthatod a meccset.'
                     : 'Normál módban legalább 2 játékos szükséges.'}
                 </span>
                 <button
@@ -926,7 +936,7 @@ function App() {
 
       <footer>
         <span>Bitscrawl MVP</span>
-        <span>11. mérföldkő · kapcsolat-helyreállítás</span>
+        <span>12. mérföldkő · multiplayer-biztonság</span>
       </footer>
     </main>
   )

@@ -14,6 +14,7 @@ Online, többjátékos pixel art rajzolós-kitalálós játék korai prototípus
 - szerver által kiosztott rajzoló és három titkos szólehetőség
 - csak a rajzoló számára látható szóválasztás
 - host által kapcsolható egyszemélyes teszt mód
+- egyszemélyes teszt módban korlátlan rajzidő
 - 32×32-as HTML Canvas ceruzával, radírral és nyolcszínű palettával
 - szerver által ellenőrzött, változásalapú élő pixelrajzolás
 - valós idejű chat és szerveroldali, ékezetfüggetlen megfejtés-ellenőrzés
@@ -67,5 +68,11 @@ node --env-file=.env.local scripts/verify-connection-recovery.mjs
 
 A teszt körülbelül egy percig fut: két külön játékost hoz létre, majd ellenőrzi
 a 45 másodperces türelmi időt, a hostátadást és a következő kör indulását.
+
+A multiplayer-jogosultságok és az egyszemélyes korlátlan idő ellenőrzése:
+
+```bash
+node --env-file=.env.local scripts/verify-multiplayer-security.mjs
+```
 
 Az adatbázis változásai a `supabase/migrations` mappában találhatók.
