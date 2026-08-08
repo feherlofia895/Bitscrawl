@@ -106,6 +106,24 @@ export function joinRoom(playerName: string, roomCode: string) {
   return getRoomEntry('join', playerName, roomCode)
 }
 
+export async function setRoomTestMode(roomId: number, enabled: boolean) {
+  try {
+    await ensurePlayerSession()
+    const { data, error } = await supabase
+      .rpc('set_room_test_mode', {
+        target_room_id: roomId,
+        test_mode_enabled: enabled,
+      })
+      .single()
+
+    if (error) throw error
+
+    return data
+  } catch (error) {
+    throw readableLobbyError(error)
+  }
+}
+
 export async function startGame(roomId: number) {
   try {
     await ensurePlayerSession()
@@ -143,7 +161,11 @@ export async function loadLobby(entry: RoomEntry): Promise<Lobby> {
   }
 }
 
-export function subscribeToLobby(roomId: number, onChange: () => void) {
+export function subscribeToLobby(
+  roomId: number,
+  onChange: () => void,
+  onDrawChange: () => void = onChange,
+) {
   let reconciliationTimeout: ReturnType<typeof setTimeout> | undefined
 
   const channel = supabase
@@ -177,6 +199,16 @@ export function subscribeToLobby(roomId: number, onChange: () => void) {
         table: 'game_rounds',
       },
       onChange,
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        filter: `room_id=eq.${roomId}`,
+        schema: 'public',
+        table: 'round_draw_events',
+      },
+      onDrawChange,
     )
     .subscribe((status) => {
       if (status !== 'SUBSCRIBED') return

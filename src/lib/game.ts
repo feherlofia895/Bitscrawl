@@ -1,4 +1,17 @@
 import { ensurePlayerSession, supabase } from './supabase'
+import type { Json } from '../types/database'
+
+export type PixelChange = {
+  color: string
+  x: number
+  y: number
+}
+
+export type DrawEvent = {
+  changes: PixelChange[]
+  id: number
+  round_id: number
+}
 
 export type RoundView = {
   chosen_word: string | null
@@ -12,11 +25,47 @@ export type RoundView = {
 
 const gameErrorMessages: Record<string, string> = {
   AUTH_REQUIRED: 'Nem sikerült létrehozni a játékos-munkamenetet.',
-  NOT_ROUND_DRAWER: 'Csak az aktuális rajzoló választhat szót.',
+  NOT_ROUND_DRAWER: 'Csak az aktuális rajzoló végezheti ezt a műveletet.',
+  PIXEL_CHANGES_INVALID: 'Érvénytelen pixelmódosítás érkezett.',
   ROOM_NOT_FOUND: 'Ez a kör nem érhető el számodra.',
   ROUND_ALREADY_STARTED: 'Ehhez a körhöz már kiválasztották a szót.',
+  ROUND_NOT_DRAWING: 'A rajzolás még nem kezdődött el.',
   ROUND_NOT_FOUND: 'Nem található aktív kör.',
   WORD_NOT_AVAILABLE: 'Ez a szó nem szerepel a választható lehetőségek között.',
+}
+
+export async function loadDrawEvents(roundId: number): Promise<DrawEvent[]> {
+  const { data, error } = await supabase
+    .from('round_draw_events')
+    .select('id, round_id, changes')
+    .eq('round_id', roundId)
+    .order('id')
+
+  if (error) throw readableGameError(error)
+
+  return data.map((event) => ({
+    ...event,
+    changes: event.changes as PixelChange[],
+  }))
+}
+
+export async function submitPixelChanges(
+  roundId: number,
+  changes: PixelChange[],
+) {
+  try {
+    await ensurePlayerSession()
+    const { data, error } = await supabase.rpc('submit_pixel_changes', {
+      pixel_changes: changes as Json,
+      target_round_id: roundId,
+    })
+
+    if (error) throw error
+
+    return data
+  } catch (error) {
+    throw readableGameError(error)
+  }
 }
 
 function readableGameError(error: unknown) {
