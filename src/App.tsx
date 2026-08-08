@@ -4,6 +4,7 @@ import {
   createRoom,
   joinRoom,
   loadLobby,
+  startGame,
   subscribeToLobby,
   type Lobby,
 } from './lib/lobby'
@@ -65,6 +66,7 @@ function App() {
   const [backendStatus, setBackendStatus] =
     useState<BackendStatus>('checking')
   const [isBusy, setIsBusy] = useState(false)
+  const [isStartingGame, setIsStartingGame] = useState(false)
   const [lobby, setLobby] = useState<Lobby | null>(null)
 
   useEffect(() => {
@@ -182,6 +184,30 @@ function App() {
     }
   }
 
+  const handleStartGame = async () => {
+    if (!lobby) return
+
+    setIsStartingGame(true)
+    setMessage('A játék indítása…')
+
+    try {
+      await startGame(lobby.room.id)
+      await refreshLobby()
+      setMessage('A meccs elindult!')
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Nem sikerült elindítani a játékot.',
+      )
+    } finally {
+      setIsStartingGame(false)
+    }
+  }
+
+  const isHost = lobby?.room.host_user_id === lobby?.currentUserId
+  const gameHasStarted = lobby?.room.status === 'playing'
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -207,7 +233,9 @@ function App() {
       {lobby ? (
         <section className="waiting-room" id="top" aria-labelledby="room-title">
           <div className="room-summary">
-            <p className="step-label">Online várószoba</p>
+            <p className="step-label">
+              {gameHasStarted ? 'Elindult meccs' : 'Online várószoba'}
+            </p>
             <h1 id="room-title">Szobakód</h1>
             <strong className="room-code">{lobby.room.code}</strong>
             <button
@@ -218,8 +246,9 @@ function App() {
               Meghívó link másolása
             </button>
             <p className="room-note">
-              A játékhoz legalább 2 fő kell. A host indítógombja a következő
-              lépésben érkezik.
+              {gameHasStarted
+                ? 'A szoba lezárult, új játékos már nem csatlakozhat.'
+                : 'Oszd meg a kódot vagy a meghívó linket a többiekkel.'}
             </p>
           </div>
 
@@ -227,7 +256,7 @@ function App() {
             <div className="players-heading">
               <div>
                 <p className="step-label">Játékosok</p>
-                <h2>Várjuk a többieket</h2>
+                <h2>{gameHasStarted ? 'Kezdődhet a játék' : 'Várjuk a többieket'}</h2>
               </div>
               <span className="player-count">
                 {lobby.players.length}/{lobby.room.max_players}
@@ -253,6 +282,29 @@ function App() {
                 )
               })}
             </ol>
+
+            {gameHasStarted ? (
+              <div className="game-started-panel">
+                <strong>A meccs elindult!</strong>
+                <span>A szóválasztás a következő fejlesztési lépésben érkezik.</span>
+              </div>
+            ) : isHost ? (
+              <div className="start-game-controls">
+                <button
+                  className="primary-button start-game-button"
+                  disabled={isStartingGame || lobby.players.length < 2}
+                  onClick={() => void handleStartGame()}
+                  type="button"
+                >
+                  {isStartingGame ? 'Indítás…' : 'Játék indítása'}
+                </button>
+                {lobby.players.length < 2 ? (
+                  <span>Még legalább egy játékosra szükség van.</span>
+                ) : null}
+              </div>
+            ) : (
+              <p className="host-wait-message">A host indítja el a játékot.</p>
+            )}
 
             <p className="status-message" aria-live="polite">
               {message}
@@ -387,7 +439,7 @@ function App() {
 
       <footer>
         <span>PixelGuess MVP</span>
-        <span>2. mérföldkő · online várószoba</span>
+        <span>3. mérföldkő · meccsindítás</span>
       </footer>
     </main>
   )

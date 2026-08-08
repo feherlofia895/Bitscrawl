@@ -20,6 +20,9 @@ type RoomEntry = {
 
 const lobbyErrorMessages: Record<string, string> = {
   AUTH_REQUIRED: 'Nem sikerült létrehozni a játékos-munkamenetet.',
+  GAME_ALREADY_STARTED: 'Ez a meccs már elindult.',
+  NOT_ENOUGH_PLAYERS: 'A játék indításához legalább 2 játékos kell.',
+  NOT_ROOM_HOST: 'Csak a szoba hostja indíthatja el a játékot.',
   PLAYER_NAME_INVALID: 'A játékosnév 2–16 karakter hosszú legyen.',
   PLAYER_NAME_TAKEN: 'Ezt a játékosnevet már használják ebben a szobában.',
   ROOM_ALREADY_STARTED: 'Ez a meccs már elindult, ezért nem lehet csatlakozni.',
@@ -103,6 +106,22 @@ export function joinRoom(playerName: string, roomCode: string) {
   return getRoomEntry('join', playerName, roomCode)
 }
 
+export async function startGame(roomId: number) {
+  try {
+    await ensurePlayerSession()
+
+    const { data, error } = await supabase
+      .rpc('start_game', { target_room_id: roomId })
+      .single()
+
+    if (error) throw error
+
+    return data
+  } catch (error) {
+    throw readableLobbyError(error)
+  }
+}
+
 export async function loadLobby(entry: RoomEntry): Promise<Lobby> {
   const [roomResult, playersResult] = await Promise.all([
     supabase.from('rooms').select('*').eq('id', entry.roomId).single(),
@@ -125,6 +144,8 @@ export async function loadLobby(entry: RoomEntry): Promise<Lobby> {
 }
 
 export function subscribeToLobby(roomId: number, onChange: () => void) {
+  let reconciliationTimeout: ReturnType<typeof setTimeout> | undefined
+
   const channel = supabase
     .channel(`lobby-${roomId}`)
     .on(
@@ -147,9 +168,15 @@ export function subscribeToLobby(roomId: number, onChange: () => void) {
       },
       onChange,
     )
-    .subscribe()
+    .subscribe((status) => {
+      if (status !== 'SUBSCRIBED') return
+
+      onChange()
+      reconciliationTimeout = setTimeout(onChange, 1_000)
+    })
 
   return () => {
+    if (reconciliationTimeout) clearTimeout(reconciliationTimeout)
     void supabase.removeChannel(channel)
   }
 }
