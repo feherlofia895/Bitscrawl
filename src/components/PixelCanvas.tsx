@@ -9,6 +9,7 @@ import type { DrawEvent, PixelChange } from '../lib/game'
 const CANVAS_SIZE = 32
 const TRANSPARENT = 'transparent'
 const MAX_UNDO_STEPS = 50
+const ZOOM_LEVELS = [1, 2, 3] as const
 
 const pixelPalette = [
   '#241a35',
@@ -32,6 +33,12 @@ type PixelCanvasProps = {
 type PixelPoint = { x: number; y: number }
 type DrawingTool = 'pencil' | 'eraser' | 'fill'
 type PixelMutation = PixelChange & { before: string }
+type CanvasPan = { x: number; y: number }
+type PanGesture = {
+  origin: CanvasPan
+  startX: number
+  startY: number
+}
 
 function pixelKey(point: PixelPoint) {
   return `${point.x}-${point.y}`
@@ -108,6 +115,7 @@ export function PixelCanvas({
   roundId,
 }: PixelCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const canvasFrameRef = useRef<HTMLDivElement>(null)
   const pixelsRef = useRef<string[]>(
     Array.from({ length: CANVAS_SIZE * CANVAS_SIZE }, () => TRANSPARENT),
   )
@@ -116,13 +124,56 @@ export function PixelCanvas({
   const flushTimerRef = useRef<number | undefined>(undefined)
   const sendQueueRef = useRef<Promise<unknown>>(Promise.resolve())
   const isDrawingRef = useRef(false)
+  const isPanningRef = useRef(false)
+  const panGestureRef = useRef<PanGesture | null>(null)
   const lastPointRef = useRef<PixelPoint | null>(null)
   const activeStrokeRef = useRef<Map<string, PixelMutation> | null>(null)
   const undoHistoryRef = useRef<PixelMutation[][]>([])
   const [activeColor, setActiveColor] = useState(pixelPalette[0])
   const [activeTool, setActiveTool] = useState<DrawingTool>('pencil')
   const [canUndo, setCanUndo] = useState(false)
+  const [zoom, setZoom] = useState<(typeof ZOOM_LEVELS)[number]>(1)
+  const [pan, setPan] = useState<CanvasPan>({ x: 0, y: 0 })
+  const [isPanMode, setIsPanMode] = useState(false)
   const drawingColor = activeTool === 'eraser' ? TRANSPARENT : activeColor
+
+  const clampPan = (nextPan: CanvasPan, nextZoom = zoom) => {
+    const minimum = -(nextZoom - 1)
+    return {
+      x: Math.max(minimum, Math.min(0, nextPan.x)),
+      y: Math.max(minimum, Math.min(0, nextPan.y)),
+    }
+  }
+
+  const changeZoom = (nextZoom: (typeof ZOOM_LEVELS)[number]) => {
+    setPan((currentPan) => {
+      const visibleCenterX = (0.5 - currentPan.x) / zoom
+      const visibleCenterY = (0.5 - currentPan.y) / zoom
+      return clampPan(
+        {
+          x: 0.5 - visibleCenterX * nextZoom,
+          y: 0.5 - visibleCenterY * nextZoom,
+        },
+        nextZoom,
+      )
+    })
+    setZoom(nextZoom)
+    if (nextZoom === 1) setIsPanMode(false)
+  }
+
+  const stepZoom = (direction: -1 | 1) => {
+    const currentIndex = ZOOM_LEVELS.indexOf(zoom)
+    const nextIndex = Math.max(
+      0,
+      Math.min(ZOOM_LEVELS.length - 1, currentIndex + direction),
+    )
+    changeZoom(ZOOM_LEVELS[nextIndex])
+  }
+
+  const selectDrawingTool = (tool: DrawingTool) => {
+    setActiveTool(tool)
+    setIsPanMode(false)
+  }
 
   const paintPixel = (change: PixelChange) => {
     pixelsRef.current[change.y * CANVAS_SIZE + change.x] = change.color
@@ -263,6 +314,34 @@ export function PixelCanvas({
     setCanUndo(undoHistoryRef.current.length > 0)
   }
 
+  const startPan = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    event.currentTarget.setPointerCapture(event.pointerId)
+    panGestureRef.current = {
+      origin: pan,
+      startX: event.clientX,
+      startY: event.clientY,
+    }
+    isPanningRef.current = true
+  }
+
+  const movePan = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    const gesture = panGestureRef.current
+    const frameBounds = canvasFrameRef.current?.getBoundingClientRect()
+    if (!gesture || !frameBounds) return
+
+    setPan(
+      clampPan({
+        x: gesture.origin.x + (event.clientX - gesture.startX) / frameBounds.width,
+        y: gesture.origin.y + (event.clientY - gesture.startY) / frameBounds.height,
+      }),
+    )
+  }
+
+  const finishPan = () => {
+    isPanningRef.current = false
+    panGestureRef.current = null
+  }
+
   useEffect(() => {
     pixelsRef.current.fill(TRANSPARENT)
     appliedEventIdsRef.current.clear()
@@ -310,21 +389,21 @@ export function PixelCanvas({
           <div className="tool-buttons">
             <button
               aria-pressed={activeTool === 'pencil'}
-              onClick={() => setActiveTool('pencil')}
+              onClick={() => selectDrawingTool('pencil')}
               type="button"
             >
               Ceruza
             </button>
             <button
               aria-pressed={activeTool === 'eraser'}
-              onClick={() => setActiveTool('eraser')}
+              onClick={() => selectDrawingTool('eraser')}
               type="button"
             >
               Radír
             </button>
             <button
               aria-pressed={activeTool === 'fill'}
-              onClick={() => setActiveTool('fill')}
+              onClick={() => selectDrawingTool('fill')}
               type="button"
             >
               Kitöltés
@@ -341,7 +420,7 @@ export function PixelCanvas({
                 key={color}
                 onClick={() => {
                   setActiveColor(color)
-                  setActiveTool('pencil')
+                  selectDrawingTool('pencil')
                 }}
                 style={{ backgroundColor: color }}
                 type="button"
@@ -351,47 +430,120 @@ export function PixelCanvas({
         </div>
       ) : null}
 
-      <div className="pixel-canvas-frame">
-        <canvas
-          aria-label={canDraw ? 'Rajzolható 32×32 pixeles vászon' : 'Élő pixelrajz'}
-          className="drawing-canvas"
-          height={CANVAS_SIZE}
-          onContextMenu={(event) => event.preventDefault()}
-          onPointerCancel={(event) => {
-            if (!event.isPrimary) return
-            finishStroke()
-          }}
-          onPointerDown={(event) => {
-            if (!canDraw || !event.isPrimary) return
-            event.preventDefault()
-            const point = pointFromEvent(event)
+      <div className="canvas-zoom-controls" aria-label="Vászon nagyítása">
+        <span>Nagyító</span>
+        <button
+          aria-label="Kicsinyítés"
+          disabled={zoom === ZOOM_LEVELS[0]}
+          onClick={() => stepZoom(-1)}
+          type="button"
+        >
+          −
+        </button>
+        <output aria-live="polite">{zoom}×</output>
+        <button
+          aria-label="Nagyítás"
+          disabled={zoom === ZOOM_LEVELS.at(-1)}
+          onClick={() => stepZoom(1)}
+          type="button"
+        >
+          +
+        </button>
+        <button
+          disabled={zoom === 1}
+          onClick={() => changeZoom(1)}
+          type="button"
+        >
+          100%
+        </button>
+        <button
+          aria-pressed={isPanMode}
+          disabled={zoom === 1}
+          onClick={() => setIsPanMode((current) => !current)}
+          type="button"
+        >
+          Mozgatás
+        </button>
+      </div>
 
-            if (activeTool === 'fill') {
-              fillArea(point)
-              return
-            }
+      <div className="pixel-canvas-frame" ref={canvasFrameRef}>
+        <div
+          className="pixel-canvas-surface"
+          style={{
+            height: `${zoom * 100}%`,
+            left: `${pan.x * 100}%`,
+            top: `${pan.y * 100}%`,
+            width: `${zoom * 100}%`,
+          }}
+        >
+          <canvas
+            aria-label={canDraw ? 'Rajzolható 32×32 pixeles vászon' : 'Élő pixelrajz'}
+            className={`drawing-canvas${isPanMode ? ' is-pan-mode' : ''}${
+              isPanningRef.current ? ' is-panning' : ''
+            }`}
+            height={CANVAS_SIZE}
+            onContextMenu={(event) => event.preventDefault()}
+            onPointerCancel={(event) => {
+              if (!event.isPrimary) return
+              if (isPanningRef.current) {
+                finishPan()
+                return
+              }
+              finishStroke()
+            }}
+            onPointerDown={(event) => {
+              if (!event.isPrimary) return
+              event.preventDefault()
 
-            event.currentTarget.setPointerCapture(event.pointerId)
-            activeStrokeRef.current = new Map()
-            isDrawingRef.current = true
-            drawTo(point)
-          }}
-          onPointerMove={(event) => {
-            if (!canDraw || !event.isPrimary || !isDrawingRef.current) return
-            event.preventDefault()
-            drawTo(pointFromEvent(event))
-          }}
-          onPointerUp={(event) => {
-            if (!canDraw || !event.isPrimary || !isDrawingRef.current) return
-            event.preventDefault()
-            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-              event.currentTarget.releasePointerCapture(event.pointerId)
-            }
-            finishStroke()
-          }}
-          ref={canvasRef}
-          width={CANVAS_SIZE}
-        />
+              if (isPanMode && zoom > 1) {
+                startPan(event)
+                return
+              }
+
+              if (!canDraw) return
+              const point = pointFromEvent(event)
+
+              if (activeTool === 'fill') {
+                fillArea(point)
+                return
+              }
+
+              event.currentTarget.setPointerCapture(event.pointerId)
+              activeStrokeRef.current = new Map()
+              isDrawingRef.current = true
+              drawTo(point)
+            }}
+            onPointerMove={(event) => {
+              if (!event.isPrimary) return
+              event.preventDefault()
+
+              if (isPanningRef.current) {
+                movePan(event)
+                return
+              }
+
+              if (!canDraw || !isDrawingRef.current) return
+              drawTo(pointFromEvent(event))
+            }}
+            onPointerUp={(event) => {
+              if (!event.isPrimary) return
+              event.preventDefault()
+              if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                event.currentTarget.releasePointerCapture(event.pointerId)
+              }
+
+              if (isPanningRef.current) {
+                finishPan()
+                return
+              }
+
+              if (!canDraw || !isDrawingRef.current) return
+              finishStroke()
+            }}
+            ref={canvasRef}
+            width={CANVAS_SIZE}
+          />
+        </div>
       </div>
     </section>
   )

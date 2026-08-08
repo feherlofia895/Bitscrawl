@@ -744,9 +744,46 @@ footer {
   outline-offset: 2px;
 }
 
+.canvas-zoom-controls {
+  display: grid;
+  grid-template-columns: auto repeat(5, minmax(42px, auto));
+  gap: 7px;
+  align-items: center;
+  width: min(100%, 560px);
+  margin: 0 auto 10px;
+}
+
+.canvas-zoom-controls span,
+.canvas-zoom-controls output {
+  font-family: var(--pixel-font);
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.canvas-zoom-controls button {
+  min-height: 40px;
+  padding: 6px 9px;
+  color: var(--ink);
+  background: var(--paper);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.canvas-zoom-controls button[aria-pressed='true'] {
+  background: var(--mint);
+}
+
+.canvas-zoom-controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  box-shadow: none;
+}
+
 .pixel-canvas-frame {
   position: relative;
   width: min(100%, 560px);
+  aspect-ratio: 1;
   margin: 0 auto;
   overflow: hidden;
   background: #ffffff;
@@ -757,7 +794,11 @@ footer {
   -webkit-user-select: none;
 }
 
-.pixel-canvas-frame::after {
+.pixel-canvas-surface {
+  position: absolute;
+}
+
+.pixel-canvas-surface::after {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -771,12 +812,20 @@ footer {
 .drawing-canvas {
   display: block;
   width: 100%;
-  aspect-ratio: 1;
+  height: 100%;
   cursor: crosshair;
   image-rendering: pixelated;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+}
+
+.drawing-canvas.is-pan-mode {
+  cursor: grab;
+}
+
+.drawing-canvas.is-panning {
+  cursor: grabbing;
 }
 
 .round-play-area {
@@ -981,6 +1030,19 @@ footer {
 
   .drawing-palette {
     grid-template-columns: repeat(4, 1fr);
+  }
+
+  .canvas-zoom-controls {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+  .canvas-zoom-controls span {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+
+  .canvas-zoom-controls button {
+    min-height: 46px;
   }
 
   .tool-buttons button {

@@ -789,7 +789,7 @@ function App() {
 
       <footer>
         <span>Bitscrawl MVP</span>
-        <span>9. mérföldkő · pixelrajzoló eszközök</span>
+        <span>10. mérföldkő · vászonnagyító és ötfős teszt</span>
       </footer>
     </main>
   )
