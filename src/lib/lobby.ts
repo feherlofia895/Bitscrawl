@@ -168,6 +168,16 @@ export function subscribeToLobby(roomId: number, onChange: () => void) {
       },
       onChange,
     )
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        filter: `room_id=eq.${roomId}`,
+        schema: 'public',
+        table: 'game_rounds',
+      },
+      onChange,
+    )
     .subscribe((status) => {
       if (status !== 'SUBSCRIBED') return
 

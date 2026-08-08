@@ -4,6 +4,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      game_rounds: {
+        Row: {
+          created_at: string
+          drawer_user_id: string
+          drawing_started_at: string | null
+          id: number
+          room_id: number
+          round_number: number
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          drawer_user_id: string
+          drawing_started_at?: string | null
+          id?: never
+          room_id: number
+          round_number: number
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          drawer_user_id?: string
+          drawing_started_at?: string | null
+          id?: never
+          room_id?: number
+          round_number?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'game_rounds_room_id_fkey'
+            columns: ['room_id']
+            isOneToOne: false
+            referencedRelation: 'rooms'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       room_players: {
         Row: {
           display_name: string
@@ -74,12 +112,32 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      choose_round_word: {
+        Args: { selected_word: string; target_round_id: number }
+        Returns: {
+          chosen_word: string
+          round_id: number
+          round_status: string
+        }[]
+      }
       create_room: {
         Args: { player_name: string }
         Returns: {
           player_id: number
           room_code: string
           room_id: number
+        }[]
+      }
+      get_round_view: {
+        Args: { target_room_id: number }
+        Returns: {
+          chosen_word: string
+          drawer_user_id: string
+          is_drawer: boolean
+          round_id: number
+          round_number: number
+          round_status: string
+          word_options: string[]
         }[]
       }
       join_room: {

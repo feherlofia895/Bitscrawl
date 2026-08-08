@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import './App.css'
 import {
+  chooseRoundWord,
+  loadRoundView,
+  type RoundView,
+} from './lib/game'
+import {
   createRoom,
   joinRoom,
   loadLobby,
@@ -67,7 +72,9 @@ function App() {
     useState<BackendStatus>('checking')
   const [isBusy, setIsBusy] = useState(false)
   const [isStartingGame, setIsStartingGame] = useState(false)
+  const [isChoosingWord, setIsChoosingWord] = useState(false)
   const [lobby, setLobby] = useState<Lobby | null>(null)
+  const [roundView, setRoundView] = useState<RoundView | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -100,6 +107,11 @@ function App() {
         roomId: activeRoomId,
       })
       setLobby(nextLobby)
+      setRoundView(
+        nextLobby.room.status === 'playing'
+          ? await loadRoundView(nextLobby.room.id)
+          : null,
+      )
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Nem frissült a szoba.')
     }
@@ -147,6 +159,7 @@ function App() {
 
       window.history.replaceState({}, '', `?room=${entry.roomCode}`)
       setLobby(nextLobby)
+      setRoundView(null)
       setRoomCode(entry.roomCode)
       setMessage('Sikeresen beléptél a várószobába.')
     } catch (error) {
@@ -205,8 +218,32 @@ function App() {
     }
   }
 
+  const handleChooseWord = async (word: string) => {
+    if (!roundView) return
+
+    setIsChoosingWord(true)
+    setMessage('A szó mentése…')
+
+    try {
+      await chooseRoundWord(roundView.round_id, word)
+      await refreshLobby()
+      setMessage('A szó kiválasztva. Készülj a rajzolásra!')
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Nem sikerült kiválasztani a szót.',
+      )
+    } finally {
+      setIsChoosingWord(false)
+    }
+  }
+
   const isHost = lobby?.room.host_user_id === lobby?.currentUserId
   const gameHasStarted = lobby?.room.status === 'playing'
+  const drawer = lobby?.players.find(
+    (player) => player.user_id === roundView?.drawer_user_id,
+  )
 
   return (
     <main className="app-shell">
@@ -284,9 +321,44 @@ function App() {
             </ol>
 
             {gameHasStarted ? (
-              <div className="game-started-panel">
-                <strong>A meccs elindult!</strong>
-                <span>A szóválasztás a következő fejlesztési lépésben érkezik.</span>
+              <div className="round-panel">
+                <p className="round-label">1. kör</p>
+                <strong>
+                  {roundView?.is_drawer
+                    ? 'Te rajzolsz!'
+                    : `${drawer?.display_name ?? 'A rajzoló'} rajzol`}
+                </strong>
+
+                {roundView?.round_status === 'choosing' &&
+                roundView.is_drawer ? (
+                  <div className="word-choice-panel">
+                    <span>Válassz egy szót:</span>
+                    <div className="word-options">
+                      {roundView.word_options?.map((word) => (
+                        <button
+                          disabled={isChoosingWord}
+                          key={word}
+                          onClick={() => void handleChooseWord(word)}
+                          type="button"
+                        >
+                          {word}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : roundView?.round_status === 'choosing' ? (
+                  <span>A rajzoló éppen szót választ…</span>
+                ) : roundView?.is_drawer ? (
+                  <span>
+                    A választott szavad: <b>{roundView.chosen_word}</b>. A pixelvászon
+                    a következő lépésben érkezik.
+                  </span>
+                ) : (
+                  <span>
+                    A rajzoló megkapta a szót. A pixelvászon a következő lépésben
+                    érkezik.
+                  </span>
+                )}
               </div>
             ) : isHost ? (
               <div className="start-game-controls">
@@ -439,7 +511,7 @@ function App() {
 
       <footer>
         <span>PixelGuess MVP</span>
-        <span>3. mérföldkő · meccsindítás</span>
+        <span>4. mérföldkő · szóválasztás</span>
       </footer>
     </main>
   )
