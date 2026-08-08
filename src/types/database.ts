@@ -160,6 +160,51 @@ export type Database = {
           },
         ]
       }
+      round_messages: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: number
+          kind: string
+          room_id: number
+          round_id: number
+          sender_user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: never
+          kind: string
+          room_id: number
+          round_id: number
+          sender_user_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: never
+          kind?: string
+          room_id?: number
+          round_id?: number
+          sender_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'round_messages_room_id_fkey'
+            columns: ['room_id']
+            isOneToOne: false
+            referencedRelation: 'rooms'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'round_messages_round_id_fkey'
+            columns: ['round_id']
+            isOneToOne: false
+            referencedRelation: 'game_rounds'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -214,6 +259,13 @@ export type Database = {
           room_id: number
           room_status: string
           started_at: string
+        }[]
+      }
+      submit_guess: {
+        Args: { submitted_guess: string; target_round_id: number }
+        Returns: {
+          is_correct: boolean
+          message_id: number
         }[]
       }
       submit_pixel_changes: {
