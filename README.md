@@ -1,4 +1,4 @@
-# PixelGuess
+# Bitscrawl
 
 Online, többjátékos pixel art rajzolós-kitalálós játék korai prototípusa.
 

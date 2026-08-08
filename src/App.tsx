@@ -352,11 +352,11 @@ function App() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <a className="brand" href="#top" aria-label="PixelGuess kezdőlap">
+        <a className="brand" href="#top" aria-label="Bitscrawl kezdőlap">
           <span className="brand-mark" aria-hidden="true">
             ?
           </span>
-          <span>PixelGuess</span>
+          <span>Bitscrawl</span>
         </a>
         <div className="topbar-statuses">
           <span
@@ -677,7 +677,7 @@ function App() {
       )}
 
       <footer>
-        <span>PixelGuess MVP</span>
+        <span>Bitscrawl MVP</span>
         <span>7. mérföldkő · szerveroldali köridő</span>
       </footer>
     </main>
