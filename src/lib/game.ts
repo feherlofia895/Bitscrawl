@@ -25,10 +25,12 @@ export type RoundMessage = {
 export type RoundView = {
   chosen_word: string | null
   drawer_user_id: string
+  drawing_ends_at: string | null
   is_drawer: boolean
   round_id: number
   round_number: number
   round_status: string
+  server_now: string
   word_options: string[] | null
 }
 
@@ -43,7 +45,24 @@ const gameErrorMessages: Record<string, string> = {
   ROUND_ALREADY_STARTED: 'Ehhez a körhöz már kiválasztották a szót.',
   ROUND_NOT_DRAWING: 'A rajzolás még nem kezdődött el.',
   ROUND_NOT_FOUND: 'Nem található aktív kör.',
+  ROUND_TIME_EXPIRED: 'Lejárt a kör ideje.',
+  ROUND_TIME_REMAINING: 'A kör ideje még nem járt le.',
   WORD_NOT_AVAILABLE: 'Ez a szó nem szerepel a választható lehetőségek között.',
+}
+
+export async function finishExpiredRound(roundId: number) {
+  try {
+    await ensurePlayerSession()
+    const { data, error } = await supabase
+      .rpc('finish_expired_round', { target_round_id: roundId })
+      .single()
+
+    if (error) throw error
+
+    return data
+  } catch (error) {
+    throw readableGameError(error)
+  }
 }
 
 export async function loadRoundMessages(
@@ -143,6 +162,7 @@ export async function loadRoundView(roomId: number): Promise<RoundView> {
     return {
       ...data,
       chosen_word: data.chosen_word ?? null,
+      drawing_ends_at: data.drawing_ends_at ?? null,
       word_options: data.word_options ?? null,
     }
   } catch (error) {
