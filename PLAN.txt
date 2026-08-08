@@ -117,13 +117,26 @@ Elkészült:
   nem befolyásolják a játékmenetet.
 
 
-[ ] 7. NYILVÁNOS TESZTVÁLTOZAT
+[x] 7. NYILVÁNOS TESZTVÁLTOZAT
 
 - A frontend kihelyezése HTTPS-címre.
 - A Supabase éles beállításainak és engedélyezett webcímeinek ellenőrzése.
 - Környezeti változók biztonságos beállítása.
 - Teljes meccs kipróbálása két külön hálózatról.
 - Alapvető hibajelzés vagy naplózás hozzáadása, ha szükséges.
+
+Elkészült:
+
+- A production frontend ingyenes Cloudflare Pages tárhelyen, HTTPS-en elérhető:
+  https://bitscrawl.pages.dev/
+- A buildbe csak a Supabase URL és a böngészőbe szánt publishable kulcs kerül;
+  `service_role` vagy más titkos kulcs nincs benne.
+- Két független böngészős klienssel sikerült szobát létrehozni, csatlakozni,
+  meccset indítani, élő pixelváltozást küldeni és ékezet nélkül megfejteni.
+- A publikus mobilnézet 390×844 méreten kilógás és böngészőhiba nélkül működik.
+- A kihelyezés megismételhető az `npm run deploy` paranccsal.
+- Egy teljes kétjátékos meccset sikeresen végigjátszottunk számítógépről és
+  mobilinternetes telefonról.
 
 
 [ ] 8. PWA – TELEPÍTHETŐ Bitscrawl
