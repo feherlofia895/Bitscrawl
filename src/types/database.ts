@@ -46,6 +46,7 @@ export type Database = {
           host_user_id: string
           id: number
           max_players: number
+          started_at: string | null
           status: string
         }
         Insert: {
@@ -54,6 +55,7 @@ export type Database = {
           host_user_id: string
           id?: never
           max_players?: number
+          started_at?: string | null
           status?: string
         }
         Update: {
@@ -62,6 +64,7 @@ export type Database = {
           host_user_id?: string
           id?: never
           max_players?: number
+          started_at?: string | null
           status?: string
         }
         Relationships: []
@@ -85,6 +88,14 @@ export type Database = {
           normalized_room_code: string
           player_id: number
           room_id: number
+        }[]
+      }
+      start_game: {
+        Args: { target_room_id: number }
+        Returns: {
+          room_id: number
+          room_status: string
+          started_at: string
         }[]
       }
     }

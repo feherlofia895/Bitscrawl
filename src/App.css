@@ -397,6 +397,7 @@ footer {
 }
 
 .players-panel {
+  min-width: 0;
   padding: clamp(24px, 4vw, 42px);
   background: var(--mint);
 }
@@ -409,7 +410,12 @@ footer {
 }
 
 .players-heading h2 {
-  font-size: clamp(2rem, 4vw, 3.4rem);
+  overflow-wrap: anywhere;
+  font-size: clamp(2rem, 3.5vw, 3.1rem);
+}
+
+.players-heading > div {
+  min-width: 0;
 }
 
 .player-count,
@@ -470,6 +476,46 @@ footer {
   padding: 6px 8px;
   background: var(--yellow);
   border: 2px solid var(--ink);
+}
+
+.start-game-controls {
+  display: grid;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.start-game-button {
+  margin-top: 0;
+}
+
+.start-game-controls span,
+.host-wait-message {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.host-wait-message {
+  margin: 22px 0 0;
+}
+
+.game-started-panel {
+  display: grid;
+  gap: 8px;
+  margin-top: 22px;
+  padding: 18px;
+  color: var(--paper);
+  background: var(--violet-dark);
+  border: 2px solid var(--ink);
+  box-shadow: 5px 5px 0 var(--ink);
+}
+
+.game-started-panel strong {
+  font-family: var(--pixel-font);
+  font-size: 0.9rem;
+}
+
+.game-started-panel span {
+  line-height: 1.5;
 }
 
 @media (max-width: 760px) {

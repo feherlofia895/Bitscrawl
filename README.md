@@ -9,6 +9,8 @@ Online, többjátékos pixel art rajzolós-kitalálós játék korai prototípus
 - valódi, 2–6 fős online várószobák
 - hatkarakteres szobakód és megosztható meghívó link
 - valós időben frissülő játékoslista
+- legalább 2 főnél, kizárólag a host által indítható meccs
+- valós idejű várószoba → játék állapotváltás
 - RLS-sel védett táblák és ellenőrzött szobaműveletek
 
 ## Supabase beállítás

@@ -27,12 +27,12 @@ export const supabase = createClient<Database>(
 
 export async function ensurePlayerSession() {
   const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession()
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  if (sessionError) throw sessionError
-  if (session) return session.user
+  if (user) return user
+
+  await supabase.auth.signOut({ scope: 'local' })
 
   const { data, error } = await supabase.auth.signInAnonymously()
 
