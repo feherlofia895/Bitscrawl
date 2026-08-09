@@ -8,6 +8,10 @@ const assert = (condition, message) => {
   if (!condition) throw new Error(message)
 }
 const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds))
+const playerCount = Number.parseInt(process.argv[2] ?? '4', 10)
+assert(Number.isInteger(playerCount) && playerCount >= 2 && playerCount <= 6,
+  'A játékosszám 2 és 6 közötti egész szám legyen.')
+const roundCount = playerCount * 3
 const makeClient = () => createClient(supabaseUrl, supabaseKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 })
@@ -17,7 +21,7 @@ const rpc = async (client, name, args) => {
   return Array.isArray(data) ? data[0] : data
 }
 
-const clients = Array.from({ length: 4 }, makeClient)
+const clients = Array.from({ length: playerCount }, makeClient)
 const users = await Promise.all(clients.map(async (client) => {
   const { data, error } = await client.auth.signInAnonymously()
   if (error || !data.user) throw error ?? new Error('Sikertelen anonim belépés.')
@@ -39,7 +43,7 @@ try {
   await rpc(clients[0], 'start_game', { target_room_id: room.room_id })
 
   const drawers = new Set()
-  for (let roundNumber = 1; roundNumber <= 12; roundNumber += 1) {
+  for (let roundNumber = 1; roundNumber <= roundCount; roundNumber += 1) {
     await Promise.all(clients.map((client) =>
       rpc(client, 'touch_room_presence', { target_room_id: room.room_id }),
     ))
@@ -98,26 +102,26 @@ try {
       target_round_id: views[0].round_id,
     })
     assert(
-      advance.room_status === (roundNumber === 12 ? 'finished' : 'playing'),
+      advance.room_status === (roundNumber === roundCount ? 'finished' : 'playing'),
       `Hibás meccsállapot a(z) ${roundNumber}. kör után: ${advance.room_status}.`,
     )
   }
 
-  assert(drawers.size === 4, 'Nem került sorra mind a négy rajzoló.')
+  assert(drawers.size === playerCount, 'Nem került sorra minden rajzoló.')
   const scores = await clients[0]
     .from('room_players')
     .select('user_id, score')
     .eq('room_id', room.room_id)
   if (scores.error) throw scores.error
-  assert(scores.data.length === 4, 'A meccs végére nem maradt négy játékos.')
+  assert(scores.data.length === playerCount, 'A meccs végére nem maradt meg minden játékos.')
   assert(scores.data.every((player) => player.score > 0), 'Valamelyik játékos nem kapott pontot.')
 
   console.log(JSON.stringify({
-    event: 'four-player-game-ok',
-    players: 4,
-    rounds: 12,
+    event: 'multiplayer-game-ok',
+    players: playerCount,
+    rounds: roundCount,
     roomId: room.room_id,
-    allPlayersDrew: drawers.size === 4,
+    allPlayersDrew: drawers.size === playerCount,
     scores: scores.data.map((player) => player.score),
   }))
 } finally {

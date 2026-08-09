@@ -1,5 +1,5 @@
 Bitscrawl MVP – FEJLESZTÉSI TERV
-Frissítve: 2026-08-08
+Frissítve: 2026-08-09
 
 Jelölések:
 [x] elkészült
@@ -358,7 +358,7 @@ Elkészült és ellenőrizve:
   és a várótermi, valamint játék közbeni böngészős felületi próba sikeres volt.
 
 
-[>] 12. FŐMENÜ, PANELEK ÉS SZEBB FELUGRÓ ABLAKOK
+[x] 12. FŐMENÜ, PANELEK ÉS SZEBB FELUGRÓ ABLAKOK
 
 - Készüljön valódi főmenü külön, jól felismerhető lehetőségekkel: játék indítása,
   csatlakozás, később elérhető szobák, beállítások és információk.
@@ -391,12 +391,16 @@ Első működő változat elkészült:
 - A főmenüt 360×800-as mobil- és 1280×800-as asztali nézetben, kilógás és böngészőhiba
   nélkül ellenőriztük.
 
-Még hátra van a 12. pont lezárásához:
+Lezárás:
 
-- Az olvasatlan jelzés két valódi játékossal történő ellenőrzése.
+- Az olvasatlan jelzés többjátékos próbája megtörtént.
+- Elkészült a beépített hibajelentő funkció, hogy a külső tesztelők közvetlenül
+  jelezhessék a tapasztalt problémákat.
+- A főmenü saját, könnyen cserélhető pixelgrafikus ablakot és gombkészletet kapott.
+- A verzió GitHubra és a Cloudflare Pages production környezetébe is kikerült.
 
 
-[ ] 13. UI-, BETŰKÉSZLET- ÉS MOBILOS FINOMHANGOLÁS
+[>] 13. UI-, BETŰKÉSZLET- ÉS MOBILOS FINOMHANGOLÁS
 
 - A jelenlegi oldal színei és fanyar vizuális hangulata maradjon meg.
 - A jelenlegi általános, mesterséges sablonhatású betűkészletet cseréljük egy
@@ -411,6 +415,24 @@ Még hátra van a 12. pont lezárásához:
 - A billentyűzet megnyitásakor a chat és a megfejtés mező ne takarja el teljesen a játékot.
 - Ellenőrizzük az álló mobilos, fekvő mobilos és asztali elrendezést.
 
+Folyamatban:
+
+- A főmenü már a saját sárga pixelablakot használja.
+- Az elsődleges gombok saját sötétkék, a másodlagos gombok öt különböző türkiz,
+  a veszélyes műveletek pedig piros pixelgrafikát kaptak.
+- A grafikai elemek külön PNG-fájlok, ezért az új, egyenként megrajzolt változatok
+  később a működés átírása nélkül cserélhetők be.
+- A logó alatti szlogen: „Draw and scrawl it!”
+- A jelenlegi változat mobilon és számítógépen használható, buildje és lintje sikeres,
+  valamint nyilvánosan elérhető a Cloudflare Pages oldalon.
+
+Még hátra van a 13. pont lezárásához:
+
+- A többi ablak, kis gomb és eszközgomb saját rajzainak egyenkénti beépítése.
+- A végleges, magyar ékezeteket támogató betűkészlet kiválasztása.
+- Az álló és fekvő mobilnézet, a megnyíló billentyűzet és az összes panel utolsó
+  vizuális visszaellenőrzése az új grafikákkal.
+
 
 [ ] 14. TELJES VISSZAELLENŐRZÉS
 
@@ -420,6 +442,12 @@ Még hátra van a 12. pont lezárásához:
 - Görgős, csippentős és gombos nagyítás, valamint egérrel és ujjal történő mozgatás.
 - Minden rajzeszköz, alakzatelőnézet, visszavonás és valós idejű továbbítás ellenőrzése.
 - Chat, hibás megfejtés elrejtése, helyes megfejtés és pontozás ellenőrzése.
+
+Részellenőrzés:
+
+- A paraméterezhető multiplayer teszt három külön játékosmunkamenettel, kilenc körön át
+  sikeresen lefutott. Mindhárom játékos háromszor rajzolt, a titkos szavak védelme,
+  a rajztovábbítás, a hibás és helyes tippek, a pontozás és a körváltás működött.
 
 
 [ ] 15. PWA – TELEPÍTHETŐ Bitscrawl
@@ -497,7 +525,7 @@ NEM RÉSZE AZ ELSŐ MVP-NEK
 - 16×16, 64×64 és különleges palettás játékmódok.
 
 
-[>] 13/A. SAJÁT 12 SZÍNŰ ALAPPALLETTA ÉS LOGÓ
+[x] 13/A. SAJÁT 12 SZÍNŰ ALAPPALLETTA ÉS LOGÓ
 
 - A kezdőképernyő a saját, 192×64 pixeles Bitscrawl-logót használja, villogó piros kurzorral.
 - A korábbi 8 színű alapmódot a saját 12 színű Pixelsquare-paletta váltja fel.
@@ -505,3 +533,9 @@ NEM RÉSZE AZ ELSŐ MVP-NEK
 - A 16 színű bővített mód egyelőre változatlan marad; a 24 színre bővítést külön beszéljük át.
 - A kliens és az adatbázis átállását egy kiadásban kell élesíteni, hogy a futó játék verziói
   ne kerüljenek átmenetileg eltérő palettaszabályokra.
+
+Elkészült és élesítve:
+
+- A saját 12 színű alappaletta, a hozzá igazított felületszínek és feliratok bekerültek.
+- A saját kezdőképernyős logó és a villogó piros kurzor működik.
+- A bővített paletta változatlan maradt; a 24 színű változat külön későbbi feladat.
