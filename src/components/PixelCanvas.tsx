@@ -21,11 +21,14 @@ const PIXEL_COORDINATES = Array.from(
 
 type PixelCanvasProps = {
   canDraw: boolean
+  chosenWord: string | null
+  drawingEndsAt: string | null
   events: DrawEvent[]
   onError: (error: unknown) => void
   onSubmit: (changes: PixelChange[]) => Promise<unknown>
   paletteSize: PaletteSize
   roundId: number
+  serverNow: string
 }
 
 type PixelPoint = { x: number; y: number }
@@ -210,11 +213,14 @@ function connectedPixels(pixels: string[], start: PixelPoint) {
 
 export function PixelCanvas({
   canDraw,
+  chosenWord,
+  drawingEndsAt,
   events,
   onError,
   onSubmit,
   paletteSize,
   roundId,
+  serverNow,
 }: PixelCanvasProps) {
   const pixelPalette = colorsForPalette(paletteSize)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -255,6 +261,12 @@ export function PixelCanvas({
   const [isPanMode, setIsPanMode] = useState(false)
   const [showGrid, setShowGrid] = useState(false)
   const [showCoordinates, setShowCoordinates] = useState(false)
+  const [isImmersive, setIsImmersive] = useState(false)
+  const [areImmersiveToolsOpen, setAreImmersiveToolsOpen] = useState(false)
+  const [isImmersivePaletteOpen, setIsImmersivePaletteOpen] = useState(false)
+  const [immersiveSecondsLeft, setImmersiveSecondsLeft] = useState<number | null>(
+    null,
+  )
   const drawingColor = activeTool === 'eraser' ? TRANSPARENT : activeColor
 
   const maximumZoom = () => {
@@ -514,6 +526,45 @@ export function PixelCanvas({
     setCanUndo(undoHistoryRef.current.length > 0)
   }
 
+  const clearCanvas = () => {
+    if (!canDraw || isDrawingRef.current || shapeGestureRef.current) return
+
+    const mutations = pixelsRef.current.flatMap((color, index) =>
+      color === TRANSPARENT
+        ? []
+        : [
+            {
+              before: color,
+              color: TRANSPARENT,
+              x: index % CANVAS_SIZE,
+              y: Math.floor(index / CANVAS_SIZE),
+            },
+          ],
+    )
+    if (mutations.length === 0) return
+    if (!window.confirm('Biztosan törlöd a teljes rajzot?')) return
+
+    flushPendingChanges()
+    mutations.forEach(queueChange)
+    saveUndoStep(mutations)
+    flushPendingChanges()
+  }
+
+  const enterImmersiveMode = () => {
+    setAreImmersiveToolsOpen(false)
+    setIsImmersivePaletteOpen(false)
+    setIsImmersive(true)
+    if (zoomRef.current === MIN_ZOOM) {
+      window.setTimeout(() => changeZoom(1.5), 0)
+    }
+  }
+
+  const exitImmersiveMode = () => {
+    setAreImmersiveToolsOpen(false)
+    setIsImmersivePaletteOpen(false)
+    setIsImmersive(false)
+  }
+
   const startPan = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId)
     panGestureRef.current = {
@@ -645,6 +696,74 @@ export function PixelCanvas({
     return () => frame.removeEventListener('wheel', handleWheel)
   }, [])
 
+  useEffect(() => {
+    if (!isImmersive) {
+      setImmersiveSecondsLeft(null)
+      return
+    }
+
+    const previousOverflow = document.body.style.overflow
+    const previousOverscroll = document.body.style.overscrollBehavior
+    const previousHistoryState =
+      window.history.state && typeof window.history.state === 'object'
+        ? window.history.state
+        : {}
+
+    document.body.style.overflow = 'hidden'
+    document.body.style.overscrollBehavior = 'none'
+    window.history.pushState(
+      { ...previousHistoryState, bitscrawlImmersiveCanvas: true },
+      '',
+    )
+
+    const closeFromHistory = () => setIsImmersive(false)
+    const closeFromKeyboard = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsImmersive(false)
+    }
+
+    window.addEventListener('popstate', closeFromHistory)
+    window.addEventListener('keydown', closeFromKeyboard)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.body.style.overscrollBehavior = previousOverscroll
+      window.removeEventListener('popstate', closeFromHistory)
+      window.removeEventListener('keydown', closeFromKeyboard)
+      if (window.history.state?.bitscrawlImmersiveCanvas) {
+        window.history.back()
+      }
+    }
+  }, [isImmersive])
+
+  useEffect(() => {
+    if (!isImmersive || !drawingEndsAt) {
+      setImmersiveSecondsLeft(null)
+      return
+    }
+
+    const remainingMilliseconds = Math.max(
+      0,
+      Date.parse(drawingEndsAt) - Date.parse(serverNow),
+    )
+    const startedAt = performance.now()
+    const updateTimer = () => {
+      setImmersiveSecondsLeft(
+        Math.ceil(
+          Math.max(0, remainingMilliseconds - (performance.now() - startedAt)) /
+            1_000,
+        ),
+      )
+    }
+
+    updateTimer()
+    const intervalId = window.setInterval(updateTimer, 200)
+    return () => window.clearInterval(intervalId)
+  }, [drawingEndsAt, isImmersive, roundId, serverNow])
+
+  useEffect(() => {
+    setIsImmersive(false)
+  }, [roundId])
+
   useEffect(
     () => () => {
       if (flushTimerRef.current !== undefined) {
@@ -654,17 +773,47 @@ export function PixelCanvas({
     [],
   )
 
+  const activeToolDetails =
+    toolButtons.find(({ tool }) => tool === activeTool) ?? toolButtons[0]
+  const immersiveTimeLabel =
+    immersiveSecondsLeft === null
+      ? '∞'
+      : `${Math.floor(immersiveSecondsLeft / 60)}:${(immersiveSecondsLeft % 60)
+          .toString()
+          .padStart(2, '0')}`
+
   return (
-    <section className="pixel-editor" aria-labelledby="pixel-editor-title">
-      <div className="pixel-editor-heading">
-        <div>
-          <p className="round-label">32 × 32 pixel</p>
-          <h3 id="pixel-editor-title">
-            {canDraw ? 'Pixelvászon' : 'Élő rajz'}
-          </h3>
+    <section
+      aria-label={isImmersive ? 'Teljes képernyős pixelvászon' : undefined}
+      aria-labelledby={isImmersive ? undefined : 'pixel-editor-title'}
+      className={`pixel-editor${isImmersive ? ' is-immersive' : ''}`}
+    >
+      {isImmersive ? (
+        <div className="immersive-canvas-heading">
+          <span>
+            {canDraw ? 'Szó' : 'Élő rajz'}
+            {canDraw ? <strong>{chosenWord ?? '—'}</strong> : null}
+          </span>
+          <span>
+            Idő <strong>{immersiveTimeLabel}</strong>
+          </span>
+          <button onClick={exitImmersiveMode} type="button">
+            Bezárás
+          </button>
         </div>
-        <span className="draw-mode-badge">{canDraw ? 'Te rajzolsz' : 'Néző mód'}</span>
-      </div>
+      ) : (
+        <div className="pixel-editor-heading">
+          <div>
+            <p className="round-label">32 × 32 pixel</p>
+            <h3 id="pixel-editor-title">
+              {canDraw ? 'Pixelvászon' : 'Élő rajz'}
+            </h3>
+          </div>
+          <span className="draw-mode-badge">
+            {canDraw ? 'Te rajzolsz' : 'Néző mód'}
+          </span>
+        </div>
+      )}
 
       {canDraw ? (
         <div className="pixel-toolbar" aria-label="Rajzeszközök">
@@ -690,6 +839,14 @@ export function PixelCanvas({
             >
               <img alt="" aria-hidden="true" src="/icons/tools/undo.svg" />
             </button>
+            <button
+              aria-label="Teljes vászon törlése"
+              onClick={clearCanvas}
+              title="Teljes vászon törlése"
+              type="button"
+            >
+              <img alt="" aria-hidden="true" src="/icons/tools/clear.svg" />
+            </button>
           </div>
           <div
             className="drawing-palette"
@@ -704,6 +861,7 @@ export function PixelCanvas({
                 onClick={() => {
                   setActiveColor(color.hex)
                   selectDrawingTool('pencil')
+                  setIsImmersivePaletteOpen(false)
                 }}
                 style={{ backgroundColor: color.hex }}
                 title={color.name}
@@ -764,7 +922,169 @@ export function PixelCanvas({
         >
           Koordináták
         </button>
+        <button onClick={enterImmersiveMode} type="button">
+          Teljes nézet
+        </button>
       </div>
+
+      {isImmersive ? (
+        <aside className="immersive-side-controls" aria-label="Vászon vezérlői">
+          {canDraw ? (
+            <div className="immersive-control-group">
+              <button
+                aria-expanded={areImmersiveToolsOpen}
+                aria-label="Rajzeszközök"
+                className="immersive-tool-toggle"
+                onClick={() => {
+                  setAreImmersiveToolsOpen((current) => !current)
+                  setIsImmersivePaletteOpen(false)
+                }}
+                title={activeToolDetails.label}
+                type="button"
+              >
+                <img
+                  alt=""
+                  aria-hidden="true"
+                  src={`/icons/tools/${activeToolDetails.icon}.svg`}
+                />
+              </button>
+              {areImmersiveToolsOpen ? (
+                <div className="immersive-tool-menu" aria-label="Rajzeszköz választása">
+                  {toolButtons.map(({ icon, label, tool }) => (
+                    <button
+                      aria-label={label}
+                      aria-pressed={activeTool === tool}
+                      key={tool}
+                      onClick={() => {
+                        selectDrawingTool(tool)
+                        setAreImmersiveToolsOpen(false)
+                      }}
+                      title={label}
+                      type="button"
+                    >
+                      <img
+                        alt=""
+                        aria-hidden="true"
+                        src={`/icons/tools/${icon}.svg`}
+                      />
+                    </button>
+                  ))}
+                  <button
+                    aria-label="Visszavonás"
+                    disabled={!canUndo}
+                    onClick={undoLastStep}
+                    title="Visszavonás"
+                    type="button"
+                  >
+                    <img alt="" aria-hidden="true" src="/icons/tools/undo.svg" />
+                  </button>
+                  <button
+                    aria-label="Teljes vászon törlése"
+                    onClick={clearCanvas}
+                    title="Teljes vászon törlése"
+                    type="button"
+                  >
+                    <img alt="" aria-hidden="true" src="/icons/tools/clear.svg" />
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {canDraw ? (
+            <div className="immersive-control-group">
+              <button
+                aria-expanded={isImmersivePaletteOpen}
+                aria-label="Színpaletta"
+                className="immersive-color-toggle"
+                onClick={() => {
+                  setIsImmersivePaletteOpen((current) => !current)
+                  setAreImmersiveToolsOpen(false)
+                }}
+                style={{ backgroundColor: activeColor }}
+                title="Színpaletta"
+                type="button"
+              />
+              {isImmersivePaletteOpen ? (
+                <div
+                  aria-label={`${paletteSize} színű paletta`}
+                  className="immersive-palette-menu"
+                  data-palette-size={paletteSize}
+                >
+                  {pixelPalette.map((color) => (
+                    <button
+                      aria-label={`${color.name}, ${color.hex}`}
+                      aria-pressed={activeColor === color.hex}
+                      key={color.hex}
+                      onClick={() => {
+                        setActiveColor(color.hex)
+                        selectDrawingTool('pencil')
+                        setIsImmersivePaletteOpen(false)
+                      }}
+                      style={{ backgroundColor: color.hex }}
+                      title={color.name}
+                      type="button"
+                    />
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          <div className="immersive-zoom-controls">
+            <button
+              aria-label="Kicsinyítés"
+              disabled={zoom <= MIN_ZOOM}
+              onClick={() => stepZoom(-1)}
+              type="button"
+            >
+              −
+            </button>
+            <button
+              aria-label="Nagyítás"
+              disabled={zoom >= maximumZoom()}
+              onClick={() => stepZoom(1)}
+              type="button"
+            >
+              +
+            </button>
+            <button
+              aria-label="100%"
+              disabled={zoom === MIN_ZOOM}
+              onClick={() => changeZoom(MIN_ZOOM)}
+              type="button"
+            >
+              1:1
+            </button>
+            <button
+              aria-label="Mozgatás"
+              aria-pressed={isPanMode}
+              disabled={zoom === MIN_ZOOM}
+              onClick={() => setIsPanMode((current) => !current)}
+              title="Mozgatás"
+              type="button"
+            >
+              <img alt="" aria-hidden="true" src="/icons/tools/pan.svg" />
+            </button>
+            <button
+              aria-label="Rács"
+              aria-pressed={showGrid}
+              onClick={() => setShowGrid((current) => !current)}
+              type="button"
+            >
+              #
+            </button>
+            <button
+              aria-label="Koordináták"
+              aria-pressed={showCoordinates}
+              onClick={() => setShowCoordinates((current) => !current)}
+              type="button"
+            >
+              1–32
+            </button>
+          </div>
+        </aside>
+      ) : null}
 
       <div className="pixel-canvas-frame" ref={canvasFrameRef}>
         <div

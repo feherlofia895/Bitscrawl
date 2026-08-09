@@ -702,6 +702,182 @@ footer {
   box-shadow: 7px 7px 0 var(--ink);
 }
 
+.pixel-editor.is-immersive {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: 100vw;
+  height: 100dvh;
+  padding:
+    max(8px, env(safe-area-inset-top))
+    max(8px, env(safe-area-inset-right))
+    max(8px, env(safe-area-inset-bottom))
+    max(8px, env(safe-area-inset-left));
+  margin: 0;
+  overflow: hidden;
+  background-color: color-mix(in srgb, var(--violet) 38%, var(--paper));
+  background-image: radial-gradient(
+    circle,
+    rgb(36 26 53 / 22%) 1px,
+    transparent 1.5px
+  );
+  background-size: 12px 12px;
+  border: 0;
+  box-shadow: none;
+  box-sizing: border-box;
+  isolation: isolate;
+}
+
+.immersive-canvas-heading {
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(12px, 4vw, 28px);
+  min-height: 48px;
+  padding: 5px 64px 5px 8px;
+  color: var(--ink);
+  font-family: var(--pixel-font);
+  font-size: clamp(0.62rem, 2.5vw, 0.78rem);
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.immersive-canvas-heading span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.immersive-canvas-heading strong {
+  font-family: var(--display-font);
+  font-size: clamp(1rem, 5vw, 1.45rem);
+  text-transform: none;
+}
+
+.immersive-canvas-heading button {
+  position: absolute;
+  top: max(8px, env(safe-area-inset-top));
+  right: max(8px, env(safe-area-inset-right));
+  min-height: 40px;
+  padding: 5px 8px;
+  color: var(--ink);
+  background: var(--yellow);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.pixel-editor.is-immersive > .pixel-toolbar,
+.pixel-editor.is-immersive > .canvas-zoom-controls,
+.pixel-editor.is-immersive > .canvas-navigation-hint {
+  display: none;
+}
+
+.pixel-editor.is-immersive .pixel-canvas-frame {
+  grid-row: 2;
+  align-self: center;
+  justify-self: center;
+  width: min(100%, calc(100dvh - 72px));
+  max-width: none;
+  max-height: 100%;
+  margin: 0;
+}
+
+.immersive-side-controls {
+  position: fixed;
+  top: 50%;
+  right: max(8px, env(safe-area-inset-right));
+  z-index: 15;
+  display: grid;
+  gap: 7px;
+  transform: translateY(-50%);
+}
+
+.immersive-control-group {
+  position: relative;
+}
+
+.immersive-side-controls button {
+  display: grid;
+  width: 44px;
+  min-height: 44px;
+  padding: 7px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  place-items: center;
+}
+
+.immersive-side-controls button[aria-pressed='true'] {
+  background: var(--mint);
+}
+
+.immersive-side-controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  box-shadow: none;
+}
+
+.immersive-side-controls img {
+  width: 22px;
+  height: 22px;
+}
+
+.immersive-color-toggle {
+  outline: 4px solid var(--paper);
+  outline-offset: -7px;
+}
+
+.immersive-tool-menu,
+.immersive-palette-menu {
+  position: absolute;
+  top: 0;
+  right: calc(100% + 8px);
+  display: grid;
+  grid-template-columns: repeat(4, 44px);
+  gap: 6px;
+  width: max-content;
+  padding: 8px;
+  background: color-mix(in srgb, var(--slate) 34%, var(--paper));
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.immersive-tool-menu button[aria-pressed='true'] {
+  background: var(--mint);
+}
+
+.immersive-palette-menu {
+  top: auto;
+  bottom: 0;
+}
+
+.immersive-palette-menu button {
+  width: 36px;
+  min-height: 0;
+  padding: 0;
+  aspect-ratio: 1;
+  box-shadow: none;
+}
+
+.immersive-palette-menu button[aria-pressed='true'] {
+  outline: 3px solid var(--blue);
+  outline-offset: 1px;
+}
+
+.immersive-zoom-controls {
+  display: grid;
+  gap: 6px;
+}
+
+.immersive-zoom-controls button {
+  font-family: var(--pixel-font);
+  font-size: 0.58rem;
+  font-weight: 900;
+}
+
 .pixel-editor-heading {
   display: flex;
   align-items: flex-start;
@@ -935,7 +1111,7 @@ footer {
   display: grid;
   color: var(--ink);
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-  font-size: 5px;
+  font-size: 6px;
   font-weight: 900;
   letter-spacing: -0.5px;
   line-height: 1;
@@ -961,6 +1137,11 @@ footer {
   width: 8px;
   height: 100%;
   grid-template-rows: repeat(32, minmax(0, 1fr));
+}
+
+.pixel-editor.is-immersive .pixel-coordinate-ruler {
+  font-size: 7px;
+  letter-spacing: -0.7px;
 }
 
 .drawing-canvas {
@@ -1249,6 +1430,27 @@ footer {
 
   footer {
     flex-direction: column;
+  }
+}
+
+@media (max-height: 600px) {
+  .immersive-canvas-heading {
+    justify-content: flex-start;
+    min-height: 42px;
+    padding-block: 2px;
+  }
+
+  .pixel-editor.is-immersive .pixel-canvas-frame {
+    width: min(100%, calc(100dvh - 58px));
+  }
+
+  .immersive-side-controls {
+    grid-template-columns: repeat(2, 44px);
+  }
+
+  .immersive-zoom-controls {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, 44px);
   }
 }
 
