@@ -1010,7 +1010,7 @@ function App() {
                   <i key={color.hex} style={{ backgroundColor: color.hex }} />
                 ))}
               </div>
-              <p className="eyebrow">Online pixel art rajzolós játék</p>
+              <p className="eyebrow">Draw and scrawl it!</p>
               <p className="intro">
                 Rövid körök, egyszerű szavak és egy valódi rácsalapú vászon.
                 Az első célunk egy 2–6 fővel játszható MVP.

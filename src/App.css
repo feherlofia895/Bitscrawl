@@ -2050,3 +2050,82 @@ button,
     min-height: 52px;
   }
 }
+
+/* A főmenü saját, kézzel rajzolt kerete. A 16 pixeles szélek érintetlenek,
+   csak az egyszínű középrész nyúlik a tartalom méretéhez. */
+.lobby-card.home-panel {
+  padding: 4px;
+  background: transparent;
+  border: 16px solid transparent;
+  border-image: url('/ui/fomenu-ablak.png') 16 fill stretch;
+  box-shadow: none;
+  clip-path: none;
+  image-rendering: pixelated;
+}
+
+.lobby-card.home-panel > * {
+  margin-inline: 0;
+}
+
+/* A nagy gombok egyben skálázódnak, ezért a kézzel rajzolt középső
+   bevágások egymáshoz viszonyított helye nem változik meg. */
+.primary-button,
+.home-menu-actions .primary-button,
+.bug-report-trigger,
+.mobile-chat-toggle {
+  color: var(--ink);
+  background-color: transparent;
+  background-image: url('/ui/nagy-gomb-sotetkek.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
+  border: 0;
+  box-shadow: none;
+  clip-path: none;
+  image-rendering: pixelated;
+}
+
+.secondary-button,
+.home-back-button,
+.home-menu-actions button:not(.primary-button) {
+  color: var(--ink);
+  background-color: transparent;
+  background-image: url('/ui/nagy-gomb-turkiz-5.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
+  border: 0;
+  box-shadow: none;
+  clip-path: none;
+  image-rendering: pixelated;
+}
+
+.home-menu-actions button:nth-child(2) {
+  background-image: url('/ui/nagy-gomb-turkiz-1.png');
+}
+
+.home-menu-actions button:nth-child(3) {
+  background-image: url('/ui/nagy-gomb-turkiz-2.png');
+}
+
+.home-menu-actions button:nth-child(4) {
+  background-image: url('/ui/nagy-gomb-turkiz-3.png');
+}
+
+.home-menu-actions button:nth-child(5) {
+  background-image: url('/ui/nagy-gomb-turkiz-4.png');
+}
+
+.leave-room-button,
+.confirm-modal-actions .confirm-danger-button {
+  color: var(--ink);
+  background-color: transparent;
+  background-image: url('/ui/nagy-gomb-piros.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
+  border: 0;
+  box-shadow: none;
+  clip-path: none;
+  image-rendering: pixelated;
+}
