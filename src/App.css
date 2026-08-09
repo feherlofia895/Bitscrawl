@@ -1531,24 +1531,28 @@ footer {
 }
 
 .home-logo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  max-width: none !important;
-  color: var(--ink) !important;
-  font-size: clamp(2rem, 8vw, 3.6rem) !important;
-  font-weight: 700;
-  line-height: 1 !important;
-  letter-spacing: 2px !important;
+  position: relative;
+  width: 384px;
+  max-width: 80vw !important;
+  line-height: 0 !important;
 }
 
-.logo-cursor {
-  width: 14px;
-  height: 26px;
-  flex: 0 0 auto;
-  background: var(--coral);
-  border: 2px solid var(--ink);
+.home-logo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  clip-path: inset(0 14.5833% 0 0);
+}
+
+.home-logo::after {
+  position: absolute;
+  top: 37.5%;
+  left: 85.4167%;
+  width: 3.125%;
+  height: 37.5%;
+  content: '';
+  background: #d3493b;
   animation: logo-blink 1s steps(1) infinite;
 }
 
@@ -1568,14 +1572,6 @@ footer {
   margin-left: -2px;
   border: 2px solid var(--ink);
 }
-
-.home-palette i:nth-child(1) { background: var(--olive); }
-.home-palette i:nth-child(2) { background: var(--violet); }
-.home-palette i:nth-child(3) { background: var(--mint); }
-.home-palette i:nth-child(4) { background: var(--yellow); }
-.home-palette i:nth-child(5) { background: var(--coral); }
-.home-palette i:nth-child(6) { background: var(--blue); }
-.home-palette i:nth-child(7) { background: var(--rust); }
 
 .hero .eyebrow {
   order: 3;
@@ -1650,12 +1646,7 @@ button,
   }
 
   .home-logo {
-    font-size: clamp(1.75rem, 9.5vw, 2.7rem) !important;
-  }
-
-  .logo-cursor {
-    width: 10px;
-    height: 20px;
+    width: 192px;
   }
 
   .round-play-area {

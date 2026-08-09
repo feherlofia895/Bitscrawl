@@ -869,7 +869,7 @@ function App() {
                 <fieldset className="palette-mode-fieldset">
                   <legend>Meccs palettája</legend>
                   <div className="palette-mode-buttons">
-                    {([8, 16] as const).map((paletteSize) => (
+                    {([12, 16] as const).map((paletteSize) => (
                       <button
                         aria-pressed={lobby.room.palette_size === paletteSize}
                         disabled={isChangingPaletteSize || isStartingGame}
@@ -882,8 +882,8 @@ function App() {
                     ))}
                   </div>
                   <span>
-                    {lobby.room.palette_size === 8
-                      ? 'Gyors, letisztult alapmód.'
+                    {lobby.room.palette_size === 12
+                      ? 'Az új, saját tizenkét színű alapmód.'
                       : 'Az alapszínek és összehangolt árnyékaik.'}
                   </span>
                 </fieldset>
@@ -1002,10 +1002,12 @@ function App() {
           <section className="hero" id="top">
             <div className="hero-copy">
               <h1 className="home-logo">
-                BITSCRAWL<span className="logo-cursor" aria-hidden="true" />
+                <img alt="BITSCRAWL" src="/bitscrawl-logo.png" />
               </h1>
               <div className="home-palette" aria-hidden="true">
-                <i /><i /><i /><i /><i /><i /><i />
+                {basePalette.map((color) => (
+                  <i key={color.hex} style={{ backgroundColor: color.hex }} />
+                ))}
               </div>
               <p className="eyebrow">Online pixel art rajzolós játék</p>
               <p className="intro">

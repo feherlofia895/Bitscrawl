@@ -495,3 +495,13 @@ NEM RÉSZE AZ ELSŐ MVP-NEK
 - Galéria, mentett rajzok és közösségi szavazás.
 - Saját szócsomagok, tematikus módok és achievementek.
 - 16×16, 64×64 és különleges palettás játékmódok.
+
+
+[>] 13/A. SAJÁT 12 SZÍNŰ ALAPPALLETTA ÉS LOGÓ
+
+- A kezdőképernyő a saját, 192×64 pixeles Bitscrawl-logót használja, villogó piros kurzorral.
+- A korábbi 8 színű alapmódot a saját 12 színű Pixelsquare-paletta váltja fel.
+- Az UI színei ugyanehhez a palettához igazodnak.
+- A 16 színű bővített mód egyelőre változatlan marad; a 24 színre bővítést külön beszéljük át.
+- A kliens és az adatbázis átállását egy kiadásban kell élesíteni, hogy a futó játék verziói
+  ne kerüljenek átmenetileg eltérő palettaszabályokra.
