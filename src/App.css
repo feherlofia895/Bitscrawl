@@ -1073,17 +1073,13 @@ footer {
 .pixel-canvas-surface {
   position: absolute;
   overflow: visible;
-  background-color: color-mix(in srgb, var(--paper) 68%, var(--slate));
-  background-image:
-    linear-gradient(45deg, rgb(255 255 255 / 72%) 25%, transparent 25%),
-    linear-gradient(-45deg, rgb(255 255 255 / 72%) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, rgb(255 255 255 / 72%) 75%),
-    linear-gradient(-45deg, transparent 75%, rgb(255 255 255 / 72%) 75%);
-  background-position:
-    0 0,
-    0 calc(100% / 32),
-    calc(100% / 32) calc(-100% / 32),
-    calc(-100% / 32) 0;
+  background-color: var(--page);
+  background-image: conic-gradient(
+    var(--paper) 25%,
+    transparent 0 50%,
+    var(--paper) 0 75%,
+    transparent 0
+  );
   background-size: calc(200% / 32) calc(200% / 32);
   border: 3px solid var(--ink);
   box-shadow: 7px 7px 0 rgb(36 26 53 / 42%);
@@ -1420,6 +1416,21 @@ footer {
 
   .pixel-editor {
     padding: 8px;
+  }
+
+  .pixel-editor.is-immersive {
+    padding-right: calc(max(8px, env(safe-area-inset-right)) + 56px);
+  }
+
+  .pixel-editor.is-immersive .immersive-canvas-heading {
+    justify-content: flex-start;
+    gap: 10px;
+    padding-right: 0;
+  }
+
+  .pixel-editor.is-immersive .pixel-canvas-frame {
+    width: min(100%, calc(100dvh - 72px));
+    margin-left: 0;
   }
 
   .pixel-editor-heading {
