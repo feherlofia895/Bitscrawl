@@ -1532,8 +1532,8 @@ footer {
 
 .home-logo {
   position: relative;
-  width: 384px;
-  max-width: 80vw !important;
+  width: 432px;
+  max-width: 84vw !important;
   line-height: 0 !important;
 }
 
@@ -1646,7 +1646,7 @@ button,
   }
 
   .home-logo {
-    width: 192px;
+    width: 216px;
   }
 
   .round-play-area {
