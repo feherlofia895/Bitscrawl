@@ -414,6 +414,12 @@ Lezárás:
 - Ne legyen véletlen oldalnagyítás, szövegkijelölés vagy oldalmozgatás rajzolás közben.
 - A billentyűzet megnyitásakor a chat és a megfejtés mező ne takarja el teljesen a játékot.
 - Ellenőrizzük az álló mobilos, fekvő mobilos és asztali elrendezést.
+- A hosszabb felületeket logikus almenükre és összecsukható csoportokra kell bontani,
+  hogy mobilon se kelljen sokat görgetni egy ritkábban használt beállítás vagy művelet miatt.
+- Az elsődleges műveletek maradjanak azonnal láthatók; a részletes beállítások, ritkább
+  eszközök és magyarázatok kerüljenek jól elnevezett almenük vagy lenyitható szakaszok alá.
+- Az almenükből mindig legyen egyértelmű visszalépés, és a böngésző vagy telefon vissza
+  gombja ne léptesse ki véletlenül a játékost a szobából.
 
 Folyamatban:
 
@@ -455,7 +461,11 @@ Még hátra van a 13. pont lezárásához:
 Cél: a főmenüből verseny és szoba nélkül megnyitható rajzfelület készüljön, amely
 gyakorlásra és az új rajzeszközök gyors fejlesztői ellenőrzésére is használható.
 
-- A főmenü kapjon külön „Szerkesztő” menüpontot.
+- A „Játék” almenü kapjon külön „Szerkesztő” menüpontot.
+- A főmenü jelenlegi „Új szoba” menüpontját nevezzük át „Játék”-ra. A Játék almenüben
+  legyen külön „Új szoba”, „Szerkesztő” és „Elérhető szobák” menüpont, hogy a főmenü
+  áttekinthető maradjon az új funkciók hozzáadása után is.
+- Az „Elérhető szobák” a 17. pont elkészültéig maradjon látható, de „hamarosan” állapotú.
 - A szerkesztő használatához ne kelljen szobát létrehozni vagy játékosokra várni;
   ne legyen titkos szó, időzítő, pontozás, chat vagy körváltás.
 - Ugyanazt a PixelCanvas komponenst, rajzeszközöket, palettákat, nagyítást, mozgatást,
@@ -592,6 +602,10 @@ szóra és ugyanazzal a palettával készülnek rajzok.
 ELDÖNTÖTT IRÁNYOK
 
 - A szobachat ugyanazzal a társasággal indított új meccsnél megmarad; új szobánál törlődik.
+- A főmenü elsődleges belépési pontja a „Játék” lesz; alatta kap helyet az „Új szoba”,
+  a „Szerkesztő” és az „Elérhető szobák”.
+- A növekvő számú funkció miatt a hosszú UI-részeket almenükre és összecsukható,
+  feladatalapú csoportokra bontjuk, hogy csökkenjen a szükséges görgetés.
 - Mobilon a chat felhúzható alsó panel, asztali gépen oldalsó panel lesz.
 - A főmenü és a mobilos chat pontos látványához implementálás előtt egyszerű vázlat készül.
 - A teljes képernyős rajzolás első változata alkalmazáson belüli immerszív nézet lesz,
