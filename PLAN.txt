@@ -213,6 +213,10 @@ Még hátra van a pont teljes lezárásához:
 
 [x] 10. NYOLCSZÍNŰ PALETTA ÉS KOMPAKT ESZKÖZTÁR
 
+Történeti megjegyzés: ez a mérföldkő az akkori 8/16 színű rendszert dokumentálja.
+A jelenlegi termékdöntést a későbbi 13/A és 13/D pont írja le: az alapmód már 12 színű,
+a régi 16 színű választás pedig a tervezett 24 színű mód elkészültéig elrejtendő.
+
 - Az alapértelmezett palettában maradjon pontosan nyolc rajzszín és a jelenlegi
   fanyar Bitscrawl-hangulat.
 - A mostani jól működő színek többségét tartsuk meg.
@@ -420,6 +424,12 @@ Lezárás:
   eszközök és magyarázatok kerüljenek jól elnevezett almenük vagy lenyitható szakaszok alá.
 - Az almenükből mindig legyen egyértelmű visszalépés, és a böngésző vagy telefon vissza
   gombja ne léptesse ki véletlenül a játékost a szobából.
+- A teljes képernyős rajznézet kompakt, minimalista eszköztárát használjuk alapként a
+  normál rajznézetben is, hogy az eszközök kevesebb helyet foglaljanak és több tér maradjon
+  a vászonnak. A gombok érintési területe ettől még maradjon legalább 44×44 pixel mobilon.
+- Nézzük át a főmenü, panelek, gombok, súgók, üres állapotok és hibaüzenetek teljes
+  szövegezését. A sablonos vagy mesterségesen hangzó mondatokat rövid, természetes,
+  emberi magyar szövegre kell cserélni, a jelentés és a hibák hasznos részleteinek megtartásával.
 
 Folyamatban:
 
@@ -440,6 +450,22 @@ Még hátra van a 13. pont lezárásához:
   vizuális visszaellenőrzése az új grafikákkal.
 
 
+[x] 13/A. SAJÁT 12 SZÍNŰ ALAPPALLETTA ÉS LOGÓ
+
+- A kezdőképernyő a saját, 192×64 pixeles Bitscrawl-logót használja, villogó piros kurzorral.
+- A korábbi 8 színű alapmódot a saját 12 színű Pixelsquare-paletta váltja fel.
+- Az UI színei ugyanehhez a palettához igazodnak.
+- A 16 színű bővített mód egyelőre változatlan marad; a 24 színre bővítést külön beszéljük át.
+- A kliens és az adatbázis átállását egy kiadásban kellett élesíteni, hogy a futó játék verziói
+  ne kerüljenek átmenetileg eltérő palettaszabályokra.
+
+Elkészült és élesítve:
+
+- A saját 12 színű alappaletta, a hozzá igazított felületszínek és feliratok bekerültek.
+- A saját kezdőképernyős logó és a villogó piros kurzor működik.
+- A bővített paletta változatlan maradt; a 24 színű változat külön későbbi feladat.
+
+
 [ ] 13/B. VÁLASZTHATÓ KÖRIDŐ A SZOBÁBAN
 
 - Új szoba létrehozásakor a host választhassa ki a rajzolási időt.
@@ -451,7 +477,8 @@ Még hátra van a 13. pont lezárásához:
 - A kiválasztott idő a szoba szerveroldali beállítása legyen, minden játékos ugyanazt
   lássa, és elindított meccs alatt már ne lehessen módosítani.
 - Az átmenetileg még meglévő tesztmód rövid ideje ne keveredjen a normál szobák által
-  választható köridővel. A tesztmód a 13/C szerkesztő ellenőrzése után kivehető.
+  választható köridővel. A felhasználói egyszemélyes tesztmód a 13/C szerkesztő
+  ellenőrzése után kivehető.
 - Ellenőrizzük a 30 és 90 másodperces szélsőértéket, a hostjogosultságot, az új meccset,
   a visszacsatlakozást és azt, hogy tiltott értéket a kliens ne küldhessen be.
 
@@ -470,6 +497,9 @@ gyakorlásra és az új rajzeszközök gyors fejlesztői ellenőrzésére is has
   ne legyen titkos szó, időzítő, pontozás, chat vagy körváltás.
 - Ugyanazt a PixelCanvas komponenst, rajzeszközöket, palettákat, nagyítást, mozgatást,
   rácsot, koordinátákat, visszavonást és teljes nézetet használja, mint a játék.
+- A vászon rajzolási állapotát válasszuk le a szoba hálózati eseményeiről: a szerkesztő,
+  a klasszikus játék és a későbbi párhuzamos mód ugyanazt a rajzmotor-réteget használja,
+  de külön helyi vagy hálózati adatforrással. Így egy új eszközt csak egyszer kell megírni.
 - A rajz helyben maradjon meg a szerkesztő és a főmenü közötti véletlen váltáskor;
   új rajz vagy kilépés előtt kérjen megerősítést, ha van nem mentett változtatás.
 - A kész kép legyen letölthető átlátszóságot támogató PNG-fájlként eredeti 32×32 pixeles
@@ -481,12 +511,55 @@ gyakorlásra és az új rajzeszközök gyors fejlesztői ellenőrzésére is has
 - Telefonon és számítógépen is ellenőrizzük a PNG létrehozását, letöltését, méretét,
   átlátszóságát és azt, hogy a nagyított változat nem mosódik el.
 - Amikor a szerkesztő minden meglévő eszköz fejlesztői kipróbálására alkalmas, az eddigi
-  egyszemélyes szobateszt módot eltávolíthatjuk a felületről és a szerverbeállítások közül.
+  egyszemélyes szobateszt módot és a korlátlan egyjátékos időt eltávolíthatjuk a felületről.
+- A szerveroldali tesztgyorsítást addig nem töröljük, amíg az automatizált integrációs tesztek
+  használják. Később ezt külön tesztkörnyezethez vagy csak fejlesztésben engedélyezett
+  beállításhoz kell kötni, hogy production szobában ne legyen elérhető.
 - Az automatizált két-, három-, négy- és többjátékos integrációs tesztek továbbra is
   megmaradnak; a szerkesztő csak a kézi egyszemélyes tesztmódot váltja ki.
 
 
+[ ] 13/D. BŐVÍTETT PALETTA IDEIGLENES ELREJTÉSE
+
+- A jelenlegi 16 színű választási lehetőséget ideiglenesen elérhetetlenné kell tenni a
+  felületen. A 12 színű paletta marad az egyetlen választható mód addig, amíg a bővített
+  palettát közösen meg nem tervezzük és 24 színű változatként el nem készítjük.
+- A szerver a régi 16 színű szobák biztonságos kezelésére átmenetileg megtarthatja a
+  kompatibilitást, de új szobánál a kliens ne kínáljon fel félkész bővített palettát.
+- Ellenőrizzük, hogy új szobánál mindig 12 szín tárolódik, visszatéréskor a régi szobák
+  nem omlanak össze, és a 16 színű mód közvetlen kliensmanipulációval sem kapcsolható be.
+- A későbbi 24 színhez a palettabeállítás ne egyszerű bővített/nem bővített kapcsoló legyen:
+  verziózható palettaazonosítót használjunk, hogy új készletekhez ne kelljen újra átírni
+  minden korábbi szobát, rajzot és ellenőrzést.
+
+
+[ ] 13/E. MAGYAR ÉS ANGOL NYELVI VÁLTOZAT
+
+- Először véglegesítsük a rövid, természetes és emberi magyar feliratokat, leírásokat,
+  súgókat, üres állapotokat és hibaüzeneteket.
+- A felületen megjelenő szövegek ne maradjanak szétszórva a komponensekben: kerüljenek
+  közös fordítási kulcsok és külön magyar, illetve angol nyelvi fájlok alá.
+- A szerver és az adatbázis stabil hibakódokat küldjön, a hozzájuk tartozó emberi üzenetet
+  pedig a kliens jelenítse meg a kiválasztott nyelven.
+- A Beállítások között legyen Magyar és English nyelvválasztó; a választás ezen az
+  eszközön maradjon meg a következő látogatáskor is.
+- Első megnyitáskor a böngésző nyelve alapján ajánlhatunk alapértelmezést, de a játékos
+  ezt bármikor felülírhassa.
+- A játékosok által írt nevek, chatüzenetek és rajzok természetesen ne legyenek géppel
+  lefordítva.
+- A szavak nyelvhez kötött szóbankból érkezzenek, hogy magyar felületen magyar, angol
+  felületen angol rajzolandó és megfejtendő szavak legyenek.
+- Egy szobán belül a játékszó nyelve a host által választott közös beállítás legyen,
+  miközben minden játékos a saját felületét külön nyelven használhassa.
+- Ellenőrizzük a magyar ékezeteket, az angol szövegek eltérő hosszát, a mobilos tördelést,
+  a nyelvváltást folyamatban lévő szobában és a hiányzó fordítások biztonságos tartalékát.
+
+
 [ ] 14. TELJES VISSZAELLENŐRZÉS
+
+A 14. pont csak a 13, 13/B, 13/C, 13/D és a magyar szövegek 13/E szerinti leválasztása
+után induljon. Az angol fordítás tartalmi elkészítése történhet az első MVP után is, de az
+új felületi szövegeket már most fordítási kulcsokon keresztül kell hozzáadni.
 
 - Kétjátékos teljes meccs számítógép és mobilinternetet használó telefon között.
 - Ötjátékos automatizált meccspróba az új funkciók után.
@@ -526,6 +599,18 @@ Csak a fenti kezelhetőségi változtatások stabil nyilvános próbája után.
 
 MVP UTÁNI KÖVETKEZŐ LEHETŐSÉGEK
 
+Javasolt sorrend és függőségek:
+
+1. Az MVP előtt fejezzük be a 13-as UI-munkát, rejtsük el a 16 színt, készítsük el a
+   szerkesztőt és a választható köridőt, valamint vezessük be a fordítható szövegszerkezetet.
+2. Ezután következzen a 14-es teljes visszaellenőrzés, a PWA és a 16-os MVP-kiadási ellenőrzés.
+3. Az Elérhető szobák csak alapvető név- és spamvédelemmel kerüljön ki.
+4. A Párhuzamos rajzverseny a meglévő vendégmunkamenetekkel is elkészülhet, de külön
+   játékmód-állapotgépet igényel.
+5. A Heti rajz csak a tartós felhasználói fiókok és moderációs alapok után induljon.
+6. A teljes angol fordítás és az avatárkészítő az MVP stabilizálása után is elkészülhet;
+   az i18n-alapokat és a bővíthető profil-adatmodellt viszont már korábban készítsük elő.
+
 [ ] 17. ELÉRHETŐ SZOBÁK
 
 - A host dönthesse el, hogy a szoba csak kóddal érhető el vagy megjelenik a nyilvános
@@ -543,6 +628,12 @@ MVP UTÁNI KÖVETKEZŐ LEHETŐSÉGEK
 - A vendégként, azonnali névvel történő játék továbbra is maradjon lehetséges.
 - Később opcionális Supabase-fiók kapcsolható a vendéghez, az egész játék újraírása nélkül.
 - Első fiókos változatként elég lehet a megjelenített név és az elmentett alapbeállítások.
+- A profil későbbi bővítéseként készüljön Bitscrawl-stílusú pixelavatár-készítő, amelyben
+  előre megadott arc-, haj-, szem-, ruha- és színváltozatokból állítható össze az avatár.
+- Az avatár ne képfeltöltés legyen az első változatban: a korlátozott alkatrészkészlet
+  egységesebb látványt ad, egyszerűbben moderálható és kisebb tárhelyet igényel.
+- Az összeállított avatár jelenjen meg a profilban, később pedig a váróteremben és az
+  eredménylistán is; az avatár módosítása ne érintse a játékos pontjait vagy azonosítóját.
 - Barátlista, ranglista, statisztika és kozmetikai elemek csak külön későbbi lépések legyenek.
 - A fiókok előtt külön tervezzük meg az adatkezelést, névfoglalást, törlést és a vendégfiók
   végleges fiókká alakítását.
@@ -553,6 +644,11 @@ MVP UTÁNI KÖVETKEZŐ LEHETŐSÉGEK
 Cél: minden játékos ugyanazt a szót rajzolja egyszerre, majd egymás munkáira szavaznak.
 
 - A host külön játékmódként választhassa a Párhuzamos rajzversenyt.
+- A szoba kapjon szerveroldali játékmód-azonosítót; a meglévő szobák migrációkor automatikusan
+  `classic` módot kapjanak, így a jelenlegi játék és meghívólinkek változatlanul működnek.
+- A klasszikus és a párhuzamos mód külön szerveroldali állapotgépet és mód-specifikus
+  adattáblákat használjon. A közös szobatagságot, jelenlétet, chatet és rajzmotor-réteget
+  osszuk meg, de ne bővítsük kezelhetetlen feltételekkel a klasszikus körfüggvényeket.
 - Egy forduló elején minden játékos ugyanazt a szerver által kiválasztott szót és ugyanazt
   a rajzolási időt kapja.
 - Minden játékos külön, csak általa szerkeszthető vásznon rajzoljon; rajzolás közben mások
@@ -568,6 +664,8 @@ Cél: minden játékos ugyanazt a szót rajzolja egyszerre, majd egymás munkái
   fordulóból álljon, amelyben mindenki egyszerre készít képet.
 - A meccs végén a két forduló összesített szavazata döntsön; a legtöbb pontot szerző
   játékos nyerjen.
+- A klasszikus gyorsasági pontok és a rajzverseny szavazatpontjai módonként elkülönítve
+  legyenek értelmezve; eredményképernyőn ne keverjük őket közös, félreérthető ponttípussá.
 - A szavazatokat, a saját képre szavazás tiltását, a forduló lezárását és a pontozást
   kizárólag a szerver ellenőrizze.
 - Kapcsolatmegszakadáskor a rajz visszatölthető legyen; kilépő játékos rajza megmaradhat
@@ -585,6 +683,8 @@ szóra és ugyanazzal a palettával készülnek rajzok.
 - Egy játékos hetente egy rajzot küldhessen be; a rajz menthető és szerkeszthető legyen
   a beküldési határidőig, utána pedig véglegessé váljon.
 - A heti rajz külön felületen legyen elérhető, ne kelljen hozzá aktív szobát létrehozni.
+- A Heti rajz ne a meccsszobák vagy körök speciális eseteként készüljön: külön heti kihívás-,
+  beküldés- és szavazási adatszerkezetet kapjon, mert több napig él és más jogosultságokat igényel.
 - Mások a kész rajzokra szavazhassanak, de saját rajzra ne lehessen szavazni, és egy
   felhasználó ugyanarra a rajzra csak egy szavazatot adhasson.
 - A szavazás és a heti időszak lezárása szerveridő alapján történjen; a hét pontos kezdő-
@@ -606,6 +706,8 @@ ELDÖNTÖTT IRÁNYOK
   a „Szerkesztő” és az „Elérhető szobák”.
 - A növekvő számú funkció miatt a hosszú UI-részeket almenükre és összecsukható,
   feladatalapú csoportokra bontjuk, hogy csökkenjen a szükséges görgetés.
+- A Bitscrawl először magyar szöveggel készül, de minden felületi szöveget fordítható
+  szerkezetbe rendezünk; az első további teljes nyelvi változat az angol lesz.
 - Mobilon a chat felhúzható alsó panel, asztali gépen oldalsó panel lesz.
 - A főmenü és a mobilos chat pontos látványához implementálás előtt egyszerű vázlat készül.
 - A teljes képernyős rajzolás első változata alkalmazáson belüli immerszív nézet lesz,
@@ -636,19 +738,3 @@ NEM RÉSZE AZ ELSŐ MVP-NEK
 - Galéria, mentett rajzok és közösségi szavazás.
 - Saját szócsomagok, tematikus módok és achievementek.
 - 16×16, 64×64 és különleges palettás játékmódok.
-
-
-[x] 13/A. SAJÁT 12 SZÍNŰ ALAPPALLETTA ÉS LOGÓ
-
-- A kezdőképernyő a saját, 192×64 pixeles Bitscrawl-logót használja, villogó piros kurzorral.
-- A korábbi 8 színű alapmódot a saját 12 színű Pixelsquare-paletta váltja fel.
-- Az UI színei ugyanehhez a palettához igazodnak.
-- A 16 színű bővített mód egyelőre változatlan marad; a 24 színre bővítést külön beszéljük át.
-- A kliens és az adatbázis átállását egy kiadásban kell élesíteni, hogy a futó játék verziói
-  ne kerüljenek átmenetileg eltérő palettaszabályokra.
-
-Elkészült és élesítve:
-
-- A saját 12 színű alappaletta, a hozzá igazított felületszínek és feliratok bekerültek.
-- A saját kezdőképernyős logó és a villogó piros kurzor működik.
-- A bővített paletta változatlan maradt; a 24 színű változat külön későbbi feladat.
