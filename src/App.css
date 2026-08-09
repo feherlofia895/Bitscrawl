@@ -710,8 +710,10 @@ footer {
   z-index: 1000;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  width: 100vw;
-  height: 100dvh;
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
   padding:
     max(8px, env(safe-area-inset-top))
     max(8px, env(safe-area-inset-right))
@@ -729,7 +731,88 @@ footer {
   border: 0;
   box-shadow: none;
   box-sizing: border-box;
+  clip-path: none;
   isolation: isolate;
+}
+
+.bug-report-trigger {
+  position: fixed;
+  left: max(12px, env(safe-area-inset-left));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 950;
+  min-height: 42px;
+  padding: 8px 12px;
+  color: var(--yellow);
+  background: var(--blue);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.bug-report-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  display: grid;
+  place-items: center;
+  padding: max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+  overflow-y: auto;
+  background: rgb(36 26 53 / 62%);
+}
+
+.bug-report-modal {
+  width: min(560px, 100%);
+  padding: clamp(16px, 4vw, 26px);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--mint) 64%, var(--paper));
+  border: 3px solid var(--ink);
+  box-shadow: 9px 9px 0 rgb(36 26 53 / 55%);
+  clip-path: var(--pixel-corner);
+}
+
+.bug-report-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.bug-report-heading h2 {
+  margin: 4px 0 0;
+}
+
+.bug-report-heading button {
+  width: 42px;
+  min-height: 42px;
+  padding: 4px;
+  font-size: 1.5rem;
+}
+
+.bug-report-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.bug-report-form textarea,
+.bug-report-form select {
+  width: 100%;
+}
+
+.bug-report-form textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
+.bug-report-privacy,
+.bug-report-feedback {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.bug-report-feedback {
+  padding: 10px;
+  background: var(--paper);
+  border-left: 4px solid var(--red);
 }
 
 .immersive-canvas-heading {
@@ -778,12 +861,15 @@ footer {
 
 .pixel-editor.is-immersive .pixel-canvas-frame {
   grid-row: 2;
-  align-self: center;
-  justify-self: center;
-  width: min(100%, calc(100dvh - 72px));
+  align-self: stretch;
+  justify-self: stretch;
+  width: 100%;
+  height: 100%;
   max-width: none;
   max-height: 100%;
   margin: 0;
+  aspect-ratio: auto;
+  container-type: size;
 }
 
 .immersive-side-controls {
@@ -1052,7 +1138,7 @@ footer {
 
 .pixel-canvas-frame {
   position: relative;
-  width: 100%;
+  width: min(100%, 820px);
   aspect-ratio: 1;
   margin: 0 auto;
   overflow: hidden;
@@ -1174,7 +1260,7 @@ footer {
 
 .round-play-area {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(240px, 0.85fr);
+  grid-template-columns: minmax(0, 1fr) 260px;
   gap: 18px;
   align-items: start;
 }
@@ -1429,7 +1515,8 @@ footer {
   }
 
   .pixel-editor.is-immersive .pixel-canvas-frame {
-    width: min(100%, calc(100dvh - 72px));
+    width: 100%;
+    height: 100%;
     margin-left: 0;
   }
 
@@ -1463,7 +1550,8 @@ footer {
   }
 
   .pixel-editor.is-immersive .pixel-canvas-frame {
-    width: min(100%, calc(100dvh - 58px));
+    width: 100%;
+    height: 100%;
   }
 
   .immersive-side-controls {

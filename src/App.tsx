@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { PixelCanvas } from './components/PixelCanvas'
+import { BugReport } from './components/BugReport'
 import { ConfirmModal } from './components/ConfirmModal'
 import { RoomChat } from './components/RoomChat'
 import { RoundChat } from './components/RoundChat'
@@ -1225,6 +1226,14 @@ function App() {
         <span>Bitscrawl MVP</span>
         <span>13. mérföldkő · mobil rajznézet és szólista</span>
       </footer>
+
+      <BugReport
+        playerName={playerName}
+        roomCode={lobby?.room.code ?? null}
+        roomId={lobby?.room.id ?? null}
+        roundId={roundView?.round_id ?? null}
+        roundStatus={roundView?.round_status ?? null}
+      />
 
       {showLeaveConfirmation ? (
         <ConfirmModal

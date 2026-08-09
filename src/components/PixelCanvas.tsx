@@ -4,6 +4,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
+import { createPortal } from 'react-dom'
 import type { DrawEvent, PixelChange } from '../lib/game'
 import { colorsForPalette, type PaletteSize } from '../lib/palette'
 
@@ -277,17 +278,29 @@ export function PixelCanvas({
   const clampZoom = (nextZoom: number) =>
     Math.max(MIN_ZOOM, Math.min(maximumZoom(), nextZoom))
 
-  const clampPan = (nextPan: CanvasPan, nextZoom = zoom) => {
-    const surfaceSize = CANVAS_SURFACE_RATIO * nextZoom
-    if (surfaceSize <= 1) {
-      const centeredOffset = (1 - surfaceSize) / 2
-      return { x: centeredOffset, y: centeredOffset }
+  const surfaceRatios = (nextZoom: number) => {
+    const frameBounds = canvasFrameRef.current?.getBoundingClientRect()
+    if (!frameBounds || frameBounds.width === 0 || frameBounds.height === 0) {
+      const ratio = CANVAS_SURFACE_RATIO * nextZoom
+      return { x: ratio, y: ratio }
     }
 
-    const minimum = 1 - surfaceSize
+    const baseSize = Math.min(frameBounds.width, frameBounds.height)
     return {
-      x: Math.max(minimum, Math.min(0, nextPan.x)),
-      y: Math.max(minimum, Math.min(0, nextPan.y)),
+      x: (baseSize / frameBounds.width) * CANVAS_SURFACE_RATIO * nextZoom,
+      y: (baseSize / frameBounds.height) * CANVAS_SURFACE_RATIO * nextZoom,
+    }
+  }
+
+  const clampPan = (nextPan: CanvasPan, nextZoom = zoom) => {
+    const surface = surfaceRatios(nextZoom)
+    const clampAxis = (offset: number, size: number) => {
+      if (size <= 1) return (1 - size) / 2
+      return Math.max(1 - size, Math.min(0, offset))
+    }
+    return {
+      x: clampAxis(nextPan.x, surface.x),
+      y: clampAxis(nextPan.y, surface.y),
     }
   }
 
@@ -303,15 +316,15 @@ export function PixelCanvas({
   ) => {
     const currentZoom = zoomRef.current
     const nextZoom = clampZoom(requestedZoom)
-    const currentSurfaceSize = CANVAS_SURFACE_RATIO * currentZoom
-    const nextSurfaceSize = CANVAS_SURFACE_RATIO * nextZoom
-    const contentX = (anchor.x - panRef.current.x) / currentSurfaceSize
-    const contentY = (anchor.y - panRef.current.y) / currentSurfaceSize
+    const currentSurface = surfaceRatios(currentZoom)
+    const nextSurface = surfaceRatios(nextZoom)
+    const contentX = (anchor.x - panRef.current.x) / currentSurface.x
+    const contentY = (anchor.y - panRef.current.y) / currentSurface.y
 
     updatePan(
       {
-        x: anchor.x - contentX * nextSurfaceSize,
-        y: anchor.y - contentY * nextSurfaceSize,
+        x: anchor.x - contentX * nextSurface.x,
+        y: anchor.y - contentY * nextSurface.y,
       },
       nextZoom,
     )
@@ -553,10 +566,10 @@ export function PixelCanvas({
   const enterImmersiveMode = () => {
     setAreImmersiveToolsOpen(false)
     setIsImmersivePaletteOpen(false)
+    zoomRef.current = MIN_ZOOM
+    setZoom(MIN_ZOOM)
+    setIsPanMode(false)
     setIsImmersive(true)
-    if (zoomRef.current === MIN_ZOOM) {
-      window.setTimeout(() => changeZoom(1.5), 0)
-    }
   }
 
   const exitImmersiveMode = () => {
@@ -599,11 +612,11 @@ export function PixelCanvas({
     const midpoint = pointerMidpoint(pointers[0], pointers[1])
     const anchorX = (midpoint.clientX - frameBounds.left) / frameBounds.width
     const anchorY = (midpoint.clientY - frameBounds.top) / frameBounds.height
-    const currentSurfaceSize = CANVAS_SURFACE_RATIO * zoomRef.current
+    const currentSurface = surfaceRatios(zoomRef.current)
 
     pinchGestureRef.current = {
-      contentX: (anchorX - panRef.current.x) / currentSurfaceSize,
-      contentY: (anchorY - panRef.current.y) / currentSurfaceSize,
+      contentX: (anchorX - panRef.current.x) / currentSurface.x,
+      contentY: (anchorY - panRef.current.y) / currentSurface.y,
       startDistance: Math.max(1, pointerDistance(pointers[0], pointers[1])),
       startZoom: zoomRef.current,
     }
@@ -622,12 +635,12 @@ export function PixelCanvas({
       gesture.startZoom *
         (pointerDistance(pointers[0], pointers[1]) / gesture.startDistance),
     )
-    const nextSurfaceSize = CANVAS_SURFACE_RATIO * nextZoom
+    const nextSurface = surfaceRatios(nextZoom)
 
     updatePan(
       {
-        x: anchorX - gesture.contentX * nextSurfaceSize,
-        y: anchorY - gesture.contentY * nextSurfaceSize,
+        x: anchorX - gesture.contentX * nextSurface.x,
+        y: anchorY - gesture.contentY * nextSurface.y,
       },
       nextZoom,
     )
@@ -694,7 +707,28 @@ export function PixelCanvas({
 
     frame.addEventListener('wheel', handleWheel, { passive: false })
     return () => frame.removeEventListener('wheel', handleWheel)
-  }, [])
+  }, [isImmersive])
+
+  useEffect(() => {
+    const animationFrame = window.requestAnimationFrame(() => {
+      const context = canvasRef.current?.getContext('2d')
+      if (context) {
+        context.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
+        pixelsRef.current.forEach((color, index) => {
+          if (color === TRANSPARENT) return
+          context.fillStyle = color
+          context.fillRect(
+            index % CANVAS_SIZE,
+            Math.floor(index / CANVAS_SIZE),
+            1,
+            1,
+          )
+        })
+      }
+      updatePan(panRef.current, zoomRef.current)
+    })
+    return () => window.cancelAnimationFrame(animationFrame)
+  }, [isImmersive])
 
   useEffect(() => {
     if (!isImmersive) {
@@ -782,7 +816,7 @@ export function PixelCanvas({
           .toString()
           .padStart(2, '0')}`
 
-  return (
+  const editor = (
     <section
       aria-label={isImmersive ? 'Teljes képernyős pixelvászon' : undefined}
       aria-labelledby={isImmersive ? undefined : 'pixel-editor-title'}
@@ -1090,10 +1124,14 @@ export function PixelCanvas({
         <div
           className={`pixel-canvas-surface${showGrid ? ' show-grid' : ''}`}
           style={{
-            height: `${CANVAS_SURFACE_RATIO * zoom * 100}%`,
+            height: isImmersive
+              ? `min(${CANVAS_SURFACE_RATIO * zoom * 100}cqw, ${CANVAS_SURFACE_RATIO * zoom * 100}cqh)`
+              : `${CANVAS_SURFACE_RATIO * zoom * 100}%`,
             left: `${pan.x * 100}%`,
             top: `${pan.y * 100}%`,
-            width: `${CANVAS_SURFACE_RATIO * zoom * 100}%`,
+            width: isImmersive
+              ? `min(${CANVAS_SURFACE_RATIO * zoom * 100}cqw, ${CANVAS_SURFACE_RATIO * zoom * 100}cqh)`
+              : `${CANVAS_SURFACE_RATIO * zoom * 100}%`,
           }}
         >
           {showCoordinates ? (
@@ -1274,4 +1312,6 @@ export function PixelCanvas({
       </p>
     </section>
   )
+
+  return isImmersive ? createPortal(editor, document.body) : editor
 }

@@ -12,6 +12,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      bug_reports: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          id: number
+          reporter_name: string | null
+          room_code: string | null
+          room_id: number | null
+          status: string
+          steps: string | null
+          technical_context: Json
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description: string
+          id?: never
+          reporter_name?: string | null
+          room_code?: string | null
+          room_id?: number | null
+          status?: string
+          steps?: string | null
+          technical_context?: Json
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          id?: never
+          reporter_name?: string | null
+          room_code?: string | null
+          room_id?: number | null
+          status?: string
+          steps?: string | null
+          technical_context?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       game_rounds: {
         Row: {
           created_at: string

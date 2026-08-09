@@ -154,7 +154,7 @@ await expectRpcError(
   'submit_pixel_changes',
   {
     target_round_id: hostRound.round_id,
-    pixel_changes: [{ x: 0, y: 0, color: '#241a35' }],
+    pixel_changes: [{ x: 0, y: 0, color: '#230a19' }],
   },
   'NOT_ROUND_DRAWER',
 )
@@ -180,7 +180,7 @@ await expectRpcError(
   'submit_pixel_changes',
   {
     target_round_id: hostRound.round_id,
-    pixel_changes: [{ x: 1, y: 1, color: '#241a35' }],
+    pixel_changes: [{ x: 1, y: 1, color: '#230a19' }],
   },
   'NOT_ROUND_DRAWER',
 )
@@ -249,7 +249,7 @@ await expectWriteDenied(
 )
 await expectWriteDenied(
   guest.from('round_draw_events').insert({
-    changes: [{ x: 2, y: 2, color: '#241a35' }],
+    changes: [{ x: 2, y: 2, color: '#230a19' }],
     created_by: guestUser.id,
     room_id: roomA.room_id,
     round_id: hostRound.round_id,
@@ -325,7 +325,7 @@ assert(
 
 await rpc(solo, 'submit_pixel_changes', {
   target_round_id: soloDrawing.round_id,
-  pixel_changes: [{ x: 3, y: 3, color: '#4ecdc4' }],
+  pixel_changes: [{ x: 3, y: 3, color: '#d3493b' }],
 })
 await expectRpcError(
   solo,
