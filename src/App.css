@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap');
+
 .app-shell {
   width: min(1120px, calc(100% - 32px));
   margin: 0 auto;
@@ -1469,5 +1471,200 @@ footer {
   *::after {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* Pixel UI skin — the component structure stays replaceable by drawn assets. */
+:root {
+  --pixel-corner: polygon(
+    8px 0,
+    calc(100% - 8px) 0,
+    calc(100% - 8px) 3px,
+    calc(100% - 3px) 3px,
+    calc(100% - 3px) 8px,
+    100% 8px,
+    100% calc(100% - 8px),
+    calc(100% - 3px) calc(100% - 8px),
+    calc(100% - 3px) calc(100% - 3px),
+    calc(100% - 8px) calc(100% - 3px),
+    calc(100% - 8px) 100%,
+    8px 100%,
+    8px calc(100% - 3px),
+    3px calc(100% - 3px),
+    3px calc(100% - 8px),
+    0 calc(100% - 8px),
+    0 8px,
+    3px 8px,
+    3px 3px,
+    8px 3px
+  );
+}
+
+.topbar {
+  margin-top: 12px;
+  padding: 10px 14px;
+  min-height: 58px;
+  background: var(--mint);
+  border: 3px solid var(--ink);
+  box-shadow: 5px 5px 0 rgb(36 26 53 / 38%);
+  clip-path: var(--pixel-corner);
+}
+
+.brand,
+.home-logo {
+  font-family: 'Silkscreen', var(--pixel-font);
+}
+
+.brand-mark {
+  display: none;
+}
+
+.hero {
+  display: block;
+  padding: clamp(52px, 8vw, 82px) 0 28px;
+  text-align: center;
+}
+
+.hero-copy {
+  display: grid;
+  justify-items: center;
+}
+
+.home-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  max-width: none !important;
+  color: var(--ink) !important;
+  font-size: clamp(2rem, 8vw, 3.6rem) !important;
+  font-weight: 700;
+  line-height: 1 !important;
+  letter-spacing: 2px !important;
+}
+
+.logo-cursor {
+  width: 14px;
+  height: 26px;
+  flex: 0 0 auto;
+  background: var(--coral);
+  border: 2px solid var(--ink);
+  animation: logo-blink 1s steps(1) infinite;
+}
+
+@keyframes logo-blink {
+  50% { opacity: 0; }
+}
+
+.home-palette {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.home-palette i {
+  width: 28px;
+  height: 20px;
+  margin-left: -2px;
+  border: 2px solid var(--ink);
+}
+
+.home-palette i:nth-child(1) { background: var(--olive); }
+.home-palette i:nth-child(2) { background: var(--violet); }
+.home-palette i:nth-child(3) { background: var(--mint); }
+.home-palette i:nth-child(4) { background: var(--yellow); }
+.home-palette i:nth-child(5) { background: var(--coral); }
+.home-palette i:nth-child(6) { background: var(--blue); }
+.home-palette i:nth-child(7) { background: var(--rust); }
+
+.hero .eyebrow {
+  order: 3;
+  margin: 15px 0 0;
+  color: var(--ink);
+  font-family: var(--pixel-font);
+}
+
+.hero .intro,
+.hero .feature-row,
+.hero .pixel-card {
+  display: none;
+}
+
+.lobby-card {
+  grid-template-columns: 1fr;
+  width: min(520px, 100%);
+  gap: 18px;
+  margin: 0 auto 38px;
+  padding: clamp(20px, 4vw, 30px);
+  background: color-mix(in srgb, var(--mint) 58%, var(--paper));
+  box-shadow: 9px 9px 0 rgb(36 26 53 / 42%);
+  clip-path: var(--pixel-corner);
+}
+
+.lobby-heading {
+  text-align: center;
+}
+
+.lobby-heading h2 {
+  font-size: clamp(1.65rem, 5vw, 2.45rem);
+}
+
+input,
+button,
+.prototype-badge,
+.backend-badge,
+.feature-row span,
+.player-list li,
+.host-badge,
+.offline-player-badge,
+.player-count,
+.round-timer,
+.round-transition,
+.drawing-palette,
+.draw-mode-badge {
+  clip-path: var(--pixel-corner);
+}
+
+.room-summary,
+.players-panel,
+.pixel-editor,
+.room-chat,
+.guess-panel,
+.game-results {
+  background: color-mix(in srgb, var(--mint) 58%, var(--paper));
+  box-shadow: 9px 9px 0 rgb(36 26 53 / 42%);
+  clip-path: var(--pixel-corner);
+}
+
+.room-summary {
+  background: color-mix(in srgb, var(--yellow) 70%, var(--paper));
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    margin-top: 8px;
+  }
+
+  .hero {
+    padding-top: 42px;
+  }
+
+  .home-logo {
+    font-size: clamp(1.75rem, 9.5vw, 2.7rem) !important;
+  }
+
+  .logo-cursor {
+    width: 10px;
+    height: 20px;
+  }
+
+  .round-play-area {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .round-play-area .guess-panel {
+    order: -1;
+    width: 100%;
   }
 }

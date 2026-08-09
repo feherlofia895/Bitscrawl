@@ -943,11 +943,13 @@ function App() {
         <>
           <section className="hero" id="top">
             <div className="hero-copy">
-              <p className="eyebrow">Online pixel art rajzolós játék</p>
-              <h1>
-                Rajzolj pixelenként.
-                <span> Találd ki időben.</span>
+              <h1 className="home-logo">
+                BITSCRAWL<span className="logo-cursor" aria-hidden="true" />
               </h1>
+              <div className="home-palette" aria-hidden="true">
+                <i /><i /><i /><i /><i /><i /><i />
+              </div>
+              <p className="eyebrow">Online pixel art rajzolós játék</p>
               <p className="intro">
                 Rövid körök, egyszerű szavak és egy valódi rácsalapú vászon.
                 Az első célunk egy 2–6 fővel játszható MVP.
