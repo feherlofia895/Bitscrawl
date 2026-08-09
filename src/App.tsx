@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { PixelCanvas } from './components/PixelCanvas'
+import { ConfirmModal } from './components/ConfirmModal'
 import { RoomChat } from './components/RoomChat'
 import { RoundChat } from './components/RoundChat'
 import { RoundTimer } from './components/RoundTimer'
@@ -97,6 +98,7 @@ function App() {
   const [isAdvancingRound, setIsAdvancingRound] = useState(false)
   const [isRestartingGame, setIsRestartingGame] = useState(false)
   const [isLeavingRoom, setIsLeavingRoom] = useState(false)
+  const [showLeaveConfirmation, setShowLeaveConfirmation] = useState(false)
   const [lobby, setLobby] = useState<Lobby | null>(null)
   const [roundView, setRoundView] = useState<RoundView | null>(null)
   const [drawEvents, setDrawEvents] = useState<DrawEvent[]>([])
@@ -569,18 +571,15 @@ function App() {
     }
   }
 
-  const handleLeaveRoom = async () => {
+  const handleLeaveRoom = async (confirmed = false) => {
     if (!lobby || isLeavingRoom) return
 
-    if (
-      lobby.room.status === 'playing' &&
-      !window.confirm(
-        'Biztosan kilépsz a folyamatban lévő meccsből?',
-      )
-    ) {
+    if (lobby.room.status === 'playing' && !confirmed) {
+      setShowLeaveConfirmation(true)
       return
     }
 
+    setShowLeaveConfirmation(false)
     isLeavingRoomRef.current = true
     setIsLeavingRoom(true)
     setMessage('Kilépés a szobából…')
@@ -903,36 +902,54 @@ function App() {
                   roundId={roundView.round_id}
                   serverNow={roundView.server_now}
                 />
-                <RoundChat
-                  currentUserId={lobby.currentUserId}
-                  isDrawer={roundView.is_drawer}
-                  messages={roundMessages}
-                  onError={(error) =>
-                    setMessage(
-                      error instanceof Error
-                        ? error.message
-                        : 'Nem sikerült elküldeni a tippet.',
-                    )
-                  }
-                  onSubmit={(guess) => submitGuess(roundView.round_id, guess)}
-                  players={lobby.players}
-                  roundId={roundView.round_id}
-                />
+                <div className="play-side-column">
+                  <RoundChat
+                    currentUserId={lobby.currentUserId}
+                    isDrawer={roundView.is_drawer}
+                    messages={roundMessages}
+                    onError={(error) =>
+                      setMessage(
+                        error instanceof Error
+                          ? error.message
+                          : 'Nem sikerült elküldeni a tippet.',
+                      )
+                    }
+                    onSubmit={(guess) => submitGuess(roundView.round_id, guess)}
+                    players={lobby.players}
+                    roundId={roundView.round_id}
+                  />
+                  <RoomChat
+                    messages={roomMessages}
+                    onError={(error) =>
+                      setMessage(
+                        error instanceof Error
+                          ? error.message
+                          : 'Nem sikerült elküldeni a chatüzenetet.',
+                      )
+                    }
+                    onSubmit={(content) =>
+                      sendRoomMessage(lobby.room.id, content)
+                    }
+                    players={lobby.players}
+                  />
+                </div>
               </div>
             ) : null}
 
-            <RoomChat
-              messages={roomMessages}
-              onError={(error) =>
-                setMessage(
-                  error instanceof Error
-                    ? error.message
-                    : 'Nem sikerült elküldeni a chatüzenetet.',
-                )
-              }
-              onSubmit={(content) => sendRoomMessage(lobby.room.id, content)}
-              players={lobby.players}
-            />
+            {roundView?.round_status !== 'drawing' || isFinishingRound ? (
+              <RoomChat
+                messages={roomMessages}
+                onError={(error) =>
+                  setMessage(
+                    error instanceof Error
+                      ? error.message
+                      : 'Nem sikerült elküldeni a chatüzenetet.',
+                  )
+                }
+                onSubmit={(content) => sendRoomMessage(lobby.room.id, content)}
+                players={lobby.players}
+              />
+            ) : null}
 
             <p className="status-message" aria-live="polite">
               {message}
@@ -1075,6 +1092,17 @@ function App() {
         <span>Bitscrawl MVP</span>
         <span>13. mérföldkő · mobil rajznézet és szólista</span>
       </footer>
+
+      {showLeaveConfirmation ? (
+        <ConfirmModal
+          confirmLabel="Kilépés a szobából"
+          isBusy={isLeavingRoom}
+          message="A folyamatban lévő meccsből kilépsz, és a helyed felszabadul. Biztosan folytatod?"
+          onCancel={() => setShowLeaveConfirmation(false)}
+          onConfirm={() => void handleLeaveRoom(true)}
+          title="Kilépsz a meccsből?"
+        />
+      ) : null}
     </main>
   )
 }

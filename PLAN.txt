@@ -358,7 +358,7 @@ Elkészült és ellenőrizve:
   és a várótermi, valamint játék közbeni böngészős felületi próba sikeres volt.
 
 
-[ ] 12. FŐMENÜ, PANELEK ÉS SZEBB FELUGRÓ ABLAKOK
+[>] 12. FŐMENÜ, PANELEK ÉS SZEBB FELUGRÓ ABLAKOK
 
 - Készüljön valódi főmenü külön, jól felismerhető lehetőségekkel: játék indítása,
   csatlakozás, később elérhető szobák, beállítások és információk.
@@ -371,6 +371,22 @@ Elkészült és ellenőrizve:
 - A megfejtésmező a chattől továbbra is elkülönítve, gyorsan elérhető maradjon.
 - A panelek bezárhatók legyenek vissza gombbal, Escape billentyűvel és érinthető
   bezárógombbal, az éppen beírt szöveg véletlen elvesztése nélkül.
+
+Első működő változat elkészült:
+
+- Mobilon a szobachat a dokumentum legfelső rétegében megjelenő alsó panelként nyílik,
+  ezért a pixeles szobapanelek már nem vághatják le a lebegő gombot vagy a chatet.
+- A mobilos chatgomb olvasatlanüzenet-számlálót tud megjeleníteni; megnyitáskor nullázódik.
+- A chat bezárható érinthető bezárógombbal, Escape billentyűvel és a telefon vagy böngésző
+  vissza gombjával, miközben a beírt piszkozat bezárás és komponensfrissítés után is megmarad.
+- Asztali játék közben a megfejtés és a szobachat a rajz melletti oldalsó oszlopba került.
+- A folyamatban lévő meccsből kilépés a böngésző egyszerű megerősítése helyett saját,
+  Bitscrawl-stílusú modalban történik; bezárható Escape-pel, vissza gombbal és Mégsem gombbal.
+
+Még hátra van a 12. pont lezárásához:
+
+- A főmenü másodlagos lehetőségeinek külön nézetei vagy paneljei.
+- Az olvasatlan jelzés két valódi játékossal történő ellenőrzése.
 
 
 [ ] 13. UI-, BETŰKÉSZLET- ÉS MOBILOS FINOMHANGOLÁS
