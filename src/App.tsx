@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { PixelCanvas } from './components/PixelCanvas'
+import { RoomChat } from './components/RoomChat'
 import { RoundChat } from './components/RoundChat'
 import { RoundTimer } from './components/RoundTimer'
 import { RoundTransitionTimer } from './components/RoundTransitionTimer'
@@ -21,8 +22,10 @@ import {
   createRoom,
   joinRoom,
   leaveRoom,
+  loadRoomMessages,
   loadLobby,
   restartGame,
+  sendRoomMessage,
   resumeRoom,
   setRoomPaletteSize,
   setRoomTestMode,
@@ -30,6 +33,7 @@ import {
   subscribeToLobby,
   touchRoomPresence,
   type Lobby,
+  type RoomMessage,
 } from './lib/lobby'
 import { basePalette, type PaletteSize } from './lib/palette'
 import { checkSupabaseConnection } from './lib/supabase'
@@ -97,6 +101,7 @@ function App() {
   const [roundView, setRoundView] = useState<RoundView | null>(null)
   const [drawEvents, setDrawEvents] = useState<DrawEvent[]>([])
   const [roundMessages, setRoundMessages] = useState<RoundMessage[]>([])
+  const [roomMessages, setRoomMessages] = useState<RoomMessage[]>([])
   const isLeavingRoomRef = useRef(false)
 
   const hydrateLobby = useCallback(
@@ -106,18 +111,19 @@ function App() {
         nextLobby.room.status === 'playing'
           ? await loadRoundView(nextLobby.room.id)
           : null
-      const [nextDrawEvents, nextRoundMessages] = nextRoundView
-        ? await Promise.all([
-            loadDrawEvents(nextRoundView.round_id),
-            loadRoundMessages(nextRoundView.round_id),
-          ])
-        : [[], []]
+      const [nextDrawEvents, nextRoundMessages, nextRoomMessages] =
+        await Promise.all([
+          nextRoundView ? loadDrawEvents(nextRoundView.round_id) : [],
+          nextRoundView ? loadRoundMessages(nextRoundView.round_id) : [],
+          loadRoomMessages(nextLobby.room.id),
+        ])
 
       if (!isLeavingRoomRef.current) {
         setLobby(nextLobby)
         setRoundView(nextRoundView)
         setDrawEvents(nextDrawEvents)
         setRoundMessages(nextRoundMessages)
+        setRoomMessages(nextRoomMessages)
       }
 
       return nextLobby
@@ -240,6 +246,18 @@ function App() {
     }
   }, [activeRoundId])
 
+  const refreshRoomMessages = useCallback(async () => {
+    if (!activeRoomId) return
+
+    try {
+      setRoomMessages(await loadRoomMessages(activeRoomId))
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : 'Nem frissült a szobachat.',
+      )
+    }
+  }, [activeRoomId])
+
   useEffect(() => {
     if (!activeRoomId) return
     return subscribeToLobby(
@@ -247,6 +265,7 @@ function App() {
       () => void refreshLobby(),
       () => void refreshDrawEvents(),
       () => void refreshRoundMessages(),
+      () => void refreshRoomMessages(),
       (status) => {
         setBackendStatus(
           status === 'connected'
@@ -257,7 +276,13 @@ function App() {
         )
       },
     )
-  }, [activeRoomId, refreshDrawEvents, refreshLobby, refreshRoundMessages])
+  }, [
+    activeRoomId,
+    refreshDrawEvents,
+    refreshLobby,
+    refreshRoomMessages,
+    refreshRoundMessages,
+  ])
 
   useEffect(() => {
     if (!activeRoomId) return
@@ -566,6 +591,7 @@ function App() {
       setRoundView(null)
       setDrawEvents([])
       setRoundMessages([])
+      setRoomMessages([])
       setRoomCode('')
       window.history.replaceState({}, '', window.location.pathname)
       setBackendStatus('online')
@@ -894,6 +920,19 @@ function App() {
                 />
               </div>
             ) : null}
+
+            <RoomChat
+              messages={roomMessages}
+              onError={(error) =>
+                setMessage(
+                  error instanceof Error
+                    ? error.message
+                    : 'Nem sikerült elküldeni a chatüzenetet.',
+                )
+              }
+              onSubmit={(content) => sendRoomMessage(lobby.room.id, content)}
+              players={lobby.players}
+            />
 
             <p className="status-message" aria-live="polite">
               {message}

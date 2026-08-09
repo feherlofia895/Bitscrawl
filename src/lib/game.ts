@@ -17,7 +17,7 @@ export type RoundMessage = {
   content: string | null
   created_at: string
   id: number
-  kind: 'guess' | 'correct'
+  kind: 'correct'
   round_id: number
   sender_user_id: string
 }
