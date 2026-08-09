@@ -40,6 +40,7 @@ import { basePalette, type PaletteSize } from './lib/palette'
 import { checkSupabaseConnection } from './lib/supabase'
 
 type BackendStatus = 'checking' | 'online' | 'reconnecting' | 'offline'
+type HomeView = 'main' | 'create' | 'join' | 'settings' | 'info'
 
 const backendStatusLabels: Record<BackendStatus, string> = {
   checking: 'Szerver: ellenőrzés',
@@ -80,6 +81,10 @@ function getInitialRoomCode() {
 
 function App() {
   const [playerName, setPlayerName] = useState('')
+  const [homeView, setHomeView] = useState<HomeView>('main')
+  const [reduceMotion, setReduceMotion] = useState(
+    () => window.localStorage.getItem('bitscrawl-reduce-motion') === 'true',
+  )
   const [roomCode, setRoomCode] = useState(getInitialRoomCode)
   const [message, setMessage] = useState(
     'Adj meg egy játékosnevet, majd hozz létre szobát vagy csatlakozz egy kóddal.',
@@ -105,6 +110,41 @@ function App() {
   const [roundMessages, setRoundMessages] = useState<RoundMessage[]>([])
   const [roomMessages, setRoomMessages] = useState<RoomMessage[]>([])
   const isLeavingRoomRef = useRef(false)
+
+  const openHomeView = useCallback((view: Exclude<HomeView, 'main'>) => {
+    window.history.pushState({ bitscrawlHomeView: view }, '')
+    setHomeView(view)
+  }, [])
+
+  const closeHomeView = useCallback(() => {
+    if (window.history.state?.bitscrawlHomeView) {
+      window.history.back()
+    } else {
+      setHomeView('main')
+    }
+  }, [])
+
+  useEffect(() => {
+    if (lobby || homeView === 'main') return
+
+    const handlePopState = () => setHomeView('main')
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeHomeView()
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [closeHomeView, homeView, lobby])
+
+  const handleReduceMotionChange = () => {
+    const nextValue = !reduceMotion
+    setReduceMotion(nextValue)
+    window.localStorage.setItem('bitscrawl-reduce-motion', String(nextValue))
+  }
 
   const hydrateLobby = useCallback(
     async (entry: Parameters<typeof loadLobby>[0]) => {
@@ -592,6 +632,7 @@ function App() {
       setRoundMessages([])
       setRoomMessages([])
       setRoomCode('')
+      setHomeView('main')
       window.history.replaceState({}, '', window.location.pathname)
       setBackendStatus('online')
       setMessage('Kiléptél a szobából. Létrehozhatsz egy újat vagy csatlakozhatsz másikhoz.')
@@ -625,7 +666,7 @@ function App() {
     Date.now() - new Date(lastSeenAt).getTime() < 45_000
 
   return (
-    <main className="app-shell">
+    <main className="app-shell" data-reduced-motion={reduceMotion}>
       <header className="topbar">
         <a className="brand" href="#top" aria-label="Bitscrawl kezdőlap">
           <span className="brand-mark" aria-hidden="true">
@@ -1008,82 +1049,172 @@ function App() {
             </div>
           </section>
 
-          <section className="lobby-card" aria-labelledby="lobby-title">
-            <div className="lobby-heading">
-              <p className="step-label">Első lépés</p>
-              <h2 id="lobby-title">Lépj be játékosként</h2>
-            </div>
-
-            <div className="lobby-controls">
-              <label className="field" htmlFor="player-name">
-                <span>Játékosnév</span>
-                <input
-                  autoComplete="nickname"
-                  disabled={isBusy || isRestoringRoom}
-                  id="player-name"
-                  maxLength={16}
-                  onChange={(event) => setPlayerName(event.target.value)}
-                  placeholder="Például: PixelPanni"
-                  type="text"
-                  value={playerName}
-                />
-              </label>
-
-              <button
-                className="primary-button"
-                disabled={isBusy || isRestoringRoom}
-                onClick={handleCreateRoom}
-                type="button"
-              >
-                {isRestoringRoom
-                  ? 'Korábbi szoba keresése…'
-                  : isBusy
-                    ? 'Kapcsolódás…'
-                    : 'Szoba létrehozása'}
-              </button>
-
-              <div className="divider" aria-hidden="true">
-                <span>vagy</span>
-              </div>
-
-              <div className="join-row">
-                <label className="field" htmlFor="room-code">
-                  <span>Szobakód</span>
-                  <input
-                    autoCapitalize="characters"
+          <section className="lobby-card home-panel" aria-labelledby="lobby-title">
+            {homeView === 'main' ? (
+              <>
+                <div className="lobby-heading">
+                  <p className="step-label">Főmenü</p>
+                  <h2 id="lobby-title">Mit szeretnél?</h2>
+                </div>
+                <div className="home-menu-actions">
+                  <button
+                    className="primary-button"
+                    onClick={() => openHomeView('create')}
+                    type="button"
+                  >
+                    Új szoba
+                  </button>
+                  <button
+                    className="secondary-button"
+                    onClick={() => openHomeView('join')}
+                    type="button"
+                  >
+                    Csatlakozás
+                  </button>
+                  <button onClick={() => openHomeView('settings')} type="button">
+                    Beállítások
+                  </button>
+                  <button onClick={() => openHomeView('info')} type="button">
+                    Információk
+                  </button>
+                  <button disabled type="button">
+                    Elérhető szobák · hamarosan
+                  </button>
+                </div>
+              </>
+            ) : homeView === 'create' ? (
+              <>
+                <div className="lobby-heading">
+                  <p className="step-label">Játék indítása</p>
+                  <h2 id="lobby-title">Új szoba</h2>
+                </div>
+                <div className="lobby-controls">
+                  <label className="field" htmlFor="create-player-name">
+                    <span>Játékosnév</span>
+                    <input
+                      autoComplete="nickname"
+                      disabled={isBusy || isRestoringRoom}
+                      id="create-player-name"
+                      maxLength={16}
+                      onChange={(event) => setPlayerName(event.target.value)}
+                      placeholder="Például: PixelPanni"
+                      type="text"
+                      value={playerName}
+                    />
+                  </label>
+                  <button
+                    className="primary-button"
                     disabled={isBusy || isRestoringRoom}
-                    id="room-code"
-                    maxLength={6}
-                    onChange={(event) =>
-                      setRoomCode(
-                        event.target.value
-                          ? normalizeRoomCode(event.target.value)
-                          : '',
-                      )
-                    }
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') handleJoinRoom()
-                    }}
-                    placeholder="AB2CD3"
-                    spellCheck={false}
-                    type="text"
-                    value={roomCode}
-                  />
-                </label>
-                <button
-                  className="secondary-button"
-                  disabled={isBusy || isRestoringRoom}
-                  onClick={handleJoinRoom}
-                  type="button"
-                >
-                  Csatlakozás
-                </button>
-              </div>
-
-              <p className="status-message" aria-live="polite">
-                {message}
-              </p>
-            </div>
+                    onClick={handleCreateRoom}
+                    type="button"
+                  >
+                    {isRestoringRoom
+                      ? 'Korábbi szoba keresése…'
+                      : isBusy
+                        ? 'Kapcsolódás…'
+                        : 'Szoba létrehozása'}
+                  </button>
+                  <button className="home-back-button" onClick={closeHomeView} type="button">
+                    Vissza a főmenübe
+                  </button>
+                  <p className="status-message" aria-live="polite">{message}</p>
+                </div>
+              </>
+            ) : homeView === 'join' ? (
+              <>
+                <div className="lobby-heading">
+                  <p className="step-label">Kódos belépés</p>
+                  <h2 id="lobby-title">Csatlakozás</h2>
+                </div>
+                <div className="lobby-controls">
+                  <label className="field" htmlFor="join-player-name">
+                    <span>Játékosnév</span>
+                    <input
+                      autoComplete="nickname"
+                      disabled={isBusy || isRestoringRoom}
+                      id="join-player-name"
+                      maxLength={16}
+                      onChange={(event) => setPlayerName(event.target.value)}
+                      placeholder="Például: PixelPanni"
+                      type="text"
+                      value={playerName}
+                    />
+                  </label>
+                  <label className="field" htmlFor="room-code">
+                    <span>Szobakód</span>
+                    <input
+                      autoCapitalize="characters"
+                      disabled={isBusy || isRestoringRoom}
+                      id="room-code"
+                      maxLength={6}
+                      onChange={(event) =>
+                        setRoomCode(
+                          event.target.value
+                            ? normalizeRoomCode(event.target.value)
+                            : '',
+                        )
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') handleJoinRoom()
+                      }}
+                      placeholder="AB2CD3"
+                      spellCheck={false}
+                      type="text"
+                      value={roomCode}
+                    />
+                  </label>
+                  <button
+                    className="secondary-button"
+                    disabled={isBusy || isRestoringRoom}
+                    onClick={handleJoinRoom}
+                    type="button"
+                  >
+                    {isBusy ? 'Kapcsolódás…' : 'Csatlakozás'}
+                  </button>
+                  <button className="home-back-button" onClick={closeHomeView} type="button">
+                    Vissza a főmenübe
+                  </button>
+                  <p className="status-message" aria-live="polite">{message}</p>
+                </div>
+              </>
+            ) : homeView === 'settings' ? (
+              <>
+                <div className="lobby-heading">
+                  <p className="step-label">Helyi beállítások</p>
+                  <h2 id="lobby-title">Beállítások</h2>
+                </div>
+                <div className="settings-list">
+                  <button
+                    aria-pressed={reduceMotion}
+                    className="setting-row"
+                    onClick={handleReduceMotionChange}
+                    type="button"
+                  >
+                    <span>Csökkentett mozgás</span>
+                    <strong>{reduceMotion ? 'BE' : 'KI'}</strong>
+                  </button>
+                  <p>A beállítás ezen az eszközön marad meg.</p>
+                  <button className="home-back-button" onClick={closeHomeView} type="button">
+                    Vissza a főmenübe
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="lobby-heading">
+                  <p className="step-label">A játékról</p>
+                  <h2 id="lobby-title">Információk</h2>
+                </div>
+                <div className="info-panel-copy">
+                  <p>Rajzolj a 32×32-es vásznon, a többiek pedig próbálják időben megfejteni a szót.</p>
+                  <p>A szobák 2–6 játékosra készülnek. A játékhoz internetkapcsolat szükséges.</p>
+                  <p className="info-version">Bitscrawl · korai prototípus</p>
+                  <button className="home-back-button" onClick={closeHomeView} type="button">
+                    Vissza a főmenübe
+                  </button>
+                </div>
+              </>
+            )}
           </section>
         </>
       )}
