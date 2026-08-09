@@ -860,6 +860,8 @@ function App() {
               <div className="round-play-area">
                 <PixelCanvas
                   canDraw={roundView.is_drawer}
+                  chosenWord={roundView.chosen_word}
+                  drawingEndsAt={roundView.drawing_ends_at}
                   events={drawEvents}
                   onError={(error) =>
                     setMessage(
@@ -873,6 +875,7 @@ function App() {
                   }
                   paletteSize={lobby.room.palette_size as PaletteSize}
                   roundId={roundView.round_id}
+                  serverNow={roundView.server_now}
                 />
                 <RoundChat
                   currentUserId={lobby.currentUserId}

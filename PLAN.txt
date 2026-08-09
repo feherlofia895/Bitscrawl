@@ -280,6 +280,60 @@ Elkészült és ellenőrizve:
   cellaszélessége mérés szerint megegyezik egy rajzpixel szélességével.
 
 
+[x] 10/B. MOBILOS TELJES KÉPERNYŐS RAJZMUNKATERÜLET
+
+Cél: telefonon a lehető legtöbb helyet maga a rajz kapja, hogy ujjal is kényelmesen
+lehessen egyetlen pixelt eltalálni és hosszabban rajzolni.
+
+- A jelenlegi koordinátaszámok legyenek nagyobbak és jobban olvashatók úgy, hogy továbbra
+  is pontosan a megfelelő pixelhez igazodjanak, és ne csússzanak egymásra.
+- Legyen „Teljes vászon törlése” művelet. Törlés előtt kérjen megerősítést, az egész
+  törlés egyetlen lépésben legyen visszavonható, és multiplayerben egy kötegelt
+  műveletként jusson el a többi játékoshoz.
+- A rajzmunkaterület külön teljes képernyős vagy alkalmazáson belüli immerszív nézetben
+  is megnyitható legyen, amely telefonon szinte a teljes kijelzőt a vászonnak adja.
+- A teljes képernyős nézetben is maradjon meg a görgős, csippentős és gombos nagyítás,
+  valamint az egérrel és ujjal történő mozgatás.
+- Belépéskor a vászon töltse ki a rendelkezésre álló helyet; ezután szabadon lehessen
+  tovább nagyítani és elhúzni, hogy egy rajzpixel ujjal is biztosan eltalálható legyen.
+- A normál és a teljes képernyős nézet ugyanazt a rajzállapotot, aktív eszközt, színt,
+  nagyítást és pozíciót használja; váltáskor semmi ne vesszen el vagy ugorjon vissza.
+- Az eszköztár teljes képernyőn legyen összecsukható, kis helyigényű sáv vagy gomb.
+  Kinyitva lehessen váltani a ceruza, radír, kitöltés, alakzatok, mozgatás, visszavonás
+  és teljes vászontörlés között.
+- A palettából alaphelyzetben csak az aktív szín egyetlen, jól érinthető mezője látszódjon.
+  Rákoppintva nyíljon meg a teljes 8 vagy 16 színű paletta, színválasztás után pedig
+  csukódjon vissza.
+- A rajzoló a teljes képernyős nézetben is lássa kis helyen a titkos szót és az időt;
+  a nézők ugyanezt a nézetet eszköztár nélkül használhassák az élő rajz nagyítására.
+- Legyen mindig jól látható kilépés vagy visszaállítás a normál játéknézetbe, és a
+  telefon vissza gombja se zárja be véletlenül a szobát.
+- Vegyük figyelembe a mobilos képernyők kivágását, alsó gesztussávját, álló és fekvő
+  tájolását, valamint azt, hogy iPhone-on a böngésző valódi teljes képernyője korlátozott.
+- Ellenőrizzük valódi telefonon az egyujjas rajzolást, a kétujjas nagyítást és mozgatást,
+  az eszközváltást, a palettanyitást, valamint a teljes képernyő be- és kikapcsolását.
+
+Elkészült, kézi telefonos próbára vár:
+
+- Az alkalmazáson belüli teljes nézet álló és fekvő kijelzőhöz igazodik, figyelembe veszi
+  a mobilos biztonsági széleket, és belépéskor 150%-os rajznagyítást ad.
+- A jobb oldali sínről elérhető a nagyítás, 100%-os visszaállítás, mozgatás, rács és
+  koordináták. A rajzolónál külön nyitható az összecsukott eszközpanel és az aktív
+  színből a teljes paletta.
+- A teljes vászon törlése megerősítést kér, egy visszavonási lépésként mentődik, és a
+  meglévő tömörített pixelváltozás-küldést használja.
+- A rajzoló felül látja a titkos szót és az időt; egyszemélyes tesztmódban végtelen idő
+  jelenik meg.
+- A Bezárás, az Escape és a telefon vissza gombja a szoba elhagyása nélkül zárja be a
+  teljes nézetet. A nagyítás, aktív eszköz és szín közben megmarad.
+- A koordináták normál nézetben 6, teljes nézetben 7 pixeles betűméretet kaptak.
+- A 390×844-es mobilnézeti és 1280×720-as asztali próba kilógás és böngészőhiba nélkül
+  sikerült; mobilon 150%-nál egy rajzpixel körülbelül 16 képernyőpixel széles.
+
+- A valódi telefonos kézi próba is sikeres volt; a teljes nézet használható és a
+  felhasználó jóváhagyta a 10/B változatot.
+
+
 [ ] 11. SZOBACHAT ÉS TITKOS MEGFEJTÉSMEZŐ
 
 - A szobának legyen külön beszélgetős chatje a váróteremben és a játék alatt.
@@ -381,31 +435,24 @@ MVP UTÁNI KÖVETKEZŐ LEHETŐSÉGEK
   végleges fiókká alakítását.
 
 
+ELDÖNTÖTT IRÁNYOK
+
+- A szobachat ugyanazzal a társasággal indított új meccsnél megmarad; új szobánál törlődik.
+- Mobilon a chat felhúzható alsó panel, asztali gépen oldalsó panel lesz.
+- A főmenü és a mobilos chat pontos látványához implementálás előtt egyszerű vázlat készül.
+- A teljes képernyős rajzolás első változata alkalmazáson belüli immerszív nézet lesz,
+  mert ez telefonon és iPhone-on is megbízhatóbb.
+- A teljes vászon törlése megerősítést kér, és egy lépésben visszavonható.
+- A teljes képernyős, összecsukható eszköztár nem alul, hanem a rajz jobb oldalán jelenik meg.
+- A koordinátaszámok a vászon méretéhez igazodva legyenek nagyobbak és olvashatók.
+- A már elkészült paletták, körvonalas alakzatok, dinamikus nagyítás, SVG-ikonformátum
+  és meccs közbeni kilépési megerősítés lezárt döntések.
+
+
 MÉG MEGBESZÉLENDŐ AZ IMPLEMENTÁLÁS ELŐTT
 
-HOLNAPI ELSŐ LÉPÉS:
-
-- Mielőtt új implementációba kezdünk, közösen végigvesszük az alábbi kérdéseket,
-  töröljük vagy lezárjuk a már eldöntött pontokat, majd ezek alapján folytatjuk a tervet.
-
-- A nyolc végleges palettaszín pontos értéke és sorrendje. Javaslat: előbb készítsünk
-  néhány apró mintarajzot ugyanazzal a két vagy három palettaváltozattal.
-- A 16 színű paletta árnyékszínei egyszerűen sötétebbek legyenek-e, vagy kissé más
-  színárnyalat felé is tolódjanak. Javaslat: enyhén hidegebb árnyékok karakteresebbek.
-- A kör és négyzet első változata csak körvonalas legyen-e. Javaslat: igen; a kitöltött
-  alakzat később külön kapcsoló lehet, ha valóban szükséges.
-- A nagyítás legnagyobb mértéke. Javaslat: ne fix számot válasszunk előre, hanem a
-  32×32-es rajz és a munkaterület tényleges mérete alapján korlátozzuk.
-- A szobachat üzenetei új meccs indításakor megmaradjanak-e. Javaslat: a társaság
-  együtt maradásáig igen, de új szoba létrehozásakor ne.
-- Saját eszközikonok ajánlott formátuma. Javaslat: átlátszó hátterű, egyszínű SVG,
-  egységes 16×16-os rajzterülettel, amelyet a felület 20–24 pixelesen jelenít meg.
-- A Kilépés gomb kérjen-e mindig megerősítést. Javaslat: csak folyamatban lévő
-  meccsnél, a váróteremben ne.
-- A főmenü és a chat mobilos panelje pontosan milyen elrendezést kapjon. Javaslat:
-  implementálás előtt készítsünk egy egyszerű kattintható vagy képi vázlatot.
-- A végleges betűkészlet kiválasztásakor hasonlítsunk össze 2–3, magyar ékezeteket
-  biztosan támogató változatot ugyanazon a Bitscrawl-képernyőn.
+- A végleges betűkészletet 3–4, magyar ékezeteket biztosan támogató látványpróbából
+  választjuk ki.
 
 
 NEM RÉSZE AZ ELSŐ MVP-NEK
