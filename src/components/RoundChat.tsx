@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import type { RoundMessage } from '../lib/game'
 import type { RoomPlayer } from '../lib/lobby'
 
 type GuessResult = {
   is_correct: boolean
-  message_id: number
+  message_id: number | null
 }
 
 type RoundChatProps = {
@@ -29,7 +29,6 @@ export function RoundChat({
   const [guess, setGuess] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submittedCorrectly, setSubmittedCorrectly] = useState(false)
-  const messageListRef = useRef<HTMLDivElement>(null)
   const hasGuessedCorrectly =
     submittedCorrectly ||
     messages.some(
@@ -42,11 +41,6 @@ export function RoundChat({
     setGuess('')
     setSubmittedCorrectly(false)
   }, [roundId])
-
-  useEffect(() => {
-    const list = messageListRef.current
-    if (list) list.scrollTop = list.scrollHeight
-  }, [messages])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -71,45 +65,36 @@ export function RoundChat({
     'Játékos'
 
   return (
-    <section className="round-chat" aria-labelledby="round-chat-title">
+    <section className="guess-panel" aria-labelledby="round-chat-title">
       <div className="round-chat-heading">
         <div>
-          <p className="round-label">Élő tippek</p>
-          <h3 id="round-chat-title">Chat</h3>
+          <p className="round-label">Csak a szerver ellenőrzi</p>
+          <h3 id="round-chat-title">Megfejtés</h3>
         </div>
-        <span>{messages.length} üzenet</span>
+        <span>{messages.length} helyes</span>
       </div>
 
       <div
         aria-live="polite"
         className="round-message-list"
-        ref={messageListRef}
       >
         {messages.length === 0 ? (
-          <p className="empty-chat">Még nincs tipp. Valaki legyen az első!</p>
+          <p className="empty-chat">Még senki sem fejtette meg.</p>
         ) : (
           messages.map((message) => (
             <p
-              className={
-                message.kind === 'correct'
-                  ? 'round-message correct-message'
-                  : 'round-message'
-              }
+              className="round-message correct-message"
               key={message.id}
             >
               <strong>{playerName(message.sender_user_id)}</strong>
-              {message.kind === 'correct' ? (
-                <span>kitalálta a szót! ✓</span>
-              ) : (
-                <span>{message.content}</span>
-              )}
+              <span>kitalálta a szót! ✓</span>
             </p>
           ))
         )}
       </div>
 
       {isDrawer ? (
-        <p className="chat-note">Rajzolóként látod a tippeket, de nem tippelhetsz.</p>
+        <p className="chat-note">Rajzolóként nem küldhetsz megfejtést.</p>
       ) : hasGuessedCorrectly ? (
         <p className="correct-guess-note">Helyes megfejtés! ✓</p>
       ) : (
@@ -124,7 +109,7 @@ export function RoundChat({
             id="round-guess"
             maxLength={80}
             onChange={(event) => setGuess(event.target.value)}
-            placeholder="Írd be a tipped…"
+            placeholder="Írd be a megfejtést…"
             spellCheck={false}
             type="text"
             value={guess}

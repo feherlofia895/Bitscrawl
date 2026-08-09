@@ -175,6 +175,38 @@ export type Database = {
           },
         ]
       }
+      room_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: number
+          room_id: number
+          sender_user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: never
+          room_id: number
+          sender_user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: never
+          room_id?: number
+          sender_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'room_messages_room_id_fkey'
+            columns: ['room_id']
+            isOneToOne: false
+            referencedRelation: 'rooms'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       round_messages: {
         Row: {
           content: string | null
@@ -300,6 +332,10 @@ export type Database = {
           started_at: string
         }[]
       }
+      send_room_message: {
+        Args: { message_content: string; target_room_id: number }
+        Returns: number
+      }
       resume_room: {
         Args: { room_code: string }
         Returns: {
@@ -336,7 +372,7 @@ export type Database = {
         Returns: {
           awarded_points: number
           is_correct: boolean
-          message_id: number
+          message_id: number | null
           round_finished: boolean
         }[]
       }

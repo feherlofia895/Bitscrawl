@@ -197,6 +197,46 @@ await expectRpcError(
   'DRAWER_CANNOT_GUESS',
 )
 
+const roomMessageId = await rpc(host, 'send_room_message', {
+  target_room_id: roomA.room_id,
+  message_content: 'Biztonsági chatpróba',
+})
+assert(roomMessageId > 0, 'A szerver nem mentette el a szobachat üzenetét.')
+
+await expectRpcError(
+  outsider,
+  'send_room_message',
+  { target_room_id: roomA.room_id, message_content: 'Illetéktelen üzenet' },
+  'ROOM_NOT_FOUND',
+)
+
+await expectWriteDenied(
+  guest.from('room_messages').insert({
+    content: 'Közvetlen írás',
+    room_id: roomA.room_id,
+    sender_user_id: guestUser.id,
+  }),
+  'Szobachat közvetlen írása',
+)
+
+const wrongGuess = await rpc(guest, 'submit_guess', {
+  target_round_id: hostRound.round_id,
+  submitted_guess: 'biztosan hibás megfejtés',
+})
+assert(!wrongGuess.is_correct, 'A szerver helyesnek fogadta el a hibás megfejtést.')
+assert(wrongGuess.message_id === null, 'A hibás megfejtés közös eseményt hozott létre.')
+
+const messagesAfterWrongGuess = await host
+  .from('round_messages')
+  .select('id, kind, content')
+  .eq('round_id', hostRound.round_id)
+
+if (messagesAfterWrongGuess.error) throw messagesAfterWrongGuess.error
+assert(
+  messagesAfterWrongGuess.data.length === 0,
+  'A hibás megfejtés más szobatag számára olvashatóvá vált.',
+)
+
 await expectWriteDenied(
   guest.from('round_messages').insert({
     content: null,
@@ -249,11 +289,17 @@ const hiddenDrawEvents = await outsider
   .from('round_draw_events')
   .select('id')
   .eq('room_id', roomA.room_id)
+const hiddenRoomMessages = await outsider
+  .from('room_messages')
+  .select('id')
+  .eq('room_id', roomA.room_id)
 
 if (hiddenMessages.error) throw hiddenMessages.error
 if (hiddenDrawEvents.error) throw hiddenDrawEvents.error
+if (hiddenRoomMessages.error) throw hiddenRoomMessages.error
 assert(hiddenMessages.data.length === 0, 'Másik szoba chatje látható volt.')
 assert(hiddenDrawEvents.data.length === 0, 'Másik szoba rajza látható volt.')
+assert(hiddenRoomMessages.data.length === 0, 'Másik szoba beszélgetése látható volt.')
 
 const soloRoom = await rpc(solo, 'create_room', { player_name: 'SecuritySolo' })
 await rpc(solo, 'set_room_test_mode', {

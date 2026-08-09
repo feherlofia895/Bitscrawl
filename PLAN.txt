@@ -162,7 +162,7 @@ Elkészült:
 - A valódi számítógép–telefon próba is sikeresen lezajlott.
 
 
-[>] 9. NAGYOBB PIXELMUNKATERÜLET ÉS TERMÉSZETES NAGYÍTÁS
+[x] 9. NAGYOBB PIXELMUNKATERÜLET ÉS TERMÉSZETES NAGYÍTÁS
 
 Cél: a 32×32-es rajz egy tágas, átlátszó hátterű munkaterületen jelenjen meg,
 és telefonon is kényelmesen lehessen egyes pixeleken dolgozni.
@@ -207,9 +207,8 @@ Elkészült és ellenőrizve:
 
 Még hátra van a pont teljes lezárásához:
 
-- A valódi telefon kétujjas csippentését és a véletlen rajzpontok elkerülését röviden
-  kézzel is ellenőrizni kell, mert a böngészős mobilnézet nem tud valódi többujjas
-  érintést hitelesen előállítani.
+- A valódi telefon kétujjas csippentése, mozgatása és a véletlen rajzpontok elkerülése
+  sikeres felhasználói kézi próbával lezárult.
 
 
 [x] 10. NYOLCSZÍNŰ PALETTA ÉS KOMPAKT ESZKÖZTÁR
@@ -334,7 +333,7 @@ Elkészült, kézi telefonos próbára vár:
   felhasználó jóváhagyta a 10/B változatot.
 
 
-[ ] 11. SZOBACHAT ÉS TITKOS MEGFEJTÉSMEZŐ
+[x] 11. SZOBACHAT ÉS TITKOS MEGFEJTÉSMEZŐ
 
 - A szobának legyen külön beszélgetős chatje a váróteremben és a játék alatt.
 - A megfejtést külön mezőbe kelljen beírni; az ne számítson chatüzenetnek.
@@ -346,6 +345,17 @@ Elkészült, kézi telefonos próbára vár:
 - A megfejtés ellenőrzése és a pontozás továbbra is kizárólag szerveroldalon történjen.
 - A chat és a megfejtés telefonon is legyen egyszerre könnyen elérhető, de ne vegye
   el a helyet a rajztól.
+
+Elkészült és ellenőrizve:
+
+- A szobához kötött beszélgetés külön `room_messages` táblát, tagságalapú RLS-t és
+  ellenőrzött `send_room_message` RPC-t kapott; új meccsnél megmarad, a szobával együtt törlődik.
+- A megfejtés külön panelen marad. Hibás megfejtés nem kerül közösen olvasható táblába,
+  csak a beküldő kapja vissza az eredményt; helyes megfejtésnél közös sikeresemény készül.
+- A közvetlen adatbázis-írás tiltott, másik szoba beszélgetése nem olvasható, a pontozás és
+  az ékezetfüggetlen szerveroldali ellenőrzés változatlanul működik.
+- A Supabase migráció, a kibővített multiplayer-biztonsági próba, a lint, a production build
+  és a várótermi, valamint játék közbeni böngészős felületi próba sikeres volt.
 
 
 [ ] 12. FŐMENÜ, PANELEK ÉS SZEBB FELUGRÓ ABLAKOK

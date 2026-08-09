@@ -1181,7 +1181,8 @@ footer {
   align-items: start;
 }
 
-.round-chat {
+.room-chat,
+.guess-panel {
   display: grid;
   gap: 14px;
   margin-top: 24px;
@@ -1268,16 +1269,24 @@ footer {
   border: 2px solid var(--ink);
 }
 
-.guess-form {
+.guess-form,
+.chat-form {
   display: grid;
   gap: 8px;
 }
 
-.guess-form input {
+.guess-form input,
+.chat-form input {
   min-width: 0;
 }
 
 .guess-form button {
+  color: var(--paper);
+  background: var(--violet);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.chat-form button {
   color: var(--paper);
   background: var(--violet);
   box-shadow: 3px 3px 0 var(--ink);

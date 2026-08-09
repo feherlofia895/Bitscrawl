@@ -2,6 +2,14 @@ import type { Database } from '../types/database'
 import type { PaletteSize } from './palette'
 import { ensurePlayerSession, supabase } from './supabase'
 
+export type RoomMessage = {
+  content: string
+  created_at: string
+  id: number
+  room_id: number
+  sender_user_id: string
+}
+
 export type Room = Database['public']['Tables']['rooms']['Row']
 export type RoomPlayer = Database['public']['Tables']['room_players']['Row']
 
@@ -40,6 +48,7 @@ const lobbyErrorMessages: Record<string, string> = {
   ROOM_CODE_GENERATION_FAILED: 'Nem sikerült szobakódot készíteni. Próbáld újra.',
   ROOM_CODE_INVALID: 'A szobakód 6 karakterből áll.',
   ROOM_FULL: 'A szoba megtelt. Legfeljebb 6 játékos csatlakozhat.',
+  ROOM_MESSAGE_INVALID: 'A chatüzenet 1–500 karakter hosszú legyen.',
   ROOM_NOT_FOUND: 'Nem található várószoba ezzel a kóddal.',
 }
 
@@ -260,11 +269,38 @@ export async function loadLobby(entry: RoomEntry): Promise<Lobby> {
   }
 }
 
+export async function loadRoomMessages(roomId: number): Promise<RoomMessage[]> {
+  const { data, error } = await supabase
+    .from('room_messages')
+    .select('id, room_id, sender_user_id, content, created_at')
+    .eq('room_id', roomId)
+    .order('id')
+
+  if (error) throw readableLobbyError(error)
+  return data
+}
+
+export async function sendRoomMessage(roomId: number, content: string) {
+  try {
+    await ensurePlayerSession()
+    const { data, error } = await supabase.rpc('send_room_message', {
+      message_content: content,
+      target_room_id: roomId,
+    })
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    throw readableLobbyError(error)
+  }
+}
+
 export function subscribeToLobby(
   roomId: number,
   onChange: () => void,
   onDrawChange: () => void = onChange,
   onMessageChange: () => void = onChange,
+  onRoomMessageChange: () => void = onChange,
   onConnectionChange?: (status: LobbyConnectionStatus) => void,
 ) {
   let reconciliationTimeout: ReturnType<typeof setTimeout> | undefined
@@ -321,6 +357,16 @@ export function subscribeToLobby(
         table: 'round_messages',
       },
       onMessageChange,
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        filter: `room_id=eq.${roomId}`,
+        schema: 'public',
+        table: 'room_messages',
+      },
+      onRoomMessageChange,
     )
     .subscribe((status) => {
       if (disposed) return
