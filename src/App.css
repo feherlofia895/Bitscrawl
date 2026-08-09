@@ -1853,3 +1853,110 @@ button,
     grid-template-columns: 1fr;
   }
 }
+
+.home-panel {
+  min-height: 330px;
+  align-content: start;
+}
+
+.home-menu-actions,
+.settings-list,
+.info-panel-copy {
+  display: grid;
+  gap: 11px;
+}
+
+.home-menu-actions button {
+  width: 100%;
+  margin: 0;
+  color: var(--ink);
+  background: var(--paper);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.home-menu-actions .primary-button {
+  color: var(--paper);
+  background: var(--violet-dark);
+}
+
+.home-menu-actions .secondary-button {
+  background: var(--yellow);
+}
+
+.home-menu-actions button:disabled {
+  color: var(--muted);
+  background: color-mix(in srgb, var(--slate) 22%, var(--paper));
+  box-shadow: 2px 2px 0 color-mix(in srgb, var(--ink) 45%, transparent);
+}
+
+.lobby-controls .home-back-button,
+.settings-list .home-back-button,
+.info-panel-copy .home-back-button {
+  width: 100%;
+  margin-top: 4px;
+  color: var(--ink);
+  background: var(--paper);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.settings-list > p,
+.info-panel-copy > p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  width: 100%;
+  color: var(--ink);
+  background: var(--paper);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.setting-row strong {
+  padding: 5px 7px;
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+}
+
+.setting-row[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--mint) 72%, var(--paper));
+}
+
+.info-version {
+  padding: 10px;
+  font-family: var(--pixel-font);
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--yellow) 58%, var(--paper));
+  border: 2px solid var(--ink);
+  clip-path: var(--pixel-corner);
+}
+
+.app-shell[data-reduced-motion='true'] *,
+.app-shell[data-reduced-motion='true'] *::before,
+.app-shell[data-reduced-motion='true'] *::after {
+  scroll-behavior: auto !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+@media (max-width: 760px) {
+  .home-panel {
+    min-height: 0;
+  }
+
+  .home-menu-actions button,
+  .setting-row,
+  .lobby-controls .home-back-button,
+  .settings-list .home-back-button,
+  .info-panel-copy .home-back-button {
+    min-height: 52px;
+  }
+}

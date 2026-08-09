@@ -382,10 +382,17 @@ Első működő változat elkészült:
 - Asztali játék közben a megfejtés és a szobachat a rajz melletti oldalsó oszlopba került.
 - A folyamatban lévő meccsből kilépés a böngésző egyszerű megerősítése helyett saját,
   Bitscrawl-stílusú modalban történik; bezárható Escape-pel, vissza gombbal és Mégsem gombbal.
+- A főmenü külön Új szoba, Csatlakozás, Beállítások és Információk nézetet kapott; az
+  Elérhető szobák lehetőség látható, de a későbbi 17. pontig „hamarosan” állapotú.
+- A főmenü alnézetei Vissza gombbal, Escape-pel és a böngésző vagy telefon vissza gombjával
+  bezárhatók. A játékosnév nézetváltáskor megmarad.
+- Elkészült a helyben tárolt Csökkentett mozgás beállítás, amely leállítja a díszanimációkat
+  és a hosszabb felületátmeneteket ezen az eszközön.
+- A főmenüt 360×800-as mobil- és 1280×800-as asztali nézetben, kilógás és böngészőhiba
+  nélkül ellenőriztük.
 
 Még hátra van a 12. pont lezárásához:
 
-- A főmenü másodlagos lehetőségeinek külön nézetei vagy paneljei.
 - Az olvasatlan jelzés két valódi játékossal történő ellenőrzése.
 
 
