@@ -2309,3 +2309,409 @@ button,
   clip-path: none;
   image-rendering: pixelated;
 }
+
+/* UI v0.1 - a kézzel rajzolt, átadott elemek közvetlen használata. */
+.user-badge {
+  max-width: 210px;
+  overflow: hidden;
+  padding: 6px 8px;
+  color: var(--ink);
+  font-family: var(--pixel-font);
+  font-size: 0.58rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+}
+
+.home-logo {
+  width: 384px;
+  max-width: 84vw !important;
+  height: auto;
+  margin: 0;
+  aspect-ratio: 3 / 1;
+}
+
+.home-logo .logo-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  clip-path: none;
+  transform: translateX(5.75%);
+}
+
+.home-logo::after {
+  display: none;
+}
+
+.logo-frame-off {
+  animation: logo-frame-off 1s steps(1) infinite;
+}
+
+.logo-frame-cursor {
+  animation: logo-frame-cursor 1s steps(1) infinite;
+}
+
+@keyframes logo-frame-off {
+  0%, 49% { opacity: 0; }
+  50%, 100% { opacity: 1; }
+}
+
+@keyframes logo-frame-cursor {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.home-palette {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  width: fit-content;
+  max-width: calc(100vw - 32px);
+  padding: 8px 9px;
+  margin-top: 4px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--slate) 22%, var(--paper));
+  border: 3px solid var(--ink);
+  clip-path: var(--pixel-corner);
+}
+
+.home-palette i {
+  flex: 0 1 24px;
+  width: 24px;
+  height: 20px;
+  min-width: 18px;
+  margin: 0 0 0 -2px;
+  border: 2px solid var(--ink);
+  image-rendering: pixelated;
+}
+
+.home-palette i:first-child {
+  margin-left: 0;
+}
+
+.lobby-card.home-panel {
+  min-height: 0;
+  padding: clamp(18px, 4vw, 28px);
+  border: 16px solid transparent;
+  border-image: url('/ui/menu-window-yellow.png') 16 fill stretch;
+}
+
+.lobby-card.home-panel:not([data-home-view='main']) {
+  border-image-source: url('/ui/menu-window-mint.png');
+}
+
+.lobby-card.home-panel:not([data-home-view='main']) .lobby-heading {
+  width: min(100%, 420px);
+  min-height: 92px;
+  padding: 17px 24px;
+  margin-inline: auto;
+  background: url('/ui/menu-divider-wide.png') center / 100% 100% no-repeat;
+  image-rendering: pixelated;
+}
+
+.home-menu-actions {
+  justify-items: center;
+}
+
+.ui-drawn-button,
+.home-menu-actions .ui-drawn-button {
+  width: min(100%, 416px);
+  min-height: 56px;
+  padding: 10px 28px;
+  color: var(--ink);
+  background-color: transparent;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  border: 0;
+  box-shadow: none;
+  clip-path: none;
+  image-rendering: pixelated;
+}
+
+.ui-button-1 { background-image: url('/ui/menu-button-1.png') !important; }
+.ui-button-2 { background-image: url('/ui/menu-button-2.png') !important; }
+.ui-button-3 { background-image: url('/ui/menu-button-3.png') !important; }
+.ui-button-4 { background-image: url('/ui/menu-button-4.png') !important; }
+
+.ui-drawn-button:hover:not(:disabled) {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.ui-drawn-button:active:not(:disabled) {
+  filter: brightness(0.96);
+  transform: translateY(2px);
+}
+
+.game-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: min(100%, 420px);
+  margin-inline: auto;
+}
+
+.game-mode-card {
+  display: grid;
+  align-content: center;
+  min-height: 132px;
+  padding: 20px 14px;
+  color: var(--ink);
+  background-color: transparent;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  border: 0;
+  box-shadow: none;
+  clip-path: none;
+  image-rendering: pixelated;
+}
+
+.game-mode-classic { background-image: url('/ui/menu-divider-1.png'); }
+.game-mode-drawing { background-image: url('/ui/menu-divider-3.png'); }
+
+.game-mode-card span {
+  font-family: var(--display-font);
+  font-size: clamp(1.35rem, 5vw, 1.9rem);
+}
+
+.game-mode-card small {
+  max-width: 13rem;
+  margin: 6px auto 0;
+  font-family: var(--pixel-font);
+  font-size: 0.56rem;
+  line-height: 1.45;
+}
+
+.play-actions {
+  margin-top: 24px;
+}
+
+.home-panel[data-home-view='play'] .lobby-heading {
+  margin-top: 20px;
+}
+
+.home-panel[data-home-view='create'] .lobby-heading {
+  margin-top: 20px;
+}
+
+.home-panel[data-home-view='create'] .lobby-controls {
+  margin-top: 8px;
+}
+
+.home-panel[data-home-view='play'] .ui-button-1 {
+  background-image: url('/ui/menu-button-yellow-1.png') !important;
+}
+
+.home-panel[data-home-view='play'] .ui-button-2 {
+  background-image: url('/ui/menu-button-yellow-2.png') !important;
+}
+
+.home-panel[data-home-view='play'] .ui-button-3 {
+  background-image: url('/ui/menu-button-yellow-3.png') !important;
+}
+
+.info-panel-copy {
+  padding: 24px 28px;
+  background: url('/ui/menu-divider-wide.png') center / 100% 100% no-repeat;
+  image-rendering: pixelated;
+}
+
+.info-panel-copy h3 {
+  margin: 0;
+  font-family: var(--display-font);
+  font-size: 1.55rem;
+}
+
+.room-settings {
+  overflow: hidden;
+  background: color-mix(in srgb, var(--yellow) 38%, var(--paper));
+  border: 2px solid var(--ink);
+  clip-path: var(--pixel-corner);
+}
+
+.room-settings summary {
+  padding: 13px 15px;
+  cursor: pointer;
+  font-family: var(--pixel-font);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.room-settings summary::marker {
+  color: var(--red);
+}
+
+.room-settings-content {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0 14px 14px;
+}
+
+.room-settings select {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  color: var(--ink);
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+  font: inherit;
+}
+
+.room-settings option:disabled {
+  color: var(--muted);
+}
+
+.primary-button,
+.secondary-button,
+.home-back-button,
+.setting-row,
+.bug-report-trigger,
+.mobile-chat-toggle {
+  color: var(--ink);
+  background-color: transparent;
+  background-image: url('/ui/menu-button-small-mint.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  border: 0;
+  box-shadow: none;
+  clip-path: none;
+  image-rendering: pixelated;
+}
+
+.primary-button,
+.setting-row[aria-pressed='true'] {
+  background-image: url('/ui/menu-button-small-green.png');
+}
+
+.weekly-challenge-card,
+.weekly-gallery {
+  background: transparent;
+  border: 16px solid transparent;
+  border-image: url('/ui/menu-window-yellow.png') 16 fill stretch;
+  box-shadow: none;
+  clip-path: none;
+  image-rendering: pixelated;
+}
+
+.weekly-account-card,
+.weekly-submitted {
+  background: transparent;
+  border: 16px solid transparent;
+  border-image: url('/ui/menu-window-mint.png') 16 fill stretch;
+  box-shadow: none;
+  clip-path: none;
+  image-rendering: pixelated;
+}
+
+.weekly-header button,
+.weekly-auth-form button,
+.weekly-user-bar button,
+.weekly-section-heading > button,
+.weekly-entry > button {
+  color: var(--ink);
+  background-color: transparent;
+  background-image: url('/ui/menu-button-small-mint.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  border: 0;
+  box-shadow: none;
+  clip-path: none;
+  image-rendering: pixelated;
+}
+
+.weekly-auth-form .primary-button,
+.weekly-section-heading > .primary-button,
+.weekly-entry > button[aria-pressed='true'] {
+  background-color: transparent;
+  background-image: url('/ui/menu-button-small-green.png');
+}
+
+.tool-buttons .tool-sprite-button,
+.immersive-side-controls .tool-sprite-button,
+.immersive-tool-menu .tool-sprite-button {
+  width: 52px;
+  min-height: 32px;
+  height: 32px;
+  padding: 0;
+  background-color: transparent;
+  background-image: url('/ui/toolbar-normal.png');
+  background-position: 0 var(--tool-sprite-y);
+  background-repeat: no-repeat;
+  background-size: 52px 256px;
+  border: 0;
+  box-shadow: none;
+  clip-path: none;
+  image-rendering: pixelated;
+}
+
+.tool-buttons .tool-sprite-button[aria-pressed='true'],
+.tool-buttons .tool-sprite-button:active:not(:disabled),
+.immersive-side-controls .tool-sprite-button[aria-pressed='true'],
+.immersive-side-controls .tool-sprite-button:active:not(:disabled),
+.immersive-tool-menu .tool-sprite-button[aria-pressed='true'],
+.immersive-tool-menu .tool-sprite-button:active:not(:disabled) {
+  background-color: transparent;
+  background-image: url('/ui/toolbar-pressed.png');
+}
+
+.drawing-palette[data-palette-size='12'] {
+  grid-template-columns: repeat(6, 16px);
+  grid-template-rows: repeat(2, 16px);
+  gap: 3px 2px;
+  width: 133px;
+  height: 40px;
+  padding: 3px 13px 2px 15px;
+  background: url('/ui/palette-shape.png') 0 0 / 133px 40px no-repeat;
+  border: 0;
+  clip-path: none;
+  image-rendering: pixelated;
+}
+
+.drawing-palette[data-palette-size='12'] button {
+  width: 16px;
+  height: 16px;
+  min-height: 0;
+  background-color: transparent !important;
+  border: 0;
+  border-radius: 50%;
+}
+
+.drawing-palette[data-palette-size='12'] button[aria-pressed='true'] {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+}
+
+@media (max-width: 560px) {
+  .user-badge {
+    max-width: 128px;
+  }
+
+  .game-mode-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .game-mode-card {
+    min-height: 112px;
+  }
+
+  .room-settings-content {
+    grid-template-columns: 1fr;
+  }
+
+  .lobby-card.home-panel:not([data-home-view='main']) .lobby-heading,
+  .info-panel-copy {
+    padding-inline: 20px;
+  }
+}

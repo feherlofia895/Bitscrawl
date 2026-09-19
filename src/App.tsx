@@ -4,7 +4,7 @@ import { PixelCanvas } from './components/PixelCanvas'
 import { DrawingEditor } from './components/DrawingEditor'
 import { RoundDurationControl } from './components/RoundDurationControl'
 import { editorText } from './lib/editorText'
-import { DEFAULT_ROUND_DURATION, isRoundDuration, roundDurationText, type RoundDuration } from './lib/roundDuration'
+import { DEFAULT_ROUND_DURATION, isRoundDuration, roundDurations, roundDurationText, type RoundDuration } from './lib/roundDuration'
 import { BugReport } from './components/BugReport'
 import { ConfirmModal } from './components/ConfirmModal'
 import { WeeklyDraw } from './components/WeeklyDraw'
@@ -44,9 +44,10 @@ import {
 } from './lib/lobby'
 import { basePalette, type PaletteSize } from './lib/palette'
 import { checkSupabaseConnection } from './lib/supabase'
+import { getWeeklyUser } from './lib/weekly'
 
 type BackendStatus = 'checking' | 'online' | 'reconnecting' | 'offline'
-type HomeView = 'main' | 'play' | 'editor' | 'weekly' | 'create' | 'join' | 'settings' | 'info'
+type HomeView = 'main' | 'play' | 'editor' | 'challenge' | 'gallery' | 'create' | 'join' | 'settings'
 
 const backendStatusLabels: Record<BackendStatus, string> = {
   checking: 'Szerver: ellenőrzés',
@@ -93,6 +94,7 @@ function App() {
   const [editorDirty, setEditorDirty] = useState(false)
   const [editorStorageAvailable, setEditorStorageAvailable] = useState(true)
   const [showEditorLeaveConfirmation, setShowEditorLeaveConfirmation] = useState(false)
+  const [weeklyUserLabel, setWeeklyUserLabel] = useState('Vendég')
   const allowEditorLeaveRef = useRef(false)
   const [reduceMotion, setReduceMotion] = useState(
     () => window.localStorage.getItem('bitscrawl-reduce-motion') === 'true',
@@ -134,6 +136,18 @@ function App() {
       setHomeView('main')
     }
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    void getWeeklyUser().then((user) => {
+      if (cancelled) return
+      const displayName = typeof user?.user_metadata.display_name === 'string'
+        ? user.user_metadata.display_name.trim()
+        : ''
+      setWeeklyUserLabel(displayName || user?.email || 'Vendég')
+    })
+    return () => { cancelled = true }
+  }, [homeView])
 
   useEffect(() => {
     if (lobby) return
@@ -700,6 +714,7 @@ function App() {
             {homeView === 'editor' && !lobby ? editorText.localMode : backendStatusLabels[backendStatus]}
           </span>
           <span className="prototype-badge">Korai prototípus</span>
+          <span className="user-badge" title={weeklyUserLabel}>Fiók: {weeklyUserLabel}</span>
         </div>
       </header>
 
@@ -1005,14 +1020,17 @@ function App() {
         </section>
       ) : homeView === 'editor' ? (
         <DrawingEditor onBack={closeHomeView} onDirtyChange={setEditorDirty} onStorageChange={setEditorStorageAvailable} />
-      ) : homeView === 'weekly' ? (
-        <WeeklyDraw onBack={closeHomeView} />
+      ) : homeView === 'challenge' ? (
+        <WeeklyDraw mode="challenge" onBack={closeHomeView} />
+      ) : homeView === 'gallery' ? (
+        <WeeklyDraw mode="gallery" onBack={closeHomeView} />
       ) : (
         <>
           <section className="hero" id="top">
             <div className="hero-copy">
               <h1 className="home-logo">
-                <img alt="BITSCRAWL" src="/bitscrawl-logo.png" />
+                <img alt="BITSCRAWL" className="logo-frame logo-frame-off" src="/ui/bitscrawl-logo.png" />
+                <img alt="" aria-hidden="true" className="logo-frame logo-frame-cursor" src="/ui/bitscrawl-logo-cursor.png" />
               </h1>
               <div className="home-palette" aria-hidden="true">
                 {basePalette.map((color) => (
@@ -1061,7 +1079,7 @@ function App() {
             </div>
           </section>
 
-          <section className="lobby-card home-panel" aria-labelledby="lobby-title">
+          <section className="lobby-card home-panel" data-home-view={homeView} aria-labelledby="lobby-title">
             {homeView === 'main' ? (
               <>
                 <div className="lobby-heading">
@@ -1070,27 +1088,24 @@ function App() {
                 </div>
                 <div className="home-menu-actions">
                   <button
-                    className="primary-button"
+                    className="ui-drawn-button ui-button-1"
                     onClick={() => openHomeView('play')}
                     type="button"
                   >
                     {editorText.play}
                   </button>
                   <button
-                    className="secondary-button"
-                    onClick={() => openHomeView('join')}
+                    className="ui-drawn-button ui-button-2"
+                    onClick={() => openHomeView('challenge')}
                     type="button"
                   >
-                    Csatlakozás
+                    Heti kihívás
                   </button>
-                  <button onClick={() => openHomeView('weekly')} type="button">
-                    Heti rajz
+                  <button className="ui-drawn-button ui-button-3" onClick={() => openHomeView('gallery')} type="button">
+                    Galéria
                   </button>
-                  <button onClick={() => openHomeView('settings')} type="button">
+                  <button className="ui-drawn-button ui-button-4" onClick={() => openHomeView('settings')} type="button">
                     Beállítások
-                  </button>
-                  <button onClick={() => openHomeView('info')} type="button">
-                    Információk
                   </button>
                 </div>
               </>
@@ -1100,11 +1115,10 @@ function App() {
                   <p className="step-label">{editorText.play}</p>
                   <h2 id="lobby-title">{editorText.play}</h2>
                 </div>
-                <div className="home-menu-actions">
-                  <button className="primary-button" onClick={() => openHomeView('create')} type="button">{editorText.create}</button>
-                  <button onClick={() => openHomeView('editor')} type="button">{editorText.editor}</button>
-                  <button disabled type="button">{editorText.roomsSoon}</button>
-                  <button className="home-back-button" onClick={closeHomeView} type="button">{editorText.backMain}</button>
+                <div className="home-menu-actions play-actions">
+                  <button className="ui-drawn-button ui-button-1" onClick={() => openHomeView('create')} type="button">{editorText.create}</button>
+                  <button className="ui-drawn-button ui-button-2" onClick={() => openHomeView('join')} type="button">Csatlakozás</button>
+                  <button className="ui-drawn-button ui-button-3 home-back-button" onClick={closeHomeView} type="button">{editorText.backMain}</button>
                 </div>
               </>
             ) : homeView === 'create' ? (
@@ -1127,11 +1141,34 @@ function App() {
                       value={playerName}
                     />
                   </label>
-                  <RoundDurationControl
-                    value={newRoomDuration}
-                    disabled={isBusy || isRestoringRoom}
-                    onChange={setNewRoomDuration}
-                  />
+                  <details className="room-settings">
+                    <summary>Szoba beállításai</summary>
+                    <div className="room-settings-content">
+                      <label className="field" htmlFor="room-game-mode">
+                        <span>Játékmód</span>
+                        <select id="room-game-mode" defaultValue="classic" disabled={isBusy || isRestoringRoom}>
+                          <option value="classic">Classic</option>
+                          <option value="competition" disabled>Verseny · hamarosan</option>
+                        </select>
+                      </label>
+                      <label className="field" htmlFor="create-round-duration">
+                        <span>{roundDurationText.label}</span>
+                        <select
+                          id="create-round-duration"
+                          disabled={isBusy || isRestoringRoom}
+                          onChange={(event) => {
+                            const duration = Number(event.target.value)
+                            if (isRoundDuration(duration)) setNewRoomDuration(duration)
+                          }}
+                          value={newRoomDuration}
+                        >
+                          {roundDurations.map(duration => (
+                            <option key={duration} value={duration}>{duration} másodperc</option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+                  </details>
                   <button
                     className="primary-button"
                     disabled={isBusy || isRestoringRoom}
@@ -1207,7 +1244,7 @@ function App() {
                   <p className="status-message" aria-live="polite">{message}</p>
                 </div>
               </>
-            ) : homeView === 'settings' ? (
+            ) : (
               <>
                 <div className="lobby-heading">
                   <p className="step-label">Helyi beállítások</p>
@@ -1224,21 +1261,13 @@ function App() {
                     <strong>{reduceMotion ? 'BE' : 'KI'}</strong>
                   </button>
                   <p>A beállítás ezen az eszközön marad meg.</p>
-                  <button className="home-back-button" onClick={closeHomeView} type="button">
-                    Vissza a főmenübe
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="lobby-heading">
-                  <p className="step-label">A játékról</p>
-                  <h2 id="lobby-title">Információk</h2>
-                </div>
-                <div className="info-panel-copy">
-                  <p>Rajzolj a 32×32-es vásznon, a többiek pedig próbálják időben megfejteni a szót.</p>
-                  <p>A szobák 2–6 játékosra készülnek. A játékhoz internetkapcsolat szükséges.</p>
-                  <p className="info-version">Bitscrawl · korai prototípus</p>
+                  <section className="info-panel-copy" aria-labelledby="info-title">
+                    <p className="step-label">A játékról</p>
+                    <h3 id="info-title">Információk</h3>
+                    <p>Rajzolj a 32×32-es vásznon, a többiek pedig próbálják időben megfejteni a szót.</p>
+                    <p>A szobák 2–6 játékosra készülnek. A játékhoz internetkapcsolat szükséges.</p>
+                    <p className="info-version">Bitscrawl · korai prototípus</p>
+                  </section>
                   <button className="home-back-button" onClick={closeHomeView} type="button">
                     Vissza a főmenübe
                   </button>

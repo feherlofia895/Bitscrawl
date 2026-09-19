@@ -2,6 +2,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { createPortal } from 'react-dom'
@@ -171,17 +172,21 @@ function isShapeTool(tool: DrawingTool): tool is ShapeTool {
 }
 
 const toolButtons: Array<{
-  icon: string
   label: string
+  spriteRow: number
   tool: DrawingTool
 }> = [
-  { icon: 'pencil', label: 'Ceruza', tool: 'pencil' },
-  { icon: 'eraser', label: 'Radír', tool: 'eraser' },
-  { icon: 'fill', label: 'Kitöltés', tool: 'fill' },
-  { icon: 'line', label: 'Egyenes vonal', tool: 'line' },
-  { icon: 'rectangle', label: 'Négyzet vagy téglalap', tool: 'rectangle' },
-  { icon: 'ellipse', label: 'Kör vagy ellipszis', tool: 'ellipse' },
+  { label: 'Ceruza', spriteRow: 0, tool: 'pencil' },
+  { label: 'Radír', spriteRow: 2, tool: 'eraser' },
+  { label: 'Kitöltés', spriteRow: 1, tool: 'fill' },
+  { label: 'Egyenes vonal', spriteRow: 4, tool: 'line' },
+  { label: 'Négyzet vagy téglalap', spriteRow: 7, tool: 'rectangle' },
+  { label: 'Kör vagy ellipszis', spriteRow: 3, tool: 'ellipse' },
 ]
+
+function toolSpriteStyle(spriteRow: number) {
+  return { '--tool-sprite-y': `${spriteRow * -32}px` } as CSSProperties
+}
 
 function connectedPixels(pixels: string[], start: PixelPoint) {
   const targetColor = pixels[start.y * CANVAS_SIZE + start.x]
@@ -894,35 +899,35 @@ export function PixelCanvas({
       {canDraw ? (
         <div className="pixel-toolbar" aria-label="Rajzeszközök">
           <div className="tool-buttons">
-            {toolButtons.map(({ icon, label, tool }) => (
+            {toolButtons.map(({ label, spriteRow, tool }) => (
               <button
                 aria-label={label}
                 aria-pressed={activeTool === tool}
+                className="tool-sprite-button"
                 key={tool}
                 onClick={() => selectDrawingTool(tool)}
+                style={toolSpriteStyle(spriteRow)}
                 title={label}
                 type="button"
-              >
-                <img alt="" aria-hidden="true" src={`/icons/tools/${icon}.svg`} />
-              </button>
+              />
             ))}
             <button
               aria-label="Visszavonás"
+              className="tool-sprite-button"
               disabled={!canUndo}
               onClick={undoLastStep}
+              style={toolSpriteStyle(6)}
               title="Visszavonás"
               type="button"
-            >
-              <img alt="" aria-hidden="true" src="/icons/tools/undo.svg" />
-            </button>
+            />
             <button
               aria-label="Teljes vászon törlése"
+              className="tool-sprite-button"
               onClick={clearCanvas}
+              style={toolSpriteStyle(5)}
               title="Teljes vászon törlése"
               type="button"
-            >
-              <img alt="" aria-hidden="true" src="/icons/tools/clear.svg" />
-            </button>
+            />
           </div>
           <div
             className="drawing-palette"
@@ -1010,58 +1015,50 @@ export function PixelCanvas({
               <button
                 aria-expanded={areImmersiveToolsOpen}
                 aria-label="Rajzeszközök"
-                className="immersive-tool-toggle"
+                aria-pressed={areImmersiveToolsOpen}
+                className="immersive-tool-toggle tool-sprite-button"
                 onClick={() => {
                   setAreImmersiveToolsOpen((current) => !current)
                   setIsImmersivePaletteOpen(false)
                 }}
+                style={toolSpriteStyle(activeToolDetails.spriteRow)}
                 title={activeToolDetails.label}
                 type="button"
-              >
-                <img
-                  alt=""
-                  aria-hidden="true"
-                  src={`/icons/tools/${activeToolDetails.icon}.svg`}
-                />
-              </button>
+              />
               {areImmersiveToolsOpen ? (
                 <div className="immersive-tool-menu" aria-label="Rajzeszköz választása">
-                  {toolButtons.map(({ icon, label, tool }) => (
+                  {toolButtons.map(({ label, spriteRow, tool }) => (
                     <button
                       aria-label={label}
                       aria-pressed={activeTool === tool}
+                      className="tool-sprite-button"
                       key={tool}
                       onClick={() => {
                         selectDrawingTool(tool)
                         setAreImmersiveToolsOpen(false)
                       }}
+                      style={toolSpriteStyle(spriteRow)}
                       title={label}
                       type="button"
-                    >
-                      <img
-                        alt=""
-                        aria-hidden="true"
-                        src={`/icons/tools/${icon}.svg`}
-                      />
-                    </button>
+                    />
                   ))}
                   <button
                     aria-label="Visszavonás"
+                    className="tool-sprite-button"
                     disabled={!canUndo}
                     onClick={undoLastStep}
+                    style={toolSpriteStyle(6)}
                     title="Visszavonás"
                     type="button"
-                  >
-                    <img alt="" aria-hidden="true" src="/icons/tools/undo.svg" />
-                  </button>
+                  />
                   <button
                     aria-label="Teljes vászon törlése"
+                    className="tool-sprite-button"
                     onClick={clearCanvas}
+                    style={toolSpriteStyle(5)}
                     title="Teljes vászon törlése"
                     type="button"
-                  >
-                    <img alt="" aria-hidden="true" src="/icons/tools/clear.svg" />
-                  </button>
+                  />
                 </div>
               ) : null}
             </div>

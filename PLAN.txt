@@ -761,7 +761,10 @@ Helyi állapot (2026-09-19, a Bitscrawl Heti Rajz v0.1 átadó alapján):
   az egyszeri végleges beküldés, a három mozgatható szavazat és az önszavazás tiltása.
 - Elkészült a felfedezés / legkedveltebb / legújabb sorrend, a lezárt heti archívum
   és a holtversenyben minden első helyezettet győztesként jelölő eredmény.
-- A főmenüben ideiglenes „Heti rajz” belépési pont készült; a végleges UI még későbbi munka.
+- A főmenü a Menü v0.1 szerint négy területre oszlik: Játék, Heti kihívás, Galéria és
+  Beállítások. A Heti kihívás és a Galéria külön nézetből nyitja meg a Heti Rajz megfelelő részét.
+- Az átadott új logó, sárga és türkiz alapablakok, gombváltozatok, elválasztó panelek,
+  12 színű palettaforma és kétállapotú rajzeszköztár beépült.
 - Az öt fő szerveroldali forgatókönyv, a build és a kódellenőrzés helyben átment.
 - Az adatbázis-migráció és a Cloudflare Pages webes kiadás élesítve; az aktív
   2026-W38 hét nyilvános API-próbája sikeres.
@@ -770,8 +773,9 @@ Helyi állapot (2026-09-19, a Bitscrawl Heti Rajz v0.1 átadó alapján):
 ELDÖNTÖTT IRÁNYOK
 
 - A szobachat ugyanazzal a társasággal indított új meccsnél megmarad; új szobánál törlődik.
-- A főmenü elsődleges belépési pontja a „Játék” lesz; alatta kap helyet az „Új szoba”,
-  a „Szerkesztő” és az „Elérhető szobák”.
+- A főmenü pontosan négy elsődleges belépési pontja a Játék, Heti kihívás, Galéria és
+  Beállítások; az Új szoba és a Csatlakozás a Játék részen belül marad.
+- A korábbi Információk külön főmenüpont helyett a Beállítások része.
 - A növekvő számú funkció miatt a hosszú UI-részeket almenükre és összecsukható,
   feladatalapú csoportokra bontjuk, hogy csökkenjen a szükséges görgetés.
 - A Bitscrawl először magyar szöveggel készül, de minden felületi szöveget fordítható

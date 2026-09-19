@@ -45,7 +45,7 @@ function discoveryScore(entry: WeeklyGalleryEntry) {
   return hash >>> 0
 }
 
-export function WeeklyDraw({ onBack }: { onBack: () => void }) {
+export function WeeklyDraw({ mode, onBack }: { mode: 'challenge' | 'gallery'; onBack: () => void }) {
   const [challenges, setChallenges] = useState<WeeklyChallenge[]>([])
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [gallery, setGallery] = useState<WeeklyGalleryEntry[]>([])
@@ -207,9 +207,9 @@ export function WeeklyDraw({ onBack }: { onBack: () => void }) {
     <section className="weekly-page" aria-labelledby="weekly-title">
       <header className="weekly-header">
         <div>
-          <p className="step-label">Közösségi kihívás</p>
-          <h1 id="weekly-title">Heti rajz</h1>
-          <p>Minden héten egy téma, egy 32×32-es rajz és három szavazat.</p>
+          <p className="step-label">{mode === 'challenge' ? 'Közösségi kihívás' : 'Közösségi rajzok'}</p>
+          <h1 id="weekly-title">{mode === 'challenge' ? 'Heti kihívás' : 'Galéria'}</h1>
+          <p>{mode === 'challenge' ? 'Minden héten egy téma és egy 32×32-es rajz.' : 'Fedezd fel a heti nevezéseket, és oszd ki a három szavazatodat.'}</p>
         </div>
         <button onClick={onBack} type="button">Vissza a főmenübe</button>
       </header>
@@ -270,7 +270,7 @@ export function WeeklyDraw({ onBack }: { onBack: () => void }) {
         </div>
       )}
 
-      {canEdit ? (
+      {mode === 'challenge' && canEdit ? (
         <section className="weekly-editor">
           <div className="weekly-section-heading">
             <div><p className="step-label">A te rajzod</p><h2>Rajzold le: {challenge?.prompt}</h2></div>
@@ -289,14 +289,14 @@ export function WeeklyDraw({ onBack }: { onBack: () => void }) {
             serverNow={challenge?.server_now ?? ''}
           />
         </section>
-      ) : account.entryPixels ? (
+      ) : mode === 'challenge' && account.entryPixels ? (
         <section className="weekly-submitted">
           <WeeklyArtwork label="A beküldött heti rajzod" pixels={account.entryPixels} />
           <div><p className="step-label">Nevezés elküldve</p><h2>A rajzod már a galériában van</h2><p>A beküldött kép ezen a héten már nem módosítható.</p></div>
         </section>
       ) : null}
 
-      <section className="weekly-gallery" aria-labelledby="weekly-gallery-title">
+      {mode === 'gallery' ? <section className="weekly-gallery" aria-labelledby="weekly-gallery-title">
         <div className="weekly-section-heading">
           <div><p className="step-label">Közösség</p><h2 id="weekly-gallery-title">Galéria</h2></div>
           <label className="field weekly-sort"><span>Sorrend</span><select onChange={event => setSort(event.target.value as GallerySort)} value={sort}><option value="discovery">Felfedezés</option><option value="likes">Legkedveltebb</option><option value="newest">Legújabb</option></select></label>
@@ -311,7 +311,7 @@ export function WeeklyDraw({ onBack }: { onBack: () => void }) {
             </button>
           </article>
         ))}</div> : <p className="weekly-empty">Ezen a héten még nincs nevezés. Lehetsz te az első!</p>}
-      </section>
+      </section> : null}
 
       <p className="status-message weekly-message" aria-live="polite">{status}</p>
       {showSubmit ? <ConfirmModal confirmLabel="Beküldöm" isBusy={busy} message="A beküldött rajz ezen a héten már nem módosítható. Biztosan kész van?" onCancel={() => setShowSubmit(false)} onConfirm={() => { setShowSubmit(false); void handleSubmit() }} title="Mehet a galériába?" /> : null}
