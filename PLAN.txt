@@ -475,11 +475,11 @@ Elkészült és élesítve:
 
 [>] 13/B. VÁLASZTHATÓ KÖRIDŐ A SZOBÁBAN
 
-2026-09-19-i helyi megvalósítás (még nincs élesítve):
+2026-09-19-i megvalósítás és élesítés:
 - A létrehozó felület és a host várószobai vezérlője 30/45/60/75/90 másodpercet kínál.
-- Elkészült a 20260919103705_configurable_round_duration.sql migráció.
-  Az éles Supabase adatbázisra NEM lett alkalmazva; a rövidebb köridők ott még nem
-  használhatók. Az új kliens a régi szerveren 90 másodperccel továbbra is tud szobát nyitni.
+- Elkészült a 20260919103705_configurable_round_duration.sql migráció, és az éles
+  Supabase adatbázisra is alkalmaztuk. A mező és a három szükséges RPC éles ellenőrzése
+  sikerült; a rövidebb köridők a kiadott klienssel használhatók.
 - A beállítás a szobához tartozik; meccs közben és lezárt meccsnél nem módosítható.
   Új meccsnél és visszacsatlakozáskor megmarad. A tesztmód külön időzítése változatlan.
 - A teljes migrációs sor lefutott izolált, memóriabeli PostgreSQL-ben (PGlite).
@@ -506,7 +506,7 @@ Elkészült és élesítve:
 
 [>] 13/C. ÖNÁLLÓ PIXELRAJZ-SZERKESZTŐ ÉS PNG-MENTÉS
 
-2026-09-19-i helyi megvalósítás (még nincs commitolva vagy publikálva):
+2026-09-19-i megvalósítás és élesítés:
 - Elkészült a Játék almenü: Új szoba, Szerkesztő, Elérhető szobák (hamarosan).
 - A szerkesztő a közös PixelCanvas helyi adatforrását használja, szoba nélkül.
 - A 12 színű rajz helyben megmarad; új rajz és nem exportált rajzból visszalépés
@@ -523,10 +523,10 @@ Elkészült és élesítve:
 - Hat helyi teszt ellenőrzi a rajz visszatöltését, a sérült helyi adat kezelését,
   a PNG-be kerülő RGBA-képadat átlátszóságát és a pontos 8× pixelismétlést.
   Ez a képadat ellenőrzése, nem a telefon által letöltött PNG-fájl vizsgálata.
-- A böngészőpróbát az automatikus jóváhagyás-ellenőrzés használati limitje blokkolta;
-  az új megerősítő ablakokat és a letöltést újra kell próbálni böngészőben/telefonon.
+- A módosítások a 6d2eb26 commitban GitHubra, majd a Cloudflare Pages production
+  környezetébe is kikerültek.
 - Az egyszemélyes tesztmód eltávolítása és a szerveroldali tesztgyorsítás
-  elkülönítése továbbra is hátravan. Nem történt éles adatbázis-módosítás.
+  elkülönítése továbbra is hátravan.
 
 Cél: a főmenüből verseny és szoba nélkül megnyitható rajzfelület készüljön, amely
 gyakorlásra és az új rajzeszközök gyors fejlesztői ellenőrzésére is használható.
