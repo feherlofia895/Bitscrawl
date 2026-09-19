@@ -8,6 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "test:editor": "node --test scripts/verify-editor.mjs",
+    "test:round-duration:local": "node --test scripts/verify-round-duration-local.mjs",
     "test:leave-room": "node --env-file=.env.local scripts/verify-leave-room.mjs",
     "test:bug-reports": "node --env-file=.env.local scripts/verify-bug-reports.mjs",
     "test:four-player": "node --env-file=.env.local scripts/verify-four-player-game.mjs",
@@ -21,6 +23,7 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",

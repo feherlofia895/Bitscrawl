@@ -1,10 +1,17 @@
 Bitscrawl MVP – FEJLESZTÉSI TERV
-Frissítve: 2026-08-09
+Frissítve: 2026-09-19
 
 Jelölések:
 [x] elkészült
 [>] folyamatban
 [ ] még hátra van
+
+2026-09-19-i helyi felülvizsgálat:
+- A helyi checkout utolsó korábbi commitja b3aeddc. A 13. pont folyamatban,
+  a 13/A kész; a 13/B–E és a 14–20. pontok még nem teljesültek.
+- A korábbi teszteredmények augusztusi ellenőrzések, nem friss éles állapotfelmérések.
+- A vászon átlátszósági sakktáblája külön semleges #eeeeee / #d4d4d4 színeket kapott;
+  ez megjelenítési háttér, nem rajzadat vagy új palettaszín. Telefonos próba még szükséges.
 
 
 [x] 1. A 9. MÉRFÖLDKŐ LEZÁRÁSA
@@ -466,7 +473,21 @@ Elkészült és élesítve:
 - A bővített paletta változatlan maradt; a 24 színű változat külön későbbi feladat.
 
 
-[ ] 13/B. VÁLASZTHATÓ KÖRIDŐ A SZOBÁBAN
+[>] 13/B. VÁLASZTHATÓ KÖRIDŐ A SZOBÁBAN
+
+2026-09-19-i helyi megvalósítás (még nincs élesítve):
+- A létrehozó felület és a host várószobai vezérlője 30/45/60/75/90 másodpercet kínál.
+- Elkészült a 20260919103705_configurable_round_duration.sql migráció.
+  Az éles Supabase adatbázisra NEM lett alkalmazva; a rövidebb köridők ott még nem
+  használhatók. Az új kliens a régi szerveren 90 másodperccel továbbra is tud szobát nyitni.
+- A beállítás a szobához tartozik; meccs közben és lezárt meccsnél nem módosítható.
+  Új meccsnél és visszacsatlakozáskor megmarad. A tesztmód külön időzítése változatlan.
+- A teljes migrációs sor lefutott izolált, memóriabeli PostgreSQL-ben (PGlite).
+  Tíz helyi tesztcsoport ellenőrzi az időket, érvénytelen értékeket, atomikus
+  szobanyitást, RLS-t, jogosultságokat, visszatérést, új meccset, tesztmódot,
+  arányos pontozást és a lejárt körök szerveroldali lezárását.
+- Hátravan a Supabase/PostgREST/Realtime környezetben végzett többjátékos próba,
+  valamint a friss felület böngészős és telefonos ellenőrzése.
 
 - Új szoba létrehozásakor a host választhassa ki a rajzolási időt.
 - A legrövidebb választható idő 30 másodperc, a leghosszabb 90 másodperc legyen.
@@ -483,7 +504,29 @@ Elkészült és élesítve:
   a visszacsatlakozást és azt, hogy tiltott értéket a kliens ne küldhessen be.
 
 
-[ ] 13/C. ÖNÁLLÓ PIXELRAJZ-SZERKESZTŐ ÉS PNG-MENTÉS
+[>] 13/C. ÖNÁLLÓ PIXELRAJZ-SZERKESZTŐ ÉS PNG-MENTÉS
+
+2026-09-19-i helyi megvalósítás (még nincs commitolva vagy publikálva):
+- Elkészült a Játék almenü: Új szoba, Szerkesztő, Elérhető szobák (hamarosan).
+- A szerkesztő a közös PixelCanvas helyi adatforrását használja, szoba nélkül.
+- A 12 színű rajz helyben megmarad; új rajz és nem exportált rajzból visszalépés
+  előtt megerősítést kér. 32×32 és 256×256 PNG-export került a felületre.
+- A semleges vászonhátteret normál és teljes nézetben ellenőriztük.
+- Böngészőben kipróbálva: rajzolás, teljes nézet, visszalépés megszakítása és
+  elfogadása, rajz visszatöltése, mindkét PNG-export indítása.
+- Még hátra van a valódi telefonos letöltés és a letöltött PNG-k külön fájlszintű
+  ellenőrzése, valamint az összes eszköz teljes regressziós és multiplayer-próbája.
+- Az Új rajz, a rajztörlés és a szerkesztőből visszalépés a meglévő saját
+  megerősítő ablakot használja. A modal megőrzi az almenü/teljes nézet history-adatait;
+  a teljes nézet a modal bezárásától nem záródik be. A StrictMode és a dupla kattintás
+  sem hozhat létre több megerősítést ugyanarra a műveletre.
+- Hat helyi teszt ellenőrzi a rajz visszatöltését, a sérült helyi adat kezelését,
+  a PNG-be kerülő RGBA-képadat átlátszóságát és a pontos 8× pixelismétlést.
+  Ez a képadat ellenőrzése, nem a telefon által letöltött PNG-fájl vizsgálata.
+- A böngészőpróbát az automatikus jóváhagyás-ellenőrzés használati limitje blokkolta;
+  az új megerősítő ablakokat és a letöltést újra kell próbálni böngészőben/telefonon.
+- Az egyszemélyes tesztmód eltávolítása és a szerveroldali tesztgyorsítás
+  elkülönítése továbbra is hátravan. Nem történt éles adatbázis-módosítás.
 
 Cél: a főmenüből verseny és szoba nélkül megnyitható rajzfelület készüljön, amely
 gyakorlásra és az új rajzeszközök gyors fejlesztői ellenőrzésére is használható.
@@ -547,8 +590,8 @@ gyakorlásra és az új rajzeszközök gyors fejlesztői ellenőrzésére is has
   ezt bármikor felülírhassa.
 - A játékosok által írt nevek, chatüzenetek és rajzok természetesen ne legyenek géppel
   lefordítva.
-- A szavak nyelvhez kötött szóbankból érkezzenek, hogy magyar felületen magyar, angol
-  felületen angol rajzolandó és megfejtendő szavak legyenek.
+- A szavak a szoba közös szónyelvéhez tartozó szóbankból érkezzenek. A felület
+  nyelvének átállítása ne változtassa meg a feladványt vagy az elfogadott megfejtést.
 - Egy szobán belül a játékszó nyelve a host által választott közös beállítás legyen,
   miközben minden játékos a saját felületét külön nyelven használhassa.
 - Ellenőrizzük a magyar ékezeteket, az angol szövegek eltérő hosszát, a mobilos tördelést,
@@ -557,8 +600,9 @@ gyakorlásra és az új rajzeszközök gyors fejlesztői ellenőrzésére is has
 
 [ ] 14. TELJES VISSZAELLENŐRZÉS
 
-A 14. pont csak a 13, 13/B, 13/C, 13/D és a magyar szövegek 13/E szerinti leválasztása
-után induljon. Az angol fordítás tartalmi elkészítése történhet az első MVP után is, de az
+A célzott visszaellenőrzés minden változtatást kövessen; a 14. pont végső lezárása a 13,
+13/B, 13/C, 13/D és a magyar szövegek 13/E szerinti leválasztása után történjen.
+Az angol fordítás tartalmi elkészítése történhet az első MVP után is, de az
 új felületi szövegeket már most fordítási kulcsokon keresztül kell hozzáadni.
 
 - Kétjátékos teljes meccs számítógép és mobilinternetet használó telefon között.
@@ -655,8 +699,9 @@ Cél: minden játékos ugyanazt a szót rajzolja egyszerre, majd egymás munkái
   képét ne láthassa.
 - Az idő lejártakor minden rajz egyszerre váljon láthatóvá, a készítő neve pedig csak a
   szavazás lezárása után jelenjen meg, hogy a szavazás kevésbé legyen személyfüggő.
-- Minden aktív játékos egy rajzra szavazhasson, saját rajzára ne szavazhasson, és egy
-  játékos egy fordulóban csak egyszer adhasson le vagy módosíthasson szavazatot.
+- Minden jogosult játékosnak fordulónként legfeljebb egy érvényes szavazata legyen,
+  saját rajzára ne szavazhasson. A módosíthatóság külön nyitott termékdöntés;
+  ismételt vagy párhuzamos beküldés soha ne eredményezzen többszörös pontot.
 - A szavazási időt a szerver zárja le; a hiányzó szavazat ne akassza meg a játékot.
 - Egy szavazat alapértelmezetten egy pontot érjen. A forduló után jelenjen meg a rajzok
   sorrendje, készítője és kapott szavazatai.
@@ -728,6 +773,12 @@ MÉG MEGBESZÉLENDŐ AZ IMPLEMENTÁLÁS ELŐTT
 - A szavazás legyen-e teljesen névtelen az eredményhirdetésig, és lehessen-e a leadott
   szavazatot a szavazási idő lejártáig módosítani.
 - A Heti rajz heti ciklusa pontosan mikor kezdődjön és záruljon Budapest idő szerint.
+- A Heti rajznál külön beküldési és szavazási szakasz legyen-e, vagy a közzétett kép
+  azonnal véglegessé váljon? Már megszavazott képet ne lehessen más rajzra cserélni.
+- A párhuzamos mód minimumlétszáma és kiesési szabálya: két játékossal a kölcsönös
+  szavazás automatikus holtversenyt okoz, ezért legalább három játékos javasolt.
+- Az avatár-készítő szabad rajzolás vagy előre gyártott elemek összeállítása legyen-e?
+  Az elemes megoldás jelenleg javaslat, nem végleges felhasználói döntés.
 - A Heti rajz első jutalmai csak kozmetikaiak legyenek-e, vagy később ranglistapontot is adjanak.
 
 
@@ -735,6 +786,7 @@ NEM RÉSZE AZ ELSŐ MVP-NEK
 
 - Android és iOS natív csomag Capacitorral.
 - Felhasználói fiókok, barátlista és ranglista.
-- Galéria, mentett rajzok és közösségi szavazás.
+- Online galéria, felhőben tárolt rajzgyűjtemény és közösségi szavazás.
+  A 13/C helyi rajzmegőrzése és PNG-letöltése ettől függetlenül az MVP része.
 - Saját szócsomagok, tematikus módok és achievementek.
 - 16×16, 64×64 és különleges palettás játékmódok.

@@ -1157,13 +1157,16 @@ footer {
 }
 
 .pixel-canvas-surface {
+  /* Neutral transparency preview, independent of the drawing palette. */
+  --canvas-checker-light: #eeeeee;
+  --canvas-checker-dark: #d4d4d4;
   position: absolute;
   overflow: visible;
-  background-color: var(--page);
+  background-color: var(--canvas-checker-dark);
   background-image: conic-gradient(
-    var(--paper) 25%,
+    var(--canvas-checker-light) 25%,
     transparent 0 50%,
-    var(--paper) 0 75%,
+    var(--canvas-checker-light) 0 75%,
     transparent 0
   );
   background-size: calc(200% / 32) calc(200% / 32);
@@ -2049,6 +2052,37 @@ button,
   .info-panel-copy .home-back-button {
     min-height: 52px;
   }
+}
+
+.standalone-editor {
+  width: min(100%, 780px);
+  margin: 0 auto;
+}
+
+.editor-intro {
+  margin-bottom: 20px;
+}
+
+.editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+
+.editor-actions > * {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+.editor-actions select {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
 }
 
 /* A főmenü saját, kézzel rajzolt kerete. A 16 pixeles szélek érintetlenek,

@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { PixelCanvas } from './components/PixelCanvas'
+import { DrawingEditor } from './components/DrawingEditor'
+import { RoundDurationControl } from './components/RoundDurationControl'
+import { editorText } from './lib/editorText'
+import { DEFAULT_ROUND_DURATION, isRoundDuration, roundDurationText, type RoundDuration } from './lib/roundDuration'
 import { BugReport } from './components/BugReport'
 import { ConfirmModal } from './components/ConfirmModal'
 import { RoomChat } from './components/RoomChat'
@@ -30,6 +34,7 @@ import {
   sendRoomMessage,
   resumeRoom,
   setRoomPaletteSize,
+  setRoomRoundDuration,
   setRoomTestMode,
   startGame,
   subscribeToLobby,
@@ -41,7 +46,7 @@ import { basePalette, type PaletteSize } from './lib/palette'
 import { checkSupabaseConnection } from './lib/supabase'
 
 type BackendStatus = 'checking' | 'online' | 'reconnecting' | 'offline'
-type HomeView = 'main' | 'create' | 'join' | 'settings' | 'info'
+type HomeView = 'main' | 'play' | 'editor' | 'create' | 'join' | 'settings' | 'info'
 
 const backendStatusLabels: Record<BackendStatus, string> = {
   checking: 'Szerver: ellenőrzés',
@@ -82,7 +87,13 @@ function getInitialRoomCode() {
 
 function App() {
   const [playerName, setPlayerName] = useState('')
+  const [newRoomDuration, setNewRoomDuration] = useState<RoundDuration>(DEFAULT_ROUND_DURATION)
+  const [isChangingRoundDuration, setIsChangingRoundDuration] = useState(false)
   const [homeView, setHomeView] = useState<HomeView>('main')
+  const [editorDirty, setEditorDirty] = useState(false)
+  const [editorStorageAvailable, setEditorStorageAvailable] = useState(true)
+  const [showEditorLeaveConfirmation, setShowEditorLeaveConfirmation] = useState(false)
+  const allowEditorLeaveRef = useRef(false)
   const [reduceMotion, setReduceMotion] = useState(
     () => window.localStorage.getItem('bitscrawl-reduce-motion') === 'true',
   )
@@ -126,11 +137,22 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (lobby || homeView === 'main') return
+    if (lobby) return
 
-    const handlePopState = () => setHomeView('main')
+    const handlePopState = (event: PopStateEvent) => {
+      const nextView: HomeView = event.state?.bitscrawlHomeView ?? 'main'
+      if (nextView === homeView) return
+      if (homeView === 'editor' && editorDirty && !allowEditorLeaveRef.current) {
+        window.history.pushState({ bitscrawlHomeView: 'editor' }, '')
+        setShowEditorLeaveConfirmation(true)
+        return
+      }
+      allowEditorLeaveRef.current = false
+      setHomeView(nextView)
+    }
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeHomeView()
+      if (event.key === 'Escape' && homeView !== 'main' && !window.history.state?.bitscrawlImmersiveCanvas &&
+        !window.history.state?.bitscrawlModal) closeHomeView()
     }
 
     window.addEventListener('popstate', handlePopState)
@@ -139,7 +161,7 @@ function App() {
       window.removeEventListener('popstate', handlePopState)
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [closeHomeView, homeView, lobby])
+  }, [closeHomeView, editorDirty, homeView, lobby])
 
   const handleReduceMotionChange = () => {
     const nextValue = !reduceMotion
@@ -413,7 +435,7 @@ function App() {
     try {
       const entry =
         action === 'create'
-          ? await createRoom(trimmedName)
+          ? await createRoom(trimmedName, newRoomDuration)
           : await joinRoom(trimmedName, code ?? '')
       await hydrateLobby(entry)
 
@@ -519,6 +541,21 @@ function App() {
       )
     } finally {
       setIsChangingPaletteSize(false)
+    }
+  }
+
+  const handleRoundDurationChange = async (duration: RoundDuration) => {
+    if (!lobby || isChangingRoundDuration || lobby.room.round_duration_seconds === duration) return
+    setIsChangingRoundDuration(true)
+    setMessage(roundDurationText.updating)
+    try {
+      await setRoomRoundDuration(lobby.room.id, duration)
+      await refreshLobby()
+      setMessage(roundDurationText.updated)
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : roundDurationText.failed)
+    } finally {
+      setIsChangingRoundDuration(false)
     }
   }
 
@@ -678,11 +715,11 @@ function App() {
         <div className="topbar-statuses">
           <span
             className="backend-badge"
-            data-status={backendStatus}
+            data-status={homeView === 'editor' && !lobby ? 'online' : backendStatus}
             aria-live="polite"
           >
             <span className="status-dot" aria-hidden="true" />
-            {backendStatusLabels[backendStatus]}
+            {homeView === 'editor' && !lobby ? editorText.localMode : backendStatusLabels[backendStatus]}
           </span>
           <span className="prototype-badge">Korai prototípus</span>
         </div>
@@ -700,6 +737,10 @@ function App() {
             </p>
             <h1 id="room-title">Szobakód</h1>
             <strong className="room-code">{lobby.room.code}</strong>
+            <p className="room-note">
+              {roundDurationText.label}: {lobby.room.round_duration_seconds ?? DEFAULT_ROUND_DURATION} {roundDurationText.seconds}
+              {lobby.room.test_mode ? <><br />{roundDurationText.testOverride}</> : null}
+            </p>
             <button
               className="secondary-button copy-button"
               onClick={() => void copyInviteLink()}
@@ -867,6 +908,13 @@ function App() {
               </div>
             ) : isHost ? (
               <div className="start-game-controls">
+                {isRoundDuration(lobby.room.round_duration_seconds) ? (
+                  <RoundDurationControl
+                    value={lobby.room.round_duration_seconds}
+                    disabled={isChangingRoundDuration || isStartingGame || lobby.room.test_mode}
+                    onChange={duration => void handleRoundDurationChange(duration)}
+                  />
+                ) : null}
                 <fieldset className="palette-mode-fieldset">
                   <legend>Meccs palettája</legend>
                   <div className="palette-mode-buttons">
@@ -908,6 +956,7 @@ function App() {
                     isStartingGame ||
                     isChangingTestMode ||
                     isChangingPaletteSize ||
+                    isChangingRoundDuration ||
                     lobby.players.length < minimumPlayers
                   }
                   onClick={() => void handleStartGame()}
@@ -998,6 +1047,8 @@ function App() {
             </p>
           </div>
         </section>
+      ) : homeView === 'editor' ? (
+        <DrawingEditor onBack={closeHomeView} onDirtyChange={setEditorDirty} onStorageChange={setEditorStorageAvailable} />
       ) : (
         <>
           <section className="hero" id="top">
@@ -1062,10 +1113,10 @@ function App() {
                 <div className="home-menu-actions">
                   <button
                     className="primary-button"
-                    onClick={() => openHomeView('create')}
+                    onClick={() => openHomeView('play')}
                     type="button"
                   >
-                    Új szoba
+                    {editorText.play}
                   </button>
                   <button
                     className="secondary-button"
@@ -1080,9 +1131,19 @@ function App() {
                   <button onClick={() => openHomeView('info')} type="button">
                     Információk
                   </button>
-                  <button disabled type="button">
-                    Elérhető szobák · hamarosan
-                  </button>
+                </div>
+              </>
+            ) : homeView === 'play' ? (
+              <>
+                <div className="lobby-heading">
+                  <p className="step-label">{editorText.play}</p>
+                  <h2 id="lobby-title">{editorText.play}</h2>
+                </div>
+                <div className="home-menu-actions">
+                  <button className="primary-button" onClick={() => openHomeView('create')} type="button">{editorText.create}</button>
+                  <button onClick={() => openHomeView('editor')} type="button">{editorText.editor}</button>
+                  <button disabled type="button">{editorText.roomsSoon}</button>
+                  <button className="home-back-button" onClick={closeHomeView} type="button">{editorText.backMain}</button>
                 </div>
               </>
             ) : homeView === 'create' ? (
@@ -1105,6 +1166,11 @@ function App() {
                       value={playerName}
                     />
                   </label>
+                  <RoundDurationControl
+                    value={newRoomDuration}
+                    disabled={isBusy || isRestoringRoom}
+                    onChange={setNewRoomDuration}
+                  />
                   <button
                     className="primary-button"
                     disabled={isBusy || isRestoringRoom}
@@ -1118,7 +1184,7 @@ function App() {
                         : 'Szoba létrehozása'}
                   </button>
                   <button className="home-back-button" onClick={closeHomeView} type="button">
-                    Vissza a főmenübe
+                    {editorText.backPlay}
                   </button>
                   <p className="status-message" aria-live="polite">{message}</p>
                 </div>
@@ -1234,6 +1300,20 @@ function App() {
         roundId={roundView?.round_id ?? null}
         roundStatus={roundView?.round_status ?? null}
       />
+
+      {showEditorLeaveConfirmation ? (
+        <ConfirmModal
+          confirmLabel={editorStorageAvailable ? editorText.backPlay : editorText.leaveUnsaved}
+          message={editorStorageAvailable ? editorText.leave : editorText.leaveWithoutStorage}
+          onCancel={() => setShowEditorLeaveConfirmation(false)}
+          onConfirm={() => {
+            setShowEditorLeaveConfirmation(false)
+            allowEditorLeaveRef.current = true
+            window.history.back()
+          }}
+          title={editorText.leaveTitle}
+        />
+      ) : null}
 
       {showLeaveConfirmation ? (
         <ConfirmModal

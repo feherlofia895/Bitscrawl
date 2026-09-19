@@ -138,6 +138,7 @@ export type Database = {
       }
       rooms: {
         Row: {
+          round_duration_seconds: number
           code: string
           created_at: string
           finished_at: string | null
@@ -150,6 +151,7 @@ export type Database = {
           test_mode: boolean
         }
         Insert: {
+          round_duration_seconds?: number
           code: string
           created_at?: string
           finished_at?: string | null
@@ -162,6 +164,7 @@ export type Database = {
           test_mode?: boolean
         }
         Update: {
+          round_duration_seconds?: number
           code?: string
           created_at?: string
           finished_at?: string | null
@@ -322,6 +325,21 @@ export type Database = {
           player_id: number
           room_code: string
           room_id: number
+        }[]
+      }
+      create_room_with_duration: {
+        Args: { player_name: string; duration_seconds?: number }
+        Returns: {
+          player_id: number
+          room_code: string
+          room_id: number
+        }[]
+      }
+      set_room_round_duration: {
+        Args: { target_room_id: number; duration_seconds: number }
+        Returns: {
+          room_id: number
+          round_duration_seconds: number
         }[]
       }
       finish_expired_round: {

@@ -7,6 +7,7 @@ import {
 import { createPortal } from 'react-dom'
 import type { DrawEvent, PixelChange } from '../lib/game'
 import { colorsForPalette, type PaletteSize } from '../lib/palette'
+import { editorText } from '../lib/editorText'
 
 const CANVAS_SIZE = 32
 const TRANSPARENT = 'transparent'
@@ -21,6 +22,11 @@ const PIXEL_COORDINATES = Array.from(
 )
 
 type PixelCanvasProps = {
+  localDrawing?: {
+    initialPixels: string[]
+    onChange: (pixels: string[]) => void
+    onRequestClear?: (clear: () => void) => void
+  }
   canDraw: boolean
   chosenWord: string | null
   drawingEndsAt: string | null
@@ -213,6 +219,7 @@ function connectedPixels(pixels: string[], start: PixelPoint) {
 }
 
 export function PixelCanvas({
+  localDrawing,
   canDraw,
   chosenWord,
   drawingEndsAt,
@@ -223,6 +230,8 @@ export function PixelCanvas({
   roundId,
   serverNow,
 }: PixelCanvasProps) {
+  const localDrawingRef = useRef(localDrawing)
+  useEffect(() => { localDrawingRef.current = localDrawing })
   const pixelPalette = colorsForPalette(paletteSize)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const canvasFrameRef = useRef<HTMLDivElement>(null)
@@ -376,6 +385,11 @@ export function PixelCanvas({
 
     const changes = [...pendingChangesRef.current.values()]
     pendingChangesRef.current.clear()
+
+    if (localDrawing) {
+      if (changes.length) localDrawing.onChange([...pixelsRef.current])
+      return
+    }
 
     for (let index = 0; index < changes.length; index += 64) {
       const chunk = changes.slice(index, index + 64)
@@ -555,6 +569,15 @@ export function PixelCanvas({
           ],
     )
     if (mutations.length === 0) return
+    if (localDrawing?.onRequestClear) {
+      localDrawing.onRequestClear(() => {
+        flushPendingChanges()
+        mutations.forEach(queueChange)
+        saveUndoStep(mutations)
+        flushPendingChanges()
+      })
+      return
+    }
     if (!window.confirm('Biztosan törlöd a teljes rajzot?')) return
 
     flushPendingChanges()
@@ -661,7 +684,10 @@ export function PixelCanvas({
   }
 
   useEffect(() => {
-    pixelsRef.current.fill(TRANSPARENT)
+    const localSource = localDrawingRef.current
+    pixelsRef.current = localSource
+      ? [...localSource.initialPixels]
+      : Array<string>(CANVAS_SIZE * CANVAS_SIZE).fill(TRANSPARENT)
     appliedEventIdsRef.current.clear()
     pendingChangesRef.current.clear()
     undoHistoryRef.current = []
@@ -685,6 +711,13 @@ export function PixelCanvas({
     setIsPanMode(false)
     const context = canvasRef.current?.getContext('2d')
     context?.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
+    if (context && localSource) {
+      pixelsRef.current.forEach((color, index) => {
+        if (color === TRANSPARENT) return
+        context.fillStyle = color
+        context.fillRect(index % CANVAS_SIZE, Math.floor(index / CANVAS_SIZE), 1, 1)
+      })
+    }
   }, [roundId])
 
   useEffect(() => {
@@ -750,9 +783,11 @@ export function PixelCanvas({
       '',
     )
 
-    const closeFromHistory = () => setIsImmersive(false)
+    const closeFromHistory = () => {
+      if (!window.history.state?.bitscrawlImmersiveCanvas) setIsImmersive(false)
+    }
     const closeFromKeyboard = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsImmersive(false)
+      if (event.key === 'Escape' && !window.history.state?.bitscrawlModal) setIsImmersive(false)
     }
 
     window.addEventListener('popstate', closeFromHistory)
@@ -803,6 +838,9 @@ export function PixelCanvas({
       if (flushTimerRef.current !== undefined) {
         window.clearTimeout(flushTimerRef.current)
       }
+      if (pendingChangesRef.current.size && localDrawingRef.current) {
+        localDrawingRef.current.onChange([...pixelsRef.current])
+      }
     },
     [],
   )
@@ -824,13 +862,17 @@ export function PixelCanvas({
     >
       {isImmersive ? (
         <div className="immersive-canvas-heading">
-          <span>
-            {canDraw ? 'Szó' : 'Élő rajz'}
-            {canDraw ? <strong>{chosenWord ?? '—'}</strong> : null}
-          </span>
-          <span>
-            Idő <strong>{immersiveTimeLabel}</strong>
-          </span>
+          {localDrawing ? (
+            <span>{editorText.freeDrawing}</span>
+          ) : (
+            <>
+              <span>
+                {canDraw ? 'Szó' : 'Élő rajz'}
+                {canDraw ? <strong>{chosenWord ?? '—'}</strong> : null}
+              </span>
+              <span>Idő <strong>{immersiveTimeLabel}</strong></span>
+            </>
+          )}
           <button onClick={exitImmersiveMode} type="button">
             Bezárás
           </button>

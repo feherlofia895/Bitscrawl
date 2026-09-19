@@ -24,7 +24,6 @@ export function BugReport(props: BugReportProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [category, setCategory] = useState<BugReportCategory>('bug')
   const [description, setDescription] = useState('')
-  const [steps, setSteps] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [feedback, setFeedback] = useState('')
 
@@ -52,9 +51,8 @@ export function BugReport(props: BugReportProps) {
     setIsSubmitting(true)
     setFeedback('')
     try {
-      await submitBugReport({ ...props, category, description, steps })
+      await submitBugReport({ ...props, category, description, steps: '' })
       setDescription('')
-      setSteps('')
       setFeedback('Köszönjük! A hibajelentés megérkezett.')
     } catch (error) {
       console.error(error)
@@ -108,27 +106,16 @@ export function BugReport(props: BugReportProps) {
                     </select>
                   </label>
                   <label className="field">
-                    <span>Mi történt?</span>
+                    <span>Na mi van?</span>
                     <textarea
                       autoFocus
                       disabled={isSubmitting}
                       maxLength={1500}
                       onChange={(event) => setDescription(event.target.value)}
-                      placeholder="Írd le röviden, mit láttál és mit vártál helyette."
+                      placeholder="Írd le kérlek, mi történt, és legyen szép napod!"
                       required
                       rows={5}
                       value={description}
-                    />
-                  </label>
-                  <label className="field">
-                    <span>Hogyan lehet előidézni? (nem kötelező)</span>
-                    <textarea
-                      disabled={isSubmitting}
-                      maxLength={1500}
-                      onChange={(event) => setSteps(event.target.value)}
-                      placeholder="Például: beléptem a szobába, teljes nézetre váltottam…"
-                      rows={3}
-                      value={steps}
                     />
                   </label>
                   <p className="bug-report-privacy">

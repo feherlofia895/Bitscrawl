@@ -1,5 +1,6 @@
 import type { Database } from '../types/database'
 import type { PaletteSize } from './palette'
+import { DEFAULT_ROUND_DURATION, isRoundDuration, roundDurationText, type RoundDuration } from './roundDuration'
 import { ensurePlayerSession, supabase } from './supabase'
 
 export type RoomMessage = {
@@ -33,6 +34,8 @@ export type LobbyConnectionStatus =
   | 'disconnected'
 
 const lobbyErrorMessages: Record<string, string> = {
+  ROUND_DURATION_INVALID: roundDurationText.invalid,
+  ROUND_DURATION_UNAVAILABLE: roundDurationText.unavailable,
   AUTH_REQUIRED: 'Nem sikerült létrehozni a játékos-munkamenetet.',
   GAME_ALREADY_STARTED: 'Ez a meccs már elindult.',
   NOT_ENOUGH_PLAYERS: 'A játék indításához legalább 2 játékos kell.',
@@ -79,16 +82,29 @@ async function getRoomEntry(
   action: 'create' | 'join',
   playerName: string,
   roomCode?: string,
+  roundDuration: RoundDuration = DEFAULT_ROUND_DURATION,
 ): Promise<RoomEntry> {
   try {
+    if (action === 'create' && !isRoundDuration(roundDuration)) {
+      throw new Error('ROUND_DURATION_INVALID')
+    }
     const user = await ensurePlayerSession()
 
     if (action === 'create') {
-      const { data, error } = await supabase
-        .rpc('create_room', { player_name: playerName })
+      let { data, error } = await supabase
+        .rpc('create_room_with_duration', { player_name: playerName, duration_seconds: roundDuration })
         .single()
 
+      // Keep 90-second rooms usable until the local migration is deployed.
+      if (error?.code === 'PGRST202') {
+        if (roundDuration !== DEFAULT_ROUND_DURATION) throw new Error('ROUND_DURATION_UNAVAILABLE')
+        const legacyResult = await supabase.rpc('create_room', { player_name: playerName }).single()
+        data = legacyResult.data
+        error = legacyResult.error
+      }
+
       if (error) throw error
+      if (!data) throw new Error('ROOM_NOT_FOUND')
 
       return {
         currentUserId: user.id,
@@ -118,8 +134,25 @@ async function getRoomEntry(
   }
 }
 
-export function createRoom(playerName: string) {
-  return getRoomEntry('create', playerName)
+export function createRoom(playerName: string, roundDuration: RoundDuration = DEFAULT_ROUND_DURATION) {
+  return getRoomEntry('create', playerName, undefined, roundDuration)
+}
+
+export async function setRoomRoundDuration(roomId: number, duration: RoundDuration) {
+  if (!isRoundDuration(duration)) throw new Error(roundDurationText.invalid)
+  try {
+    await ensurePlayerSession()
+    const { data, error } = await supabase.rpc('set_room_round_duration', {
+      target_room_id: roomId, duration_seconds: duration,
+    }).single()
+    if (error?.code === 'PGRST202') throw new Error('ROUND_DURATION_UNAVAILABLE')
+    if (error?.message.includes('NOT_ROOM_HOST')) throw new Error(roundDurationText.hostOnly)
+    if (error) throw error
+    return data
+  } catch (error) {
+    if (error instanceof Error && error.message === roundDurationText.hostOnly) throw error
+    throw readableLobbyError(error)
+  }
 }
 
 export function joinRoom(playerName: string, roomCode: string) {
