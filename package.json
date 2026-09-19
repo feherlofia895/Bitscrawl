@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test:editor": "node --test scripts/verify-editor.mjs",
     "test:round-duration:local": "node --test scripts/verify-round-duration-local.mjs",
+    "test:round-duration:live": "node --env-file=.env.local scripts/verify-round-duration-live.mjs",
     "test:leave-room": "node --env-file=.env.local scripts/verify-leave-room.mjs",
     "test:bug-reports": "node --env-file=.env.local scripts/verify-bug-reports.mjs",
     "test:four-player": "node --env-file=.env.local scripts/verify-four-player-game.mjs",

@@ -486,8 +486,11 @@ Elkészült és élesítve:
   Tíz helyi tesztcsoport ellenőrzi az időket, érvénytelen értékeket, atomikus
   szobanyitást, RLS-t, jogosultságokat, visszatérést, új meccset, tesztmódot,
   arányos pontozást és a lejárt körök szerveroldali lezárását.
-- Hátravan a Supabase/PostgREST/Realtime környezetben végzett többjátékos próba,
-  valamint a friss felület böngészős és telefonos ellenőrzése.
+- Az éles Supabase/PostgREST környezetben két külön anonim felhasználóval lefutott a
+  30 másodperces szobanyitás, a host 45 másodpercre váltása, a vendégoldali láthatóság,
+  a vendég módosításának tiltása, a pontos 45 másodperces körindítás és az indulás
+  utáni zárolás. A próba megismételhető a `npm run test:round-duration:live` paranccsal.
+- Hátravan a teljes többkörös Realtime regresszió és a fizikai telefonos ellenőrzés.
 
 - Új szoba létrehozásakor a host választhassa ki a rajzolási időt.
 - A legrövidebb választható idő 30 másodperc, a leghosszabb 90 másodperc legyen.
@@ -514,8 +517,10 @@ Elkészült és élesítve:
 - A semleges vászonhátteret normál és teljes nézetben ellenőriztük.
 - Böngészőben kipróbálva: rajzolás, teljes nézet, visszalépés megszakítása és
   elfogadása, rajz visszatöltése, mindkét PNG-export indítása.
-- Még hátra van a valódi telefonos letöltés és a letöltött PNG-k külön fájlszintű
-  ellenőrzése, valamint az összes eszköz teljes regressziós és multiplayer-próbája.
+- Az éles oldalon 360×800-as szimulált telefonnézetben működött a rajzolás és mindkét
+  PNG-méret letöltési indítása; a felület sikerüzenetet adott, konzolhiba nem volt.
+  A fizikai telefon letöltési mappájának és a tényleges fájloknak a külön ellenőrzése,
+  valamint az összes eszköz teljes regressziós próbája továbbra is hátravan.
 - Az Új rajz, a rajztörlés és a szerkesztőből visszalépés a meglévő saját
   megerősítő ablakot használja. A modal megőrzi az almenü/teljes nézet history-adatait;
   a teljes nézet a modal bezárásától nem záródik be. A StrictMode és a dupla kattintás
