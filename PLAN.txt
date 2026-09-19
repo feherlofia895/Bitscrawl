@@ -6,12 +6,31 @@ Jelölések:
 [>] folyamatban
 [ ] még hátra van
 
-2026-09-19-i helyi felülvizsgálat:
-- A helyi checkout utolsó korábbi commitja 3af39a2. A 13/D és a 20. pont
-  megvalósítása, ellenőrzése és élesítése 2026-09-19-én elkészült.
-- A korábbi teszteredmények augusztusi ellenőrzések, nem friss éles állapotfelmérések.
+2026-09-19-i záró állapot:
+- Az aktuális kiadott commit 2be5512 az `agent/12-color-palette-logo` ágon; a helyi ág
+  és a GitHub azonos állapotban van. Az éles oldal: https://bitscrawl.pages.dev/
+- A 13/D és a 20. pont megvalósítása, ellenőrzése és élesítése elkészült. A Supabase
+  helyi és távoli migrációs sora 20260919182613-ig egyezik.
+- A főmenü jelenleg öt belépési pontból áll: Játék, Kihívás, Szerkesztő, Galéria,
+  Beállítások. A Szerkesztő közvetlenül a Kihívás alatt érhető el gyakorláshoz.
+- Az aktív kihívás témája Gomba, határideje 2026. szeptember 27. 23:59
+  (Europe/Budapest). Az éles felületen és az adatbázisban is ellenőrizve.
+- Az új logó, ablakok, palettaforma és kétállapotú eszköztár mellett a nagy szöveges
+  műveleti gombok is az egységes hosszú türkiz/sárga rajzolt gombcsaládot használják.
+  A Hibát találtam gomb, a szobachat kis kezelői, valamint a paletta- és eszközgombok
+  szándékosan megtartották a saját kis méretű megjelenésüket.
 - A vászon átlátszósági sakktáblája külön semleges #eeeeee / #d4d4d4 színeket kapott;
-  ez megjelenítési háttér, nem rajzadat vagy új palettaszín. Telefonos próba még szükséges.
+  ez megjelenítési háttér, nem rajzadat vagy új palettaszín.
+- A legutóbbi kiadás előtt a production build, a lint és a diff-ellenőrzés sikeresen
+  lefutott; az éles főmenü és a Gomba kihívás külön böngészős ellenőrzést kapott.
+
+Következő javasolt munkasorrend:
+1. A 13-as UI utolsó mobilos és billentyűzetes vizuális ellenőrzése, majd a végleges
+   magyar ékezetes betűkészlet kiválasztása.
+2. A 13/B teljes többkörös Realtime regressziója és fizikai telefonos próbája.
+3. A 13/C fizikai telefonos PNG-fájl ellenőrzése, majd a 13/F szerinti visszavonás-,
+   kijelölés- és mozgatóeszköz, valamint a 32 színű bővített paletta elkészítése.
+4. A 14-es teljes visszaellenőrzés, utána a PWA és a 16-os MVP-kiadási ellenőrzés.
 
 
 [x] 1. A 9. MÉRFÖLDKŐ LEZÁRÁSA
@@ -221,8 +240,8 @@ Még hátra van a pont teljes lezárásához:
 [x] 10. NYOLCSZÍNŰ PALETTA ÉS KOMPAKT ESZKÖZTÁR
 
 Történeti megjegyzés: ez a mérföldkő az akkori 8/16 színű rendszert dokumentálja.
-A jelenlegi termékdöntést a későbbi 13/A és 13/D pont írja le: az alapmód már 12 színű,
-a régi 16 színű választás pedig a tervezett 24 színű mód elkészültéig elrejtendő.
+A jelenlegi termékdöntést a későbbi 13/A, 13/D és 13/F pont írja le: az alapmód már
+12 színű, a régi 16 színű választás pedig a tervezett 32 színű mód elkészültéig elrejtendő.
 
 - Az alapértelmezett palettában maradjon pontosan nyolc rajzszín és a jelenlegi
   fanyar Bitscrawl-hangulat.
@@ -393,8 +412,8 @@ Első működő változat elkészült:
 - Asztali játék közben a megfejtés és a szobachat a rajz melletti oldalsó oszlopba került.
 - A folyamatban lévő meccsből kilépés a böngésző egyszerű megerősítése helyett saját,
   Bitscrawl-stílusú modalban történik; bezárható Escape-pel, vissza gombbal és Mégsem gombbal.
-- A főmenü külön Új szoba, Csatlakozás, Beállítások és Információk nézetet kapott; az
-  Elérhető szobák lehetőség látható, de a későbbi 17. pontig „hamarosan” állapotú.
+- A főmenü külön Játék, Kihívás, Szerkesztő, Galéria és Beállítások nézetet kapott.
+  Az Elérhető szobák lehetőség a későbbi 17. pont megvalósításáig nincs a felületen.
 - A főmenü alnézetei Vissza gombbal, Escape-pel és a böngésző vagy telefon vissza gombjával
   bezárhatók. A játékosnév nézetváltáskor megmarad.
 - Elkészült a helyben tárolt Csökkentett mozgás beállítás, amely leállítja a díszanimációkat
@@ -440,9 +459,10 @@ Lezárás:
 
 Folyamatban:
 
-- A főmenü már a saját sárga pixelablakot használja.
-- Az elsődleges gombok saját sötétkék, a másodlagos gombok öt különböző türkiz,
-  a veszélyes műveletek pedig piros pixelgrafikát kaptak.
+- A főmenü és a fontosabb alnézetek a saját sárga és türkiz pixelablakokat használják.
+- A főmenü, a Játék almenü és a nagy szöveges műveletek az átadott hosszú türkiz/sárga
+  gombváltozatokat használják. A kis chat-, hibajelentő-, paletta- és eszközgombok
+  külön, a méretükhöz illő megjelenést tartottak meg.
 - A grafikai elemek külön PNG-fájlok, ezért az új, egyenként megrajzolt változatok
   később a működés átírása nélkül cserélhetők be.
 - A logó alatti szlogen: „Draw and scrawl it!”
@@ -451,7 +471,7 @@ Folyamatban:
 
 Még hátra van a 13. pont lezárásához:
 
-- A többi ablak, kis gomb és eszközgomb saját rajzainak egyenkénti beépítése.
+- A még hátralévő speciális ablakok és kis vezérlők saját rajzainak egyenkénti beépítése.
 - A végleges, magyar ékezeteket támogató betűkészlet kiválasztása.
 - Az álló és fekvő mobilnézet, a megnyíló billentyűzet és az összes panel utolsó
   vizuális visszaellenőrzése az új grafikákkal.
@@ -462,7 +482,8 @@ Még hátra van a 13. pont lezárásához:
 - A kezdőképernyő a saját, 192×64 pixeles Bitscrawl-logót használja, villogó piros kurzorral.
 - A korábbi 8 színű alapmódot a saját 12 színű Pixelsquare-paletta váltja fel.
 - Az UI színei ugyanehhez a palettához igazodnak.
-- A 16 színű bővített mód egyelőre változatlan marad; a 24 színre bővítést külön beszéljük át.
+- A 16 színű bővített mód egyelőre változatlan marad; ezt később külön 32 színű
+  paletta váltja fel.
 - A kliens és az adatbázis átállását egy kiadásban kellett élesíteni, hogy a futó játék verziói
   ne kerüljenek átmenetileg eltérő palettaszabályokra.
 
@@ -470,7 +491,7 @@ Elkészült és élesítve:
 
 - A saját 12 színű alappaletta, a hozzá igazított felületszínek és feliratok bekerültek.
 - A saját kezdőképernyős logó és a villogó piros kurzor működik.
-- A bővített paletta változatlan maradt; a 24 színű változat külön későbbi feladat.
+- A bővített paletta változatlan maradt; a 32 színű változat külön későbbi feladat.
 
 
 [>] 13/B. VÁLASZTHATÓ KÖRIDŐ A SZOBÁBAN
@@ -510,7 +531,8 @@ Elkészült és élesítve:
 [>] 13/C. ÖNÁLLÓ PIXELRAJZ-SZERKESZTŐ ÉS PNG-MENTÉS
 
 2026-09-19-i megvalósítás és élesítés:
-- Elkészült a Játék almenü: Új szoba, Szerkesztő, Elérhető szobák (hamarosan).
+- A Szerkesztő közvetlen főmenüpont lett, a Kihívás alatt. A Játék almenüben az
+  Új szoba és a Csatlakozás maradt; az Elérhető szobák a későbbi 17. pont része.
 - A szerkesztő a közös PixelCanvas helyi adatforrását használja, szoba nélkül.
 - A 12 színű rajz helyben megmarad; új rajz és nem exportált rajzból visszalépés
   előtt megerősítést kér. 32×32 és 256×256 PNG-export került a felületre.
@@ -536,11 +558,12 @@ Elkészült és élesítve:
 Cél: a főmenüből verseny és szoba nélkül megnyitható rajzfelület készüljön, amely
 gyakorlásra és az új rajzeszközök gyors fejlesztői ellenőrzésére is használható.
 
-- A „Játék” almenü kapjon külön „Szerkesztő” menüpontot.
-- A főmenü jelenlegi „Új szoba” menüpontját nevezzük át „Játék”-ra. A Játék almenüben
-  legyen külön „Új szoba”, „Szerkesztő” és „Elérhető szobák” menüpont, hogy a főmenü
-  áttekinthető maradjon az új funkciók hozzáadása után is.
-- Az „Elérhető szobák” a 17. pont elkészültéig maradjon látható, de „hamarosan” állapotú.
+- Korábbi terv volt a Játék alá tenni a Szerkesztőt; a végleges döntés szerint önálló
+  főmenüpont lett közvetlenül a Kihívás alatt.
+- A főmenü jelenlegi „Új szoba” menüpontját nevezzük át „Játék”-ra. A véglegesített
+  elrendezésben a Szerkesztő önálló főmenüpont a Kihívás alatt; az Új szoba és a
+  Csatlakozás a Játék almenüben marad.
+- Az „Elérhető szobák” csak a 17. pont megvalósításakor kerüljön vissza a felületre.
 - A szerkesztő használatához ne kelljen szobát létrehozni vagy játékosokra várni;
   ne legyen titkos szó, időzítő, pontozás, chat vagy körváltás.
 - Ugyanazt a PixelCanvas komponenst, rajzeszközöket, palettákat, nagyítást, mozgatást,
@@ -571,12 +594,12 @@ gyakorlásra és az új rajzeszközök gyors fejlesztői ellenőrzésére is has
 
 - A jelenlegi 16 színű választási lehetőséget ideiglenesen elérhetetlenné kell tenni a
   felületen. A 12 színű paletta marad az egyetlen választható mód addig, amíg a bővített
-  palettát közösen meg nem tervezzük és 24 színű változatként el nem készítjük.
+  palettát közösen meg nem tervezzük és 32 színű változatként el nem készítjük.
 - A szerver a régi 16 színű szobák biztonságos kezelésére átmenetileg megtarthatja a
   kompatibilitást, de új szobánál a kliens ne kínáljon fel félkész bővített palettát.
 - Ellenőrizzük, hogy új szobánál mindig 12 szín tárolódik, visszatéréskor a régi szobák
   nem omlanak össze, és a 16 színű mód közvetlen kliensmanipulációval sem kapcsolható be.
-- A későbbi 24 színhez a palettabeállítás ne egyszerű bővített/nem bővített kapcsoló legyen:
+- A későbbi 32 színhez a palettabeállítás ne egyszerű bővített/nem bővített kapcsoló legyen:
   verziózható palettaazonosítót használjunk, hogy új készletekhez ne kelljen újra átírni
   minden korábbi szobát, rajzot és ellenőrzést.
 
@@ -609,10 +632,33 @@ Helyi állapot (2026-09-19):
   a nyelvváltást folyamatban lévő szobában és a hiányzó fordítások biztonságos tartalékát.
 
 
+[ ] 13/F. VÁSZONESZKÖZÖK ÉS 32 SZÍNŰ BŐVÍTETT PALETTA
+
+- A vászon rajzeszközei között legyen mindig közvetlenül elérhető, saját ikonos
+  Visszavonás gomb; ne kelljen másik panelre vagy nézetbe lépni hozzá.
+- Készüljön külön Kijelölés eszköz, amellyel első változatban téglalap alakú terület
+  jelölhető ki egérrel és érintéssel is.
+- A Mozgatás eszköz is kerüljön a rajzeszközök közé. Egyértelműen különüljön el a
+  rajzoló eszközöktől, és használatakor ne keletkezzen véletlen pixel.
+- A kijelölt képrész mozgatásának pontos viselkedését különítsük el a teljes vászon
+  nézetének elhúzásától. Mindkettő legyen visszavonható és mobilon is félreérthetetlen.
+- A kijelölés és mozgatás ugyanabban a közös rajzmotorban működjön a Szerkesztőben,
+  a klasszikus játékban és a későbbi játékmódokban.
+- A 12 színű alap-paletta maradjon meg gyors, könnyen tanulható választásként.
+- Készüljön külön, választható 32 színű bővített paletta, saját verziózott
+  palettaazonosítóval. Ne a régi 16 színű mód egyszerű visszakapcsolása legyen.
+- A 32 szín árnyalatpárokba és jól áttekinthető sorokba rendeződjön; mobilon a paletta
+  összecsukható maradjon, és ne vegyen el túl sok helyet a vászontól.
+- Multiplayerben a szobabeállítás rögzítse a palettát, a szerver pedig csak az adott
+  paletta engedélyezett színeit fogadja el. Elindított meccs közben ne lehessen váltani.
+- Készüljön automatizált ellenőrzés a kijelölésre, mozgatásra, visszavonásra,
+  12/32 színű szerveroldali ellenőrzésre és a régi 16 színű szobák kompatibilitására.
+
+
 [ ] 14. TELJES VISSZAELLENŐRZÉS
 
 A célzott visszaellenőrzés minden változtatást kövessen; a 14. pont végső lezárása a 13,
-13/B, 13/C, 13/D és a magyar szövegek 13/E szerinti leválasztása után történjen.
+13/B, 13/C, 13/D, 13/F és a magyar szövegek 13/E szerinti leválasztása után történjen.
 Az angol fordítás tartalmi elkészítése történhet az első MVP után is, de az
 új felületi szövegeket már most fordítási kulcsokon keresztül kell hozzáadni.
 
@@ -656,13 +702,15 @@ MVP UTÁNI KÖVETKEZŐ LEHETŐSÉGEK
 
 Javasolt sorrend és függőségek:
 
-1. Az MVP előtt fejezzük be a 13-as UI-munkát, rejtsük el a 16 színt, készítsük el a
-   szerkesztőt és a választható köridőt, valamint vezessük be a fordítható szövegszerkezetet.
+1. Az MVP előtt fejezzük be a 13-as UI-munka mobilos ellenőrzését, a köridő teljes
+   regresszióját és a szerkesztő telefonos exportpróbáját; a 16 szín elrejtése,
+   a szerkesztő alapváltozata és a választható köridő már elkészült.
 2. Ezután következzen a 14-es teljes visszaellenőrzés, a PWA és a 16-os MVP-kiadási ellenőrzés.
 3. Az Elérhető szobák csak alapvető név- és spamvédelemmel kerüljön ki.
 4. A Párhuzamos rajzverseny a meglévő vendégmunkamenetekkel is elkészülhet, de külön
    játékmód-állapotgépet igényel.
-5. A Heti rajz csak a tartós felhasználói fiókok és moderációs alapok után induljon.
+5. A Kihívás első fiókos, rajzbeküldős és szavazós változata elkészült; következőként
+   a moderációs és visszaélésvédelmi kezelőfelületet kell tovább erősíteni.
 6. A teljes angol fordítás és az avatárkészítő az MVP stabilizálása után is elkészülhet;
    az i18n-alapokat és a bővíthető profil-adatmodellt viszont már korábban készítsük elő.
 
@@ -754,27 +802,31 @@ szóra és ugyanazzal a palettával készülnek rajzok.
   jelvények és sorozatok egy későbbi külön mérföldkő részei legyenek.
 - Mobilon és számítógépen is lehessen folytatni a félbehagyott heti rajzot.
 
-Helyi állapot (2026-09-19, a Bitscrawl Heti Rajz v0.1 átadó alapján):
+Éles állapot (2026-09-19, a Bitscrawl Heti Rajz v0.1 átadó alapján):
 - Elkészült a külön heti adatmodell, a hétfő 00:00-kor (Europe/Budapest) váltó
   szerveridős ciklus, a 12 színű rajzellenőrzés és a nyilvános galéria.
 - Elkészült az e-mailes fiók, a megjelenített név, a szerverre mentett vázlat,
   az egyszeri végleges beküldés, a három mozgatható szavazat és az önszavazás tiltása.
 - Elkészült a felfedezés / legkedveltebb / legújabb sorrend, a lezárt heti archívum
   és a holtversenyben minden első helyezettet győztesként jelölő eredmény.
-- A főmenü a Menü v0.1 szerint négy területre oszlik: Játék, Heti kihívás, Galéria és
-  Beállítások. A Heti kihívás és a Galéria külön nézetből nyitja meg a Heti Rajz megfelelő részét.
+- A főmenü öt területre oszlik: Játék, Kihívás, Szerkesztő, Galéria és Beállítások.
+  A Kihívás és a Galéria külön nézetből nyitja meg a heti rajz megfelelő részét;
+  a Szerkesztő közvetlenül a Kihívás alatt érhető el gyakorláshoz.
 - Az átadott új logó, sárga és türkiz alapablakok, gombváltozatok, elválasztó panelek,
   12 színű palettaforma és kétállapotú rajzeszköztár beépült.
 - Az öt fő szerveroldali forgatókönyv, a build és a kódellenőrzés helyben átment.
 - Az adatbázis-migráció és a Cloudflare Pages webes kiadás élesítve; az aktív
-  2026-W38 hét nyilvános API-próbája sikeres.
+  2026-W38 hét nyilvános API-próbája sikeres. Az aktuális téma Gomba, a kézzel
+  beállított zárás 2026. szeptember 27. 23:59 (Europe/Budapest).
 
 
 ELDÖNTÖTT IRÁNYOK
 
 - A szobachat ugyanazzal a társasággal indított új meccsnél megmarad; új szobánál törlődik.
-- A főmenü pontosan négy elsődleges belépési pontja a Játék, Heti kihívás, Galéria és
+- A főmenü öt elsődleges belépési pontja a Játék, Kihívás, Szerkesztő, Galéria és
   Beállítások; az Új szoba és a Csatlakozás a Játék részen belül marad.
+- A Szerkesztő a Kihívás alatt, közvetlen főmenüpontként szolgál időkorlát nélküli
+  gyakorlásra.
 - A korábbi Információk külön főmenüpont helyett a Beállítások része.
 - A növekvő számú funkció miatt a hosszú UI-részeket almenükre és összecsukható,
   feladatalapú csoportokra bontjuk, hogy csökkenjen a szükséges görgetés.
