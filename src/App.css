@@ -2059,6 +2059,152 @@ button,
   margin: 0 auto;
 }
 
+.weekly-page {
+  display: grid;
+  gap: 22px;
+  width: min(100%, 1080px);
+  margin: 0 auto;
+}
+
+.weekly-header,
+.weekly-section-heading,
+.weekly-user-bar,
+.weekly-submitted,
+.weekly-challenge-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.weekly-header h1,
+.weekly-challenge-card h2,
+.weekly-section-heading h2,
+.weekly-account-card h2,
+.weekly-submitted h2 {
+  margin: 0;
+  font-family: var(--display-font);
+  line-height: 1.05;
+}
+
+.weekly-header h1 { font-size: clamp(2.2rem, 8vw, 4.5rem); }
+.weekly-header p,
+.weekly-challenge-card p,
+.weekly-account-card p,
+.weekly-submitted p { margin: 8px 0 0; line-height: 1.5; }
+
+.weekly-challenge-card,
+.weekly-account-card,
+.weekly-gallery,
+.weekly-submitted {
+  padding: clamp(18px, 4vw, 28px);
+  background: color-mix(in srgb, var(--mint) 24%, var(--paper));
+  border: 3px solid var(--ink);
+  box-shadow: 7px 7px 0 rgb(36 26 53 / 35%);
+  clip-path: var(--pixel-corner);
+}
+
+.weekly-account-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, .85fr);
+  gap: 24px;
+}
+
+.weekly-auth-form { display: grid; gap: 10px; }
+.weekly-auth-form input,
+.weekly-picker select,
+.weekly-sort select {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  font: inherit;
+}
+
+.weekly-status,
+.weekly-winner {
+  display: inline-block;
+  padding: 5px 8px;
+  font-family: var(--pixel-font);
+  font-size: .64rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+}
+
+.weekly-status-closed { background: var(--slate); }
+.weekly-status-upcoming { background: var(--mint); }
+.weekly-date { color: var(--muted); font-size: .9rem; }
+.weekly-picker { width: min(320px, 100%); }
+
+.weekly-user-bar {
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+}
+
+.weekly-user-bar button { margin-left: auto; }
+.weekly-editor { display: grid; gap: 16px; }
+.weekly-editor > .drawing-panel { margin-inline: auto; }
+.weekly-sort { min-width: 190px; }
+
+.weekly-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.weekly-entry {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 rgb(36 26 53 / 28%);
+}
+
+.weekly-entry.is-winner { background: color-mix(in srgb, var(--yellow) 34%, var(--paper)); }
+.weekly-winner { position: absolute; top: 18px; left: 18px; z-index: 1; }
+
+.weekly-artwork {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  background-color: #eee8dc;
+  background-image: linear-gradient(45deg, #d8d0c3 25%, transparent 25%), linear-gradient(-45deg, #d8d0c3 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #d8d0c3 75%), linear-gradient(-45deg, transparent 75%, #d8d0c3 75%);
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  background-size: 16px 16px;
+  border: 2px solid var(--ink);
+  image-rendering: pixelated;
+}
+
+.weekly-entry-meta { display: flex; justify-content: space-between; gap: 8px; }
+.weekly-entry-meta span { color: var(--muted); font-size: .86rem; }
+.weekly-entry button[aria-pressed='true'] { background: var(--yellow); }
+.weekly-submitted .weekly-artwork { width: min(180px, 42vw); flex: 0 0 auto; }
+.weekly-empty { margin: 20px 0 0; text-align: center; }
+.weekly-message { margin: 0; }
+
+@media (max-width: 700px) {
+  .weekly-header,
+  .weekly-section-heading,
+  .weekly-challenge-card,
+  .weekly-submitted { align-items: stretch; flex-direction: column; }
+  .weekly-account-card { grid-template-columns: 1fr; }
+  .weekly-header button,
+  .weekly-section-heading > button,
+  .weekly-picker,
+  .weekly-sort { width: 100%; }
+  .weekly-submitted .weekly-artwork { width: min(100%, 260px); align-self: center; }
+}
+
 .editor-intro {
   margin-bottom: 20px;
 }

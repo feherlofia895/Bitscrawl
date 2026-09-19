@@ -7,6 +7,7 @@ import { editorText } from './lib/editorText'
 import { DEFAULT_ROUND_DURATION, isRoundDuration, roundDurationText, type RoundDuration } from './lib/roundDuration'
 import { BugReport } from './components/BugReport'
 import { ConfirmModal } from './components/ConfirmModal'
+import { WeeklyDraw } from './components/WeeklyDraw'
 import { RoomChat } from './components/RoomChat'
 import { RoundChat } from './components/RoundChat'
 import { RoundTimer } from './components/RoundTimer'
@@ -33,7 +34,6 @@ import {
   restartGame,
   sendRoomMessage,
   resumeRoom,
-  setRoomPaletteSize,
   setRoomRoundDuration,
   setRoomTestMode,
   startGame,
@@ -46,7 +46,7 @@ import { basePalette, type PaletteSize } from './lib/palette'
 import { checkSupabaseConnection } from './lib/supabase'
 
 type BackendStatus = 'checking' | 'online' | 'reconnecting' | 'offline'
-type HomeView = 'main' | 'play' | 'editor' | 'create' | 'join' | 'settings' | 'info'
+type HomeView = 'main' | 'play' | 'editor' | 'weekly' | 'create' | 'join' | 'settings' | 'info'
 
 const backendStatusLabels: Record<BackendStatus, string> = {
   checking: 'Szerver: ellenőrzés',
@@ -110,7 +110,6 @@ function App() {
   const [isStartingGame, setIsStartingGame] = useState(false)
   const [isChoosingWord, setIsChoosingWord] = useState(false)
   const [isChangingTestMode, setIsChangingTestMode] = useState(false)
-  const [isChangingPaletteSize, setIsChangingPaletteSize] = useState(false)
   const [isFinishingRound, setIsFinishingRound] = useState(false)
   const [isAdvancingRound, setIsAdvancingRound] = useState(false)
   const [isRestartingGame, setIsRestartingGame] = useState(false)
@@ -523,27 +522,6 @@ function App() {
     }
   }
 
-  const handlePaletteSizeChange = async (paletteSize: PaletteSize) => {
-    if (!lobby || lobby.room.palette_size === paletteSize) return
-
-    setIsChangingPaletteSize(true)
-    setMessage('Színpaletta frissítése…')
-
-    try {
-      await setRoomPaletteSize(lobby.room.id, paletteSize)
-      await refreshLobby()
-      setMessage(`${paletteSize} színű paletta kiválasztva.`)
-    } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : 'Nem sikerült módosítani a színpalettát.',
-      )
-    } finally {
-      setIsChangingPaletteSize(false)
-    }
-  }
-
   const handleRoundDurationChange = async (duration: RoundDuration) => {
     if (!lobby || isChangingRoundDuration || lobby.room.round_duration_seconds === duration) return
     setIsChangingRoundDuration(true)
@@ -915,27 +893,6 @@ function App() {
                     onChange={duration => void handleRoundDurationChange(duration)}
                   />
                 ) : null}
-                <fieldset className="palette-mode-fieldset">
-                  <legend>Meccs palettája</legend>
-                  <div className="palette-mode-buttons">
-                    {([12, 16] as const).map((paletteSize) => (
-                      <button
-                        aria-pressed={lobby.room.palette_size === paletteSize}
-                        disabled={isChangingPaletteSize || isStartingGame}
-                        key={paletteSize}
-                        onClick={() => void handlePaletteSizeChange(paletteSize)}
-                        type="button"
-                      >
-                        {paletteSize} szín
-                      </button>
-                    ))}
-                  </div>
-                  <span>
-                    {lobby.room.palette_size === 12
-                      ? 'Az új, saját tizenkét színű alapmód.'
-                      : 'Az alapszínek és összehangolt árnyékaik.'}
-                  </span>
-                </fieldset>
                 <button
                   aria-pressed={lobby.room.test_mode}
                   className="test-mode-button"
@@ -955,7 +912,6 @@ function App() {
                   disabled={
                     isStartingGame ||
                     isChangingTestMode ||
-                    isChangingPaletteSize ||
                     isChangingRoundDuration ||
                     lobby.players.length < minimumPlayers
                   }
@@ -1049,6 +1005,8 @@ function App() {
         </section>
       ) : homeView === 'editor' ? (
         <DrawingEditor onBack={closeHomeView} onDirtyChange={setEditorDirty} onStorageChange={setEditorStorageAvailable} />
+      ) : homeView === 'weekly' ? (
+        <WeeklyDraw onBack={closeHomeView} />
       ) : (
         <>
           <section className="hero" id="top">
@@ -1124,6 +1082,9 @@ function App() {
                     type="button"
                   >
                     Csatlakozás
+                  </button>
+                  <button onClick={() => openHomeView('weekly')} type="button">
+                    Heti rajz
                   </button>
                   <button onClick={() => openHomeView('settings')} type="button">
                     Beállítások
@@ -1290,7 +1251,7 @@ function App() {
 
       <footer>
         <span>Bitscrawl MVP</span>
-        <span>13. mérföldkő · mobil rajznézet és szólista</span>
+        <span>14. mérföldkő · Heti rajz</span>
       </footer>
 
       <BugReport

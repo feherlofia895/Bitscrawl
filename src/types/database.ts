@@ -367,6 +367,42 @@ export type Database = {
           word_options: string[]
         }[]
       }
+      get_weekly_challenges: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          challenge_id: number
+          challenge_status: string
+          description: string | null
+          ends_at: string
+          prompt: string
+          server_now: string
+          starts_at: string
+          week_key: string
+        }[]
+      }
+      get_weekly_gallery: {
+        Args: { target_challenge_id: number }
+        Returns: {
+          author_name: string
+          entry_id: number
+          has_voted: boolean
+          is_own: boolean
+          is_winner: boolean
+          pixels: Json
+          submitted_at: string
+          vote_count: number
+        }[]
+      }
+      get_weekly_account_state: {
+        Args: { target_challenge_id: number }
+        Returns: {
+          draft_pixels: Json | null
+          entry_id: number | null
+          entry_pixels: Json | null
+          profile_name: string | null
+          votes_used: number
+        }[]
+      }
       join_room: {
         Args: { player_name: string; room_code: string }
         Returns: {
@@ -396,6 +432,10 @@ export type Database = {
         Args: { message_content: string; target_room_id: number }
         Returns: number
       }
+      save_weekly_draft: {
+        Args: { drawing_pixels: Json; target_challenge_id: number }
+        Returns: string
+      }
       resume_room: {
         Args: { room_code: string }
         Returns: {
@@ -411,6 +451,14 @@ export type Database = {
           room_id: number
           test_mode: boolean
         }[]
+      }
+      set_weekly_profile: {
+        Args: { requested_name: string }
+        Returns: string
+      }
+      set_weekly_vote: {
+        Args: { target_entry_id: number; vote_enabled: boolean }
+        Returns: { active_vote_count: number; voted: boolean }[]
       }
       set_room_palette_size: {
         Args: { palette_size_value: number; target_room_id: number }
@@ -438,6 +486,10 @@ export type Database = {
       }
       submit_pixel_changes: {
         Args: { pixel_changes: Json; target_round_id: number }
+        Returns: number
+      }
+      submit_weekly_entry: {
+        Args: { drawing_pixels: Json; target_challenge_id: number }
         Returns: number
       }
       touch_room_presence: {

@@ -47,8 +47,11 @@ before(async () => {
     create table auth.users (id uuid primary key);
     create function auth.uid() returns uuid language sql stable as
       $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+    create function auth.jwt() returns jsonb language sql stable as
+      $$ select coalesce(nullif(current_setting('request.jwt.claims', true), '')::jsonb, '{}'::jsonb) $$;
     grant usage on schema auth to anon, authenticated;
     grant execute on function auth.uid() to anon, authenticated;
+    grant execute on function auth.jwt() to anon, authenticated;
     create schema extensions;
     -- Test-only random bytes for room codes; not a cryptography test.
     create function extensions.gen_random_bytes(n integer) returns bytea language sql volatile as

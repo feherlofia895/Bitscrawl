@@ -42,7 +42,8 @@ const lobbyErrorMessages: Record<string, string> = {
   NOT_ENOUGH_ACTIVE_PLAYERS:
     'A játék indításához legalább 2 kapcsolódó játékos kell.',
   NOT_ROOM_HOST: 'Csak a szoba hostja indíthatja el a játékot.',
-  PALETTE_SIZE_INVALID: 'A paletta csak 12 vagy 16 színű lehet.',
+  PALETTE_SIZE_INVALID: 'Érvénytelen színpaletta.',
+  PALETTE_SIZE_UNAVAILABLE: 'A bővített színpaletta átmenetileg nem érhető el.',
   GAME_NOT_FINISHED: 'Az új játék csak a meccs végén indítható.',
   ROOM_MEMBERSHIP_NOT_FOUND: 'Már nem vagy tagja ennek a szobának.',
   PLAYER_NAME_INVALID: 'A játékosnév 2–16 karakter hosszú legyen.',

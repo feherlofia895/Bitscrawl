@@ -11,6 +11,8 @@
     "test:editor": "node --test scripts/verify-editor.mjs",
     "test:round-duration:local": "node --test scripts/verify-round-duration-local.mjs",
     "test:round-duration:live": "node --env-file=.env.local scripts/verify-round-duration-live.mjs",
+    "test:palette-hide:local": "node --test scripts/verify-palette-hide-local.mjs",
+    "test:weekly-drawing:local": "node --test scripts/verify-weekly-drawing-local.mjs",
     "test:leave-room": "node --env-file=.env.local scripts/verify-leave-room.mjs",
     "test:bug-reports": "node --env-file=.env.local scripts/verify-bug-reports.mjs",
     "test:four-player": "node --env-file=.env.local scripts/verify-four-player-game.mjs",

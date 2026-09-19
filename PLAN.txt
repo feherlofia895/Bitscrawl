@@ -7,8 +7,8 @@ Jelölések:
 [ ] még hátra van
 
 2026-09-19-i helyi felülvizsgálat:
-- A helyi checkout utolsó korábbi commitja b3aeddc. A 13. pont folyamatban,
-  a 13/A kész; a 13/B–E és a 14–20. pontok még nem teljesültek.
+- A helyi checkout utolsó korábbi commitja 3af39a2. A 13/D és a 20. pont
+  megvalósítása, ellenőrzése és élesítése 2026-09-19-én elkészült.
 - A korábbi teszteredmények augusztusi ellenőrzések, nem friss éles állapotfelmérések.
 - A vászon átlátszósági sakktáblája külön semleges #eeeeee / #d4d4d4 színeket kapott;
   ez megjelenítési háttér, nem rajzadat vagy új palettaszín. Telefonos próba még szükséges.
@@ -567,7 +567,7 @@ gyakorlásra és az új rajzeszközök gyors fejlesztői ellenőrzésére is has
   megmaradnak; a szerkesztő csak a kézi egyszemélyes tesztmódot váltja ki.
 
 
-[ ] 13/D. BŐVÍTETT PALETTA IDEIGLENES ELREJTÉSE
+[x] 13/D. BŐVÍTETT PALETTA IDEIGLENES ELREJTÉSE
 
 - A jelenlegi 16 színű választási lehetőséget ideiglenesen elérhetetlenné kell tenni a
   felületen. A 12 színű paletta marad az egyetlen választható mód addig, amíg a bővített
@@ -579,6 +579,12 @@ gyakorlásra és az új rajzeszközök gyors fejlesztői ellenőrzésére is has
 - A későbbi 24 színhez a palettabeállítás ne egyszerű bővített/nem bővített kapcsoló legyen:
   verziózható palettaazonosítót használjunk, hogy új készletekhez ne kelljen újra átírni
   minden korábbi szobát, rajzot és ellenőrzést.
+
+Helyi állapot (2026-09-19):
+- A választó eltűnt a felületről, új szoba csak 12 színű lehet.
+- A régi 16 színű szobák továbbra is olvashatók és játszhatók.
+- A szerveroldali tiltás és a kompatibilitás automatizált helyi próbái átmentek.
+- Az adatbázis-módosítás és a webes kiadás élesítve.
 
 
 [ ] 13/E. MAGYAR ÉS ANGOL NYELVI VÁLTOZAT
@@ -724,7 +730,7 @@ Cél: minden játékos ugyanazt a szót rajzolja egyszerre, majd egymás munkái
   a többszörös szavazás, a kimaradó szavazó és a holtverseny eseteit.
 
 
-[ ] 20. HETI RAJZ
+[x] 20. HETI RAJZ
 
 Cél: nyugodt, meccsen kívüli gyakorlómód, amelyben egy teljes héten át ugyanarra a
 szóra és ugyanazzal a palettával készülnek rajzok.
@@ -747,6 +753,18 @@ szóra és ugyanazzal a palettával készülnek rajzok.
 - Az első változatban csak részvétel, szavazás és heti eredménylista készüljön; jutalmak,
   jelvények és sorozatok egy későbbi külön mérföldkő részei legyenek.
 - Mobilon és számítógépen is lehessen folytatni a félbehagyott heti rajzot.
+
+Helyi állapot (2026-09-19, a Bitscrawl Heti Rajz v0.1 átadó alapján):
+- Elkészült a külön heti adatmodell, a hétfő 00:00-kor (Europe/Budapest) váltó
+  szerveridős ciklus, a 12 színű rajzellenőrzés és a nyilvános galéria.
+- Elkészült az e-mailes fiók, a megjelenített név, a szerverre mentett vázlat,
+  az egyszeri végleges beküldés, a három mozgatható szavazat és az önszavazás tiltása.
+- Elkészült a felfedezés / legkedveltebb / legújabb sorrend, a lezárt heti archívum
+  és a holtversenyben minden első helyezettet győztesként jelölő eredmény.
+- A főmenüben ideiglenes „Heti rajz” belépési pont készült; a végleges UI még későbbi munka.
+- Az öt fő szerveroldali forgatókönyv, a build és a kódellenőrzés helyben átment.
+- Az adatbázis-migráció és a Cloudflare Pages webes kiadás élesítve; az aktív
+  2026-W38 hét nyilvános API-próbája sikeres.
 
 
 ELDÖNTÖTT IRÁNYOK
@@ -777,9 +795,6 @@ MÉG MEGBESZÉLENDŐ AZ IMPLEMENTÁLÁS ELŐTT
   döntőforduló.
 - A szavazás legyen-e teljesen névtelen az eredményhirdetésig, és lehessen-e a leadott
   szavazatot a szavazási idő lejártáig módosítani.
-- A Heti rajz heti ciklusa pontosan mikor kezdődjön és záruljon Budapest idő szerint.
-- A Heti rajznál külön beküldési és szavazási szakasz legyen-e, vagy a közzétett kép
-  azonnal véglegessé váljon? Már megszavazott képet ne lehessen más rajzra cserélni.
 - A párhuzamos mód minimumlétszáma és kiesési szabálya: két játékossal a kölcsönös
   szavazás automatikus holtversenyt okoz, ezért legalább három játékos javasolt.
 - Az avatár-készítő szabad rajzolás vagy előre gyártott elemek összeállítása legyen-e?
