@@ -1252,6 +1252,19 @@ footer {
   cursor: grabbing;
 }
 
+.drawing-canvas.is-selection-mode {
+  cursor: cell;
+}
+
+.pixel-selection-outline {
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  border: max(1px, 0.08em) dashed var(--blue);
+  box-shadow: 0 0 0 max(1px, 0.05em) var(--yellow);
+  box-sizing: border-box;
+}
+
 .canvas-navigation-hint {
   width: 100%;
   margin: 10px auto 0;
@@ -2711,6 +2724,34 @@ button,
 .immersive-tool-menu .tool-sprite-button:active:not(:disabled) {
   background-color: transparent;
   background-image: url('/ui/toolbar-pressed.png');
+}
+
+.tool-buttons .tool-icon-button,
+.immersive-side-controls .tool-icon-button,
+.immersive-tool-menu .tool-icon-button {
+  width: 52px;
+  min-height: 32px;
+  height: 32px;
+  padding: 5px 14px;
+  color: var(--ink);
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+  box-shadow: none;
+  clip-path: none;
+  image-rendering: pixelated;
+}
+
+.tool-buttons .tool-icon-button img,
+.immersive-side-controls .tool-icon-button img,
+.immersive-tool-menu .tool-icon-button img {
+  width: 18px;
+  height: 18px;
+}
+
+.tool-buttons .tool-icon-button[aria-pressed='true'],
+.immersive-side-controls .tool-icon-button[aria-pressed='true'],
+.immersive-tool-menu .tool-icon-button[aria-pressed='true'] {
+  background: var(--mint);
 }
 
 .drawing-palette[data-palette-size='12'] {

@@ -632,7 +632,7 @@ Helyi állapot (2026-09-19):
   a nyelvváltást folyamatban lévő szobában és a hiányzó fordítások biztonságos tartalékát.
 
 
-[ ] 13/F. VÁSZONESZKÖZÖK ÉS 32 SZÍNŰ BŐVÍTETT PALETTA
+[>] 13/F. VÁSZONESZKÖZÖK ÉS 32 SZÍNŰ BŐVÍTETT PALETTA
 
 - A vászon rajzeszközei között legyen mindig közvetlenül elérhető, saját ikonos
   Visszavonás gomb; ne kelljen másik panelre vagy nézetbe lépni hozzá.
@@ -653,6 +653,16 @@ Helyi állapot (2026-09-19):
   paletta engedélyezett színeit fogadja el. Elindított meccs közben ne lehessen váltani.
 - Készüljön automatizált ellenőrzés a kijelölésre, mozgatásra, visszavonásra,
   12/32 színű szerveroldali ellenőrzésre és a régi 16 színű szobák kompatibilitására.
+
+Első működő eszköztár-bővítés (2026-09-19):
+- A meglévő, közvetlen Visszavonás mellé bekerült a téglalapos Kijelölés és a vászon
+  Mozgatása a normál és a teljes nézet eszköztárába is.
+- A kijelölt pixelek húzással áthelyezhetők, a vászon szélén belül maradnak, és az egész
+  áthelyezés egyetlen lépésben visszavonható.
+- A közös rajzmotoros megoldás a Szerkesztőben és a klasszikus játékban is használható;
+  a kijelölt pixelek mozgatására automatizált helyi próba készült.
+- A saját 32 színű paletta megtervezése, verziózott tárolása és szerveroldali engedélyezése
+  még ennek a mérföldkőnek a következő része.
 
 
 [ ] 14. TELJES VISSZAELLENŐRZÉS

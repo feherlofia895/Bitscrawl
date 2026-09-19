@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { emptyDrawing, parseDrawingDraft, rasterizeDrawing } from '../src/lib/drawing.ts'
+import {
+  emptyDrawing,
+  movePixelSelection,
+  parseDrawingDraft,
+  rasterizeDrawing,
+} from '../src/lib/drawing.ts'
 import { basePalette } from '../src/lib/palette.ts'
 
 test('empty drawings do not share mutable data', () => {
@@ -62,4 +67,47 @@ test('invalid export size or pixels are rejected', () => {
   }
   assert.throws(() => rasterizeDrawing([], 1), /DRAWING_INVALID/)
   assert.throws(() => rasterizeDrawing(Array(1024).fill('red'), 1), /DRAWING_INVALID/)
+})
+
+test('a rectangular selection moves as one intact pixel block', () => {
+  const pixels = emptyDrawing()
+  pixels[1 * 32 + 1] = '#d3493b'
+  pixels[1 * 32 + 2] = '#e29958'
+  pixels[2 * 32 + 1] = '#67ba62'
+  pixels[2 * 32 + 2] = '#33567e'
+  const result = movePixelSelection(pixels, { left: 1, top: 1, right: 2, bottom: 2 }, { x: 3, y: 2 })
+  assert.deepEqual(result.offset, { x: 3, y: 2 })
+  assert.equal(result.pixels[1 * 32 + 1], 'transparent')
+  assert.equal(result.pixels[3 * 32 + 4], '#d3493b')
+  assert.equal(result.pixels[3 * 32 + 5], '#e29958')
+  assert.equal(result.pixels[4 * 32 + 4], '#67ba62')
+  assert.equal(result.pixels[4 * 32 + 5], '#33567e')
+})
+
+test('selection movement is overlap-safe and stops at the canvas edge', () => {
+  const overlapping = emptyDrawing()
+  overlapping[1 * 32 + 1] = '#d3493b'
+  overlapping[1 * 32 + 2] = '#e29958'
+  const overlapResult = movePixelSelection(
+    overlapping,
+    { left: 1, top: 1, right: 2, bottom: 1 },
+    { x: 1, y: 0 },
+  )
+  assert.equal(overlapResult.pixels[1 * 32 + 1], 'transparent')
+  assert.equal(overlapResult.pixels[1 * 32 + 2], '#d3493b')
+  assert.equal(overlapResult.pixels[1 * 32 + 3], '#e29958')
+
+  const pixels = emptyDrawing()
+  pixels[30 * 32 + 29] = '#d3493b'
+  pixels[30 * 32 + 30] = '#e29958'
+  const result = movePixelSelection(
+    pixels,
+    { left: 29, top: 30, right: 30, bottom: 30 },
+    { x: 12, y: 8 },
+  )
+  assert.deepEqual(result.offset, { x: 1, y: 1 })
+  assert.equal(result.pixels[31 * 32 + 30], '#d3493b')
+  assert.equal(result.pixels[31 * 32 + 31], '#e29958')
+  assert.equal(result.pixels[30 * 32 + 29], 'transparent')
+  assert.equal(result.pixels[30 * 32 + 30], 'transparent')
 })

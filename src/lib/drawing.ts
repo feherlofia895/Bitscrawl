@@ -4,8 +4,41 @@ export const DRAWING_SIZE = 32
 export const TRANSPARENT_PIXEL = 'transparent'
 const validColors = new Set([TRANSPARENT_PIXEL, ...basePalette.map(({ hex }) => hex)])
 
+export type PixelSelection = { left: number; top: number; right: number; bottom: number }
+export type PixelOffset = { x: number; y: number }
+
 export function emptyDrawing(): string[] {
   return Array<string>(DRAWING_SIZE * DRAWING_SIZE).fill(TRANSPARENT_PIXEL)
+}
+
+export function clampSelectionOffset(bounds: PixelSelection, offset: PixelOffset): PixelOffset {
+  return {
+    x: Math.max(-bounds.left, Math.min(DRAWING_SIZE - 1 - bounds.right, offset.x)),
+    y: Math.max(-bounds.top, Math.min(DRAWING_SIZE - 1 - bounds.bottom, offset.y)),
+  }
+}
+
+export function movePixelSelection(
+  pixels: readonly string[],
+  bounds: PixelSelection,
+  requestedOffset: PixelOffset,
+) {
+  if (pixels.length !== DRAWING_SIZE * DRAWING_SIZE) throw new Error('DRAWING_INVALID')
+  const offset = clampSelectionOffset(bounds, requestedOffset)
+  const moved = [...pixels]
+
+  for (let y = bounds.top; y <= bounds.bottom; y += 1) {
+    for (let x = bounds.left; x <= bounds.right; x += 1) {
+      moved[y * DRAWING_SIZE + x] = TRANSPARENT_PIXEL
+    }
+  }
+  for (let y = bounds.top; y <= bounds.bottom; y += 1) {
+    for (let x = bounds.left; x <= bounds.right; x += 1) {
+      moved[(y + offset.y) * DRAWING_SIZE + x + offset.x] = pixels[y * DRAWING_SIZE + x]
+    }
+  }
+
+  return { offset, pixels: moved }
 }
 
 export function parseDrawingDraft(serialized: string | null): { pixels: string[]; exported: boolean } {
