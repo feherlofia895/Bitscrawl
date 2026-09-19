@@ -1099,12 +1099,15 @@ function App() {
                     onClick={() => openHomeView('challenge')}
                     type="button"
                   >
-                    Heti kihívás
+                    Kihívás
                   </button>
-                  <button className="ui-drawn-button ui-button-3" onClick={() => openHomeView('gallery')} type="button">
+                  <button className="ui-drawn-button ui-button-3" onClick={() => openHomeView('editor')} type="button">
+                    {editorText.editor}
+                  </button>
+                  <button className="ui-drawn-button ui-button-4" onClick={() => openHomeView('gallery')} type="button">
                     Galéria
                   </button>
-                  <button className="ui-drawn-button ui-button-4" onClick={() => openHomeView('settings')} type="button">
+                  <button className="ui-drawn-button ui-button-5" onClick={() => openHomeView('settings')} type="button">
                     Beállítások
                   </button>
                 </div>

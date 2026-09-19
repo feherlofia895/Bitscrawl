@@ -344,7 +344,7 @@ declare
   current_week_key text;
   prompts text[] := array[
     'Sárkány', 'Világítótorony', 'Űrhajó', 'Gombaház',
-    'Kincsesláda', 'Polip', 'Vulkán', 'Robot',
+    'Gomba', 'Polip', 'Vulkán', 'Robot',
     'Kastély', 'Macska', 'Hőlégballon', 'Tengeralattjáró'
   ];
   chosen_prompt text;

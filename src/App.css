@@ -2439,6 +2439,7 @@ button,
 .ui-button-2 { background-image: url('/ui/menu-button-2.png') !important; }
 .ui-button-3 { background-image: url('/ui/menu-button-3.png') !important; }
 .ui-button-4 { background-image: url('/ui/menu-button-4.png') !important; }
+.ui-button-5 { background-image: url('/ui/menu-button-1.png') !important; }
 
 .ui-drawn-button:hover:not(:disabled) {
   filter: brightness(1.05);
@@ -2574,12 +2575,12 @@ button,
 .primary-button,
 .secondary-button,
 .home-back-button,
-.setting-row,
-.bug-report-trigger,
-.mobile-chat-toggle {
+.setting-row {
+  min-height: 52px;
+  padding: 10px 18px;
   color: var(--ink);
   background-color: transparent;
-  background-image: url('/ui/menu-button-small-mint.png');
+  background-image: url('/ui/menu-button-yellow-1.png');
   background-position: center;
   background-repeat: no-repeat;
   background-size: 100% 100%;
@@ -2589,9 +2590,20 @@ button,
   image-rendering: pixelated;
 }
 
-.primary-button,
+.secondary-button {
+  background-image: url('/ui/menu-button-yellow-2.png');
+}
+
+.home-back-button {
+  background-image: url('/ui/menu-button-yellow-3.png');
+}
+
+.setting-row {
+  background-image: url('/ui/menu-button-2.png');
+}
+
 .setting-row[aria-pressed='true'] {
-  background-image: url('/ui/menu-button-small-green.png');
+  background-image: url('/ui/menu-button-yellow-4.png');
 }
 
 .weekly-challenge-card,
@@ -2619,9 +2631,11 @@ button,
 .weekly-user-bar button,
 .weekly-section-heading > button,
 .weekly-entry > button {
+  min-height: 50px;
+  padding: 9px 16px;
   color: var(--ink);
   background-color: transparent;
-  background-image: url('/ui/menu-button-small-mint.png');
+  background-image: url('/ui/menu-button-yellow-2.png');
   background-position: center;
   background-repeat: no-repeat;
   background-size: 100% 100%;
@@ -2635,7 +2649,40 @@ button,
 .weekly-section-heading > .primary-button,
 .weekly-entry > button[aria-pressed='true'] {
   background-color: transparent;
-  background-image: url('/ui/menu-button-small-green.png');
+  background-image: url('/ui/menu-button-3.png');
+}
+
+/* A teljes méretű szöveges műveletek ugyanazt a rajzolt gombcsaládot
+   használják. A chat, hibajelentő, paletta- és eszközgombok szándékosan
+   nincsenek ebben a csoportban. */
+.editor-actions > button,
+.confirm-modal-actions button,
+.test-mode-button,
+.leave-room-button {
+  min-height: 50px;
+  padding: 9px 16px;
+  color: var(--ink);
+  background-color: transparent;
+  background-image: url('/ui/menu-button-yellow-2.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  border: 0;
+  box-shadow: none;
+  clip-path: none;
+  image-rendering: pixelated;
+}
+
+.editor-actions > button:nth-of-type(2),
+.test-mode-button[aria-pressed='true'],
+.confirm-modal-actions .confirm-danger-button {
+  color: var(--ink);
+  background-color: transparent;
+  background-image: url('/ui/menu-button-4.png');
+}
+
+.editor-actions > .primary-button {
+  background-image: url('/ui/menu-button-yellow-4.png');
 }
 
 .tool-buttons .tool-sprite-button,

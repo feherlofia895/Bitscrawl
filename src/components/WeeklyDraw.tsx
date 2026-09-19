@@ -208,7 +208,7 @@ export function WeeklyDraw({ mode, onBack }: { mode: 'challenge' | 'gallery'; on
       <header className="weekly-header">
         <div>
           <p className="step-label">{mode === 'challenge' ? 'Közösségi kihívás' : 'Közösségi rajzok'}</p>
-          <h1 id="weekly-title">{mode === 'challenge' ? 'Heti kihívás' : 'Galéria'}</h1>
+          <h1 id="weekly-title">{mode === 'challenge' ? 'Kihívás' : 'Galéria'}</h1>
           <p>{mode === 'challenge' ? 'Minden héten egy téma és egy 32×32-es rajz.' : 'Fedezd fel a heti nevezéseket, és oszd ki a három szavazatodat.'}</p>
         </div>
         <button onClick={onBack} type="button">Vissza a főmenübe</button>
