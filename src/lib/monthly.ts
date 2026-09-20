@@ -1,5 +1,6 @@
 import type { Json } from '../types/database'
 import { supabase } from './supabase'
+import { loadGalleryComments, type GalleryComment } from './galleryComments'
 
 export type MonthlyChallenge = {
   challenge_id: number
@@ -16,6 +17,7 @@ export type MonthlyChallenge = {
 export type MonthlyGalleryEntry = {
   authorAvatar: string[] | null
   author_name: string
+  comments: GalleryComment[]
   entry_id: number
   has_voted: boolean
   is_own: boolean
@@ -66,11 +68,15 @@ export async function loadMonthlyChallenges() {
 }
 
 export async function loadMonthlyGallery(challengeId: number) {
-  const { data, error } = await supabase.rpc('get_monthly_gallery', { target_challenge_id: challengeId })
+  const [{ data, error }, comments] = await Promise.all([
+    supabase.rpc('get_monthly_gallery', { target_challenge_id: challengeId }),
+    loadGalleryComments('monthly', challengeId),
+  ])
   if (error) throw monthlyError(error)
   return data.map(entry => ({
     ...entry,
     authorAvatar: pixels(entry.author_avatar),
+    comments: comments.filter(comment => comment.entry_id === entry.entry_id),
     pixels: pixels(entry.pixels) ?? [],
   })) as MonthlyGalleryEntry[]
 }

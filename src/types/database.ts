@@ -418,6 +418,18 @@ export type Database = {
           voting_starts_at: string
         }[]
       }
+      get_gallery_comments: {
+        Args: { target_challenge_id: number; target_kind: string }
+        Returns: {
+          author_avatar: Json | null
+          author_name: string
+          comment_id: number
+          content: string
+          created_at: string
+          entry_id: number
+          is_own: boolean
+        }[]
+      }
       get_monthly_gallery: {
         Args: { target_challenge_id: number }
         Returns: {
@@ -498,6 +510,14 @@ export type Database = {
       }
       save_weekly_draft: {
         Args: { drawing_pixels: Json; target_challenge_id: number }
+        Returns: string
+      }
+      add_gallery_comment: {
+        Args: { requested_content: string; target_entry_id: number; target_kind: string }
+        Returns: number
+      }
+      update_gallery_comment: {
+        Args: { requested_content: string; target_comment_id: number }
         Returns: string
       }
       save_monthly_entry: {

@@ -22,6 +22,8 @@ import {
 import { PixelCanvas } from './PixelCanvas'
 import { ProfileAvatar } from './ProfileAvatar'
 import { WeeklyArtwork } from './WeeklyArtwork'
+import { GalleryComments } from './GalleryComments'
+import { addGalleryComment, updateGalleryComment } from '../lib/galleryComments'
 
 const blankAccount: MonthlyAccountState = {
   entryId: null,
@@ -71,7 +73,7 @@ export function MonthlyDraw({
   const saveTimerRef = useRef<number | null>(null)
 
   const challenge = challenges.find(item => item.challenge_id === selectedId) ?? null
-  const isDrawing = challenge?.challenge_status === 'drawing'
+  const isDrawing = !loading && challenge?.challenge_status === 'drawing'
   const isVoting = challenge?.challenge_status === 'voting'
 
   const refresh = useCallback(async (challengeId: number, knownUser?: User | null) => {
@@ -200,6 +202,30 @@ export function MonthlyDraw({
     finally { setBusy(false) }
   }
 
+  const handleComment = async (entryId: number, content: string) => {
+    setBusy(true)
+    try {
+      await addGalleryComment('monthly', entryId, content)
+      if (selectedId) await refresh(selectedId, user)
+      setStatus('A kommented megmaradt a kép alatt.')
+    } catch (error) {
+      setStatus(errorMessage(error))
+      throw error
+    } finally { setBusy(false) }
+  }
+
+  const handleCommentUpdate = async (commentId: number, content: string) => {
+    setBusy(true)
+    try {
+      await updateGalleryComment(commentId, content)
+      if (selectedId) await refresh(selectedId, user)
+      setStatus('A kommented módosításai elmentve.')
+    } catch (error) {
+      setStatus(errorMessage(error))
+      throw error
+    } finally { setBusy(false) }
+  }
+
   const sortedGallery = useMemo(() => [...gallery].sort((a, b) =>
     b.vote_count - a.vote_count || Date.parse(b.updated_at) - Date.parse(a.updated_at)
   ), [gallery])
@@ -235,7 +261,7 @@ export function MonthlyDraw({
 
     {mode === 'challenge' && !isDrawing && account.submittedAt && account.entryPixels ? <section className="weekly-submitted"><WeeklyArtwork label="A havi rajzod" pixels={account.entryPixels} /><div><p className="step-label">{statusLabel}</p><h2>A beküldött rajzod biztonságban van</h2><p>A szavazási időszak kezdetétől a havi rajz már nem módosítható.</p></div></section> : null}
 
-    {mode === 'gallery' ? <section className="weekly-gallery"><div className="weekly-section-heading"><div><p className="step-label">Havi közösség</p><h2>Havi galéria</h2></div></div>{sortedGallery.length ? <div className="weekly-gallery-grid">{sortedGallery.map(entry => <article className={`weekly-entry${entry.is_winner ? ' is-winner' : ''}`} key={entry.entry_id}>{entry.is_winner ? <span className="weekly-winner">Havi győztes</span> : null}<WeeklyArtwork label={`${entry.author_name} havi rajza`} pixels={entry.pixels} /><div className="weekly-entry-meta"><div className="weekly-entry-author"><ProfileAvatar label={`${entry.author_name} profilképe`} pixels={entry.authorAvatar} /><strong>{entry.author_name}</strong></div><span>{entry.vote_count} szavazat</span></div><button aria-pressed={entry.has_voted} disabled={busy || !user || !isVoting || entry.is_own || (!entry.has_voted && account.votesUsed >= 3)} onClick={() => void handleVote(entry)} type="button">{entry.is_own ? 'A te rajzod' : entry.has_voted ? 'Szavazat visszavonása' : 'Szavazok'}</button></article>)}</div> : <p className="weekly-empty">{isDrawing ? 'A havi rajzok a szavazási időszak kezdetén válnak láthatóvá.' : 'Ehhez a hónaphoz még nincs nevezés.'}</p>}</section> : null}
+    {mode === 'gallery' ? <section className="weekly-gallery"><div className="weekly-section-heading"><div><p className="step-label">Havi közösség</p><h2>Havi galéria</h2></div></div>{sortedGallery.length ? <div className="weekly-gallery-grid">{sortedGallery.map(entry => <article className={`weekly-entry${entry.is_winner ? ' is-winner' : ''}`} key={entry.entry_id}>{entry.is_winner ? <span className="weekly-winner">Havi győztes</span> : null}<WeeklyArtwork label={`${entry.author_name} havi rajza`} pixels={entry.pixels} /><div className="weekly-entry-meta"><div className="weekly-entry-author"><ProfileAvatar label={`${entry.author_name} profilképe`} pixels={entry.authorAvatar} /><strong>{entry.author_name}</strong></div><span>{entry.vote_count} szavazat</span></div><button aria-pressed={entry.has_voted} disabled={busy || !user || !isVoting || entry.is_own || (!entry.has_voted && account.votesUsed >= 3)} onClick={() => void handleVote(entry)} type="button">{entry.is_own ? 'A te rajzod' : entry.has_voted ? 'Szavazat visszavonása' : 'Szavazok'}</button><GalleryComments busy={busy} comments={entry.comments} isSignedIn={Boolean(user && account.profileName)} onSubmit={content => handleComment(entry.entry_id, content)} onUpdate={handleCommentUpdate} /></article>)}</div> : <p className="weekly-empty">{isDrawing ? 'A havi rajzok a szavazási időszak kezdetén válnak láthatóvá.' : 'Ehhez a hónaphoz még nincs nevezés.'}</p>}</section> : null}
     <p className="status-message weekly-message" aria-live="polite">{status}</p>
   </section>
 }

@@ -32,6 +32,12 @@ test('empty drawings do not share mutable data', () => {
   assert.equal(first.length, 1024)
 })
 
+test('the monthly canvas waits for the saved drawing before mounting', async () => {
+  const source = await readFile(new URL('../src/components/MonthlyDraw.tsx', import.meta.url), 'utf8')
+  assert.match(source, /const isDrawing = !loading && challenge\?\.challenge_status === 'drawing'/)
+  assert.match(source, /initialPixels: account\.entryPixels \?\? emptyDrawing\(\)/)
+})
+
 test('local draft restores colors, transparency and export status', () => {
   const pixels = emptyDrawing()
   basePalette.forEach(({ hex }, index) => { pixels[index * 32 + index] = hex })

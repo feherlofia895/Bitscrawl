@@ -235,6 +235,65 @@ test('one validated entry per account reaches the public gallery', async () => {
   assert.deepEqual(directOwn.map(entry => entry.user_id), [users[0]])
 })
 
+test('weekly and monthly gallery comments persist without exposing account ids', async () => {
+  const weeklyGallery = await asUser(null, 'select * from public.get_weekly_gallery($1)', [challengeId], { role: 'anon' })
+  const weeklyEntryId = weeklyGallery[0].entry_id
+
+  await assert.rejects(
+    asUser(null, 'select public.add_gallery_comment($1, $2, $3)', ['weekly', weeklyEntryId, 'Vendég komment'], { role: 'authenticated' }),
+    /WEEKLY_ACCOUNT_REQUIRED/,
+  )
+  await assert.rejects(
+    asUser(users[0], 'select public.add_gallery_comment($1, $2, $3)', ['weekly', weeklyEntryId, '   ']),
+    /GALLERY_COMMENT_INVALID/,
+  )
+  await asUser(users[0], 'select public.add_gallery_comment($1, $2, $3)', ['weekly', weeklyEntryId, 'Nagyon szép!'])
+  await asUser(users[1], 'select public.add_gallery_comment($1, $2, $3)', ['weekly', weeklyEntryId, '  Jó   lett!  '])
+
+  const weeklyComments = await asUser(
+    null, 'select * from public.get_gallery_comments($1, $2)', ['weekly', challengeId], { role: 'anon' },
+  )
+  assert.equal(weeklyComments.length, 2)
+  assert.deepEqual(weeklyComments.map(comment => comment.content), ['Nagyon szép!', 'Jó lett!'])
+  assert(weeklyComments.every(comment => !('user_id' in comment)))
+  await assert.rejects(
+    asUser(users[1], 'select public.update_gallery_comment($1, $2)', [weeklyComments[0].comment_id, 'Nem az enyém']),
+    /GALLERY_COMMENT_NOT_OWN/,
+  )
+  await assert.rejects(
+    asUser(users[0], 'select public.update_gallery_comment($1, $2)', [weeklyComments[0].comment_id, '   ']),
+    /GALLERY_COMMENT_INVALID/,
+  )
+  await asUser(
+    users[0], 'select public.update_gallery_comment($1, $2)',
+    [weeklyComments[0].comment_id, '  Még   szebb!  '],
+  )
+  const editedComments = await asUser(
+    null, 'select * from public.get_gallery_comments($1, $2)', ['weekly', challengeId], { role: 'anon' },
+  )
+  assert.equal(editedComments[0].content, 'Még szebb!')
+  await assert.rejects(asUser(users[0], 'select * from public.gallery_comments'), /permission denied/)
+
+  const [{ id: submittedMonthlyEntryId }] = (await db.query(
+    'select id from public.monthly_entries where challenge_id = $1 and user_id = $2',
+    [monthlyChallengeId, users[0]],
+  )).rows
+  const [{ id: hiddenMonthlyEntryId }] = (await db.query(
+    'select id from public.monthly_entries where challenge_id = $1 and user_id = $2',
+    [monthlyChallengeId, users[5]],
+  )).rows
+  await asUser(users[2], 'select public.add_gallery_comment($1, $2, $3)', ['monthly', submittedMonthlyEntryId, 'Ez a béka aranyos.'])
+  await assert.rejects(
+    asUser(users[2], 'select public.add_gallery_comment($1, $2, $3)', ['monthly', hiddenMonthlyEntryId, 'Rejtett']),
+    /MONTHLY_ENTRY_NOT_FOUND/,
+  )
+  const monthlyComments = await asUser(
+    null, 'select * from public.get_gallery_comments($1, $2)', ['monthly', monthlyChallengeId], { role: 'anon' },
+  )
+  assert.equal(monthlyComments.length, 1)
+  assert.equal(monthlyComments[0].content, 'Ez a béka aranyos.')
+})
+
 test('voting enforces ownership, the three-vote limit and moving a vote', async () => {
   const entries = await asUser(users[0], 'select entry_id, is_own from public.get_weekly_gallery($1)', [challengeId])
   const own = entries.find(entry => entry.is_own)

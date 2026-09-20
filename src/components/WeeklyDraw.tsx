@@ -22,6 +22,8 @@ import { PixelCanvas } from './PixelCanvas'
 import { ProfileAvatar } from './ProfileAvatar'
 import { WeeklyArtwork } from './WeeklyArtwork'
 import { MonthlyDraw } from './MonthlyDraw'
+import { GalleryComments } from './GalleryComments'
+import { addGalleryComment, updateGalleryComment } from '../lib/galleryComments'
 
 type GallerySort = 'discovery' | 'likes' | 'newest'
 
@@ -197,6 +199,34 @@ function WeeklyDrawContent({ mode, onBack, onSelectMonthly }: { mode: 'challenge
     }
   }
 
+  const handleComment = async (entryId: number, content: string) => {
+    setBusy(true)
+    try {
+      await addGalleryComment('weekly', entryId, content)
+      if (selectedId) await refresh(selectedId, user)
+      setStatus('A kommented megmaradt a kép alatt.')
+    } catch (error) {
+      setStatus(errorMessage(error))
+      throw error
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleCommentUpdate = async (commentId: number, content: string) => {
+    setBusy(true)
+    try {
+      await updateGalleryComment(commentId, content)
+      if (selectedId) await refresh(selectedId, user)
+      setStatus('A kommented módosításai elmentve.')
+    } catch (error) {
+      setStatus(errorMessage(error))
+      throw error
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const sortedGallery = useMemo(() => [...gallery].sort((first, second) => {
     if (sort === 'likes') return second.vote_count - first.vote_count || second.entry_id - first.entry_id
     if (sort === 'newest') return Date.parse(second.submitted_at) - Date.parse(first.submitted_at)
@@ -321,6 +351,7 @@ function WeeklyDrawContent({ mode, onBack, onSelectMonthly }: { mode: 'challenge
             <button aria-pressed={entry.has_voted} disabled={busy || !user || !isActive || entry.is_own || (!entry.has_voted && account.votesUsed >= 3)} onClick={() => void handleVote(entry)} type="button">
               {entry.is_own ? 'A te rajzod' : entry.has_voted ? 'Szavazat visszavonása' : 'Szavazok'}
             </button>
+            <GalleryComments busy={busy} comments={entry.comments} isSignedIn={Boolean(user && account.profileName)} onSubmit={content => handleComment(entry.entry_id, content)} onUpdate={handleCommentUpdate} />
           </article>
         ))}</div> : <p className="weekly-empty">Ezen a héten még nincs nevezés. Lehetsz te az első!</p>}
       </section> : null}
