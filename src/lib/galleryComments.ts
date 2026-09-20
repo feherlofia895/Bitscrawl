@@ -16,6 +16,7 @@ export type GalleryComment = {
 const messages: Record<string, string> = {
   GALLERY_COMMENT_INVALID: 'A komment 1–280 karakter hosszú lehet.',
   GALLERY_COMMENT_NOT_OWN: 'Csak a saját kommentedet szerkesztheted.',
+  GALLERY_COMMENT_RATE_LIMIT: 'Várj két másodpercet a következő komment előtt.',
   GALLERY_KIND_INVALID: 'Ez a galéria nem érhető el.',
   MONTHLY_ENTRY_NOT_FOUND: 'Ez a havi rajz még nem kommentelhető.',
   WEEKLY_ACCOUNT_REQUIRED: 'Kommenteléshez jelentkezz be.',

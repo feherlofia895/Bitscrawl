@@ -191,7 +191,7 @@ export function ProfilePanel({ onBack, onProfileChange }: {
               <div className="profile-save-controls">
                 <label className="field">
                   <span>Megjelenített név</span>
-                  <input maxLength={16} onChange={event => { setDisplayName(event.target.value); setDirty(true) }} value={displayName} />
+                  <input disabled={busy} maxLength={16} onChange={event => { setDisplayName(event.target.value); setDirty(true) }} value={displayName} />
                 </label>
                 <button className="primary-button" disabled={busy || displayName.trim().length < 2 || !dirty} onClick={() => void handleSave()} type="button">
                   {busy ? 'Mentés…' : 'Profil mentése'}
@@ -201,6 +201,7 @@ export function ProfilePanel({ onBack, onProfileChange }: {
             <button
               aria-expanded={avatarEditorOpen}
               className="profile-avatar-toggle"
+              disabled={busy}
               onClick={() => setAvatarEditorOpen(open => !open)}
               type="button"
             >
@@ -216,7 +217,7 @@ export function ProfilePanel({ onBack, onProfileChange }: {
             {avatarEditorOpen ? (
               <div className="profile-avatar-drawer">
                 <PixelCanvas
-                  canDraw
+                  canDraw={!busy}
                   chosenWord={null}
                   drawingEndsAt={null}
                   events={[]}

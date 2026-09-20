@@ -54,7 +54,8 @@ test('empty drawings do not share mutable data', () => {
 
 test('the monthly canvas waits for the saved drawing before mounting', async () => {
   const source = await readFile(new URL('../src/components/MonthlyDraw.tsx', import.meta.url), 'utf8')
-  assert.match(source, /const isDrawing = !loading && challenge\?\.challenge_status === 'drawing'/)
+  assert.match(source, /const accountReady = loadedChallengeId === selectedId/)
+  assert.match(source, /const isDrawing = !loading && accountReady && challenge\?\.challenge_status === 'drawing'/)
   assert.match(source, /initialPixels: account\.entryPixels \?\? emptyDrawing\(\)/)
 })
 

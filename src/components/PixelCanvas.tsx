@@ -262,6 +262,14 @@ export function PixelCanvas({
 }: PixelCanvasProps) {
   const localDrawingRef = useRef(localDrawing)
   useEffect(() => { localDrawingRef.current = localDrawing })
+  const onErrorRef = useRef(onError)
+  const onSubmitRef = useRef(onSubmit)
+  const roundIdRef = useRef(roundId)
+  useEffect(() => {
+    onErrorRef.current = onError
+    onSubmitRef.current = onSubmit
+    roundIdRef.current = roundId
+  }, [onError, onSubmit, roundId])
   const pixelPalette = colorsForPalette(paletteSize)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const canvasFrameRef = useRef<HTMLDivElement>(null)
@@ -271,6 +279,7 @@ export function PixelCanvas({
   const appliedEventIdsRef = useRef(new Set<number>())
   const pendingChangesRef = useRef(new Map<string, PixelChange>())
   const flushTimerRef = useRef<number | undefined>(undefined)
+  const flushPendingChangesRef = useRef<() => void>(() => undefined)
   const sendQueueRef = useRef<Promise<unknown>>(Promise.resolve())
   const isDrawingRef = useRef(false)
   const isPanningRef = useRef(false)
@@ -437,10 +446,17 @@ export function PixelCanvas({
 
     for (let index = 0; index < changes.length; index += 64) {
       const chunk = changes.slice(index, index + 64)
+      const sendingRoundId = roundId
       sendQueueRef.current = sendQueueRef.current
-        .then(() => onSubmit(chunk))
+        .then(() => onSubmitRef.current(chunk))
         .catch((error) => {
-          onError(error)
+          if (roundIdRef.current === sendingRoundId) {
+            chunk.forEach(change => {
+              const key = pixelKey(change)
+              if (!pendingChangesRef.current.has(key)) pendingChangesRef.current.set(key, change)
+            })
+          }
+          onErrorRef.current(error)
         })
     }
   }
@@ -582,6 +598,10 @@ export function PixelCanvas({
     shapeGestureRef.current = null
     redrawCanvas()
   }
+
+  useEffect(() => {
+    flushPendingChangesRef.current = flushPendingChanges
+  })
 
   const previewSelection = (point: PixelPoint) => {
     const gesture = selectionGestureRef.current
@@ -854,6 +874,10 @@ export function PixelCanvas({
     })
   }, [events])
 
+  useEffect(() => () => {
+    if (pendingChangesRef.current.size) flushPendingChangesRef.current()
+  }, [roundId])
+
   useEffect(() => {
     const frame = canvasFrameRef.current
     if (!frame) return
@@ -952,18 +976,6 @@ export function PixelCanvas({
   useEffect(() => {
     setIsImmersive(false)
   }, [roundId])
-
-  useEffect(
-    () => () => {
-      if (flushTimerRef.current !== undefined) {
-        window.clearTimeout(flushTimerRef.current)
-      }
-      if (pendingChangesRef.current.size && localDrawingRef.current) {
-        localDrawingRef.current.onChange([...pixelsRef.current])
-      }
-    },
-    [],
-  )
 
   const activeToolDetails =
     toolButtons.find(({ tool }) => tool === activeTool) ?? toolButtons[0]

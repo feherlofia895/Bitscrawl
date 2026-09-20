@@ -37,6 +37,7 @@ export function GalleryComments({
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
+      if (document.querySelector('.profile-preview-modal')) return
       event.preventDefault()
       event.stopImmediatePropagation()
       setOpen(false)

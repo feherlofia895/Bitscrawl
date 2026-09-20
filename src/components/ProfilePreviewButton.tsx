@@ -23,13 +23,18 @@ export function ProfilePreviewButton({
     closeRef.current?.focus()
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
         setOpen(false)
-        triggerRef.current?.focus()
+        window.setTimeout(() => triggerRef.current?.focus(), 0)
+      } else if (event.key === 'Tab') {
+        event.preventDefault()
+        closeRef.current?.focus()
       }
     }
 
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown, true)
+    return () => window.removeEventListener('keydown', handleKeyDown, true)
   }, [open])
 
   const close = () => {

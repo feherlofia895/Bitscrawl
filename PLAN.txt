@@ -1,10 +1,30 @@
 Bitscrawl MVP – FEJLESZTÉSI TERV
-Frissítve: 2026-09-19
+Frissítve: 2026-09-20
 
 Jelölések:
 [x] elkészült
 [>] folyamatban
 [ ] még hátra van
+
+2026-09-20-i teljes kódaudit javítási állapot:
+- [x] A heti és havi rajz automatikus mentése sorosított; a régi kérés nem írhatja
+  felül az újabbat, sikertelen mentés újrapróbálható, belső navigáció előtt pedig a
+  függő mentés befejeződik.
+- [x] A heti/havi szerkesztő csak a kiválasztott kihívás mentett rajzának sikeres
+  betöltése után nyílik meg. Hibánál üres vászon helyett újrapróbálás jelenik meg.
+- [x] Átmeneti Supabase Auth-hiba nem törli a meglévő helyi munkamenetet.
+- [x] A havi szavazati korlát tranzakciósan sorosított; beküldetlen havi piszkozat
+  nem szavazható meg; a szerver a null vagy nem szöveges pixelt elutasítja.
+- [x] A galériakommentek kétmásodperces szerveroldali spamkorlátot kaptak.
+- [x] A meghosszabbított Gomba alatt nem készül második aktív heti kihívás, és a
+  Gomba-adatmigráció későbbi tiszta környezetben is determinisztikusan fut.
+- [x] A multiplayer sikertelen pixelcsomagjai megmaradnak későbbi újraküldéshez;
+  a profil mentése alatt a név és a profilkép nem módosítható.
+- [x] A profilablak Escape-je csak a legfelső ablakot zárja; a fejlesztői
+  Wrangler/Miniflare/Sharp függőséglánc ismert sérülékenysége frissítve.
+- [>] Következő auditcsomag: szerveroldali galéria-, komment-, rajzesemény- és
+  chatlapozás; a kliens által állított online jelenléti azonosító szerveres hitelesítése;
+  hálózatkimaradás után automatikus pixel-újraküldés és tartós helyi vázlat.
 
 2026-09-19-i záró állapot:
 - Az aktuális kiadott commit 2be5512 az `agent/12-color-palette-logo` ágon; a helyi ág

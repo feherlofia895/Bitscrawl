@@ -28,9 +28,16 @@ export const supabase = createClient<Database>(
 export async function ensurePlayerSession() {
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser()
 
   if (user) return user
+
+  if (userError) {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    if (sessionError) throw sessionError
+    if (session) throw userError
+  }
 
   await supabase.auth.signOut({ scope: 'local' })
 

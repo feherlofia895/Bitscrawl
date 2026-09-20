@@ -14,6 +14,7 @@
     "test:palette-hide:local": "node --test scripts/verify-palette-hide-local.mjs",
     "test:pwa": "node --test scripts/verify-pwa.mjs",
     "test:weekly-drawing:local": "node --test scripts/verify-weekly-drawing-local.mjs",
+    "test:drawing-safety": "node --test scripts/verify-drawing-safety.mjs",
     "test:leave-room": "node --env-file=.env.local scripts/verify-leave-room.mjs",
     "test:bug-reports": "node --env-file=.env.local scripts/verify-bug-reports.mjs",
     "test:four-player": "node --env-file=.env.local scripts/verify-four-player-game.mjs",
@@ -35,6 +36,6 @@
     "oxlint": "^1.75.0",
     "typescript": "~6.0.2",
     "vite": "^8.2.0",
-    "wrangler": "4.120.0"
+    "wrangler": "4.135.0"
   }
 }

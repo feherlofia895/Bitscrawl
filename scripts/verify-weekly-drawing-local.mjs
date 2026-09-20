@@ -80,6 +80,12 @@ test('profile avatars are validated, private and copied beside room names', asyn
     asUser(users[0], 'select public.set_profile_avatar($1::jsonb)', [JSON.stringify(['#d3493b'])]),
     /PROFILE_AVATAR_INVALID/,
   )
+  const avatarWithNull = drawing(colors[0])
+  avatarWithNull[8] = null
+  await assert.rejects(
+    asUser(users[0], 'select public.set_profile_avatar($1::jsonb)', [JSON.stringify(avatarWithNull)]),
+    /PROFILE_AVATAR_INVALID/,
+  )
 
   const firstAvatar = drawing(colors[0])
   await asUser(users[0], 'select public.set_profile_avatar($1::jsonb)', [JSON.stringify(firstAvatar)])
@@ -210,6 +216,20 @@ test('monthly challenge keeps entries editable only before the seven-day voting 
     asUser(users[5], 'select public.submit_monthly_entry($1)', [monthlyChallengeId]),
     /MONTHLY_DRAWING_LOCKED/,
   )
+  const [{ id: hiddenMonthlyEntryId }] = (await db.query(
+    'select id from public.monthly_entries where challenge_id = $1 and user_id = $2',
+    [monthlyChallengeId, users[5]],
+  )).rows
+  await assert.rejects(
+    asUser(users[2], 'select * from public.set_monthly_vote($1, true)', [hiddenMonthlyEntryId]),
+    /MONTHLY_ENTRY_NOT_FOUND/,
+  )
+  const [{ prosrc: monthlyVoteSource }] = (await db.query(`
+    select p.prosrc
+    from pg_proc as p join pg_namespace as n on n.oid = p.pronamespace
+    where n.nspname = 'private' and p.proname = 'set_monthly_vote'
+  `)).rows
+  assert.match(monthlyVoteSource, /from public\.profiles[\s\S]*for update/i)
   const gallery = await asUser(users[0], 'select * from public.get_monthly_gallery($1)', [monthlyChallengeId])
   assert.equal(gallery.length, 5)
   assert(!gallery.some(entry => entry.author_name === 'Artist6'))
@@ -241,6 +261,12 @@ test('monthly challenge keeps entries editable only before the seven-day voting 
 test('drafts are validated, private and atomically replaceable', async () => {
   await assert.rejects(
     asUser(users[0], 'select public.save_weekly_draft($1, $2::jsonb)', [challengeId, JSON.stringify(['#d3493b'])]),
+    /WEEKLY_DRAWING_INVALID/,
+  )
+  const drawingWithNull = drawing(colors[0])
+  drawingWithNull[8] = null
+  await assert.rejects(
+    asUser(users[0], 'select public.save_weekly_draft($1, $2::jsonb)', [challengeId, JSON.stringify(drawingWithNull)]),
     /WEEKLY_DRAWING_INVALID/,
   )
   await asUser(users[0], 'select public.save_weekly_draft($1, $2::jsonb)', [challengeId, JSON.stringify(drawing(colors[0]))])
@@ -294,6 +320,10 @@ test('weekly and monthly gallery comments persist without exposing account ids',
     /GALLERY_COMMENT_INVALID/,
   )
   await asUser(users[0], 'select public.add_gallery_comment($1, $2, $3)', ['weekly', weeklyEntryId, 'Nagyon szép!'])
+  await assert.rejects(
+    asUser(users[0], 'select public.add_gallery_comment($1, $2, $3)', ['weekly', weeklyEntryId, 'Túl gyors']),
+    /GALLERY_COMMENT_RATE_LIMIT/,
+  )
   await asUser(users[1], 'select public.add_gallery_comment($1, $2, $3)', ['weekly', weeklyEntryId, '  Jó   lett!  '])
 
   const weeklyComments = await asUser(
