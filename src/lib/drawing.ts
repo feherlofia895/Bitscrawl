@@ -14,6 +14,12 @@ const validColors = new Set([
   ...editorPalette32.map(({ hex }) => hex),
 ])
 
+export function isValidDrawingPixels(value: unknown): value is string[] {
+  return Array.isArray(value) &&
+    value.length === DRAWING_SIZE * DRAWING_SIZE &&
+    value.every((color: unknown) => typeof color === 'string' && validColors.has(color))
+}
+
 export type PixelSelection = { left: number; top: number; right: number; bottom: number }
 export type PixelOffset = { x: number; y: number }
 
@@ -61,8 +67,7 @@ export function parseDrawingDraft(serialized: string | null): DrawingDraft {
   try {
     const stored: unknown = JSON.parse(serialized ?? 'null')
     if (typeof stored === 'object' && stored !== null && 'pixels' in stored &&
-      Array.isArray(stored.pixels) && stored.pixels.length === DRAWING_SIZE * DRAWING_SIZE &&
-      stored.pixels.every((color: unknown) => typeof color === 'string' && validColors.has(color))) {
+      isValidDrawingPixels(stored.pixels)) {
       return {
         pixels: [...stored.pixels],
         exported: 'exported' in stored && stored.exported === true,
@@ -76,7 +81,7 @@ export function parseDrawingDraft(serialized: string | null): DrawingDraft {
 // Pure pixel conversion: PNG export and its tests use the same RGBA buffer.
 export function rasterizeDrawing(pixels: readonly string[], scale: number) {
   if (scale !== 1 && scale !== 8) throw new Error('EXPORT_SCALE_INVALID')
-  if (pixels.length !== DRAWING_SIZE * DRAWING_SIZE || pixels.some(color => !validColors.has(color))) {
+  if (!isValidDrawingPixels(pixels)) {
     throw new Error('DRAWING_INVALID')
   }
   const size = DRAWING_SIZE * scale

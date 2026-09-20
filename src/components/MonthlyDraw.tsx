@@ -27,6 +27,7 @@ import { GalleryComments } from './GalleryComments'
 import { GALLERY_PAGE_SIZE, GalleryPagination } from './GalleryPagination'
 import { addGalleryComment, updateGalleryComment } from '../lib/galleryComments'
 import { createDrawingSaveQueue } from '../lib/drawingSaveQueue'
+import { clearChallengeDraft, loadChallengeDraft, saveChallengeDraft } from '../lib/challengeDrafts'
 
 const blankAccount: MonthlyAccountState = {
   entryId: null,
@@ -77,19 +78,33 @@ export function MonthlyDraw({
   const pixelsRef = useRef(emptyDrawing())
   const mountedRef = useRef(true)
   const loadVersionRef = useRef(0)
+  const userIdRef = useRef(user?.id ?? null)
+  const localDraftStoredRef = useRef(false)
   const selectedIdRef = useRef(selectedId)
+  userIdRef.current = user?.id ?? null
   selectedIdRef.current = selectedId
   const saveQueueRef = useRef<ReturnType<typeof createDrawingSaveQueue<number>> | null>(null)
   if (!saveQueueRef.current) {
     saveQueueRef.current = createDrawingSaveQueue({
       save: saveMonthlyEntry,
       onSaved: task => {
+        const userId = userIdRef.current
+        if (userId && clearChallengeDraft('monthly', userId, task.key, task.pixels)) {
+          localDraftStoredRef.current = false
+        }
         if (mountedRef.current && selectedIdRef.current === task.key) {
-          setStatus('A havi rajz elmentve, később is folytathatod.')
+          setStatus('Mentve.')
         }
       },
       onError: (error, task) => {
-        if (mountedRef.current && selectedIdRef.current === task.key) setStatus(errorMessage(error))
+        if (mountedRef.current && selectedIdRef.current === task.key) {
+          const localNote = localDraftStoredRef.current
+            ? ' A rajz ezen az eszközön megmaradt.'
+            : ' A helyi mentés nem érhető el; hagyd nyitva ezt az oldalt.'
+          setStatus(navigator.onLine
+            ? `Mentés sikertelen: ${errorMessage(error)}${localNote} Újrapróbáljuk.`
+            : `Nincs kapcsolat.${localNote} Kapcsolódás után újrapróbáljuk.`)
+        }
       },
     })
   }
@@ -99,7 +114,11 @@ export function MonthlyDraw({
   const isDrawing = !loading && accountReady && challenge?.challenge_status === 'drawing'
   const isVoting = challenge?.challenge_status === 'voting'
 
-  const refresh = useCallback(async (challengeId: number, knownUser?: User | null) => {
+  const refresh = useCallback(async (
+    challengeId: number,
+    allowLocalDraft: boolean,
+    knownUser?: User | null,
+  ) => {
     const loadVersion = ++loadVersionRef.current
     const currentUser = knownUser === undefined ? await getWeeklyUser() : knownUser
     const [nextGallery, nextAccount] = await Promise.all([
@@ -107,13 +126,22 @@ export function MonthlyDraw({
       currentUser ? loadMonthlyAccountState(challengeId) : Promise.resolve(blankAccount),
     ])
     if (loadVersion !== loadVersionRef.current) return false
+    const localDraft = currentUser && allowLocalDraft
+      ? loadChallengeDraft('monthly', currentUser.id, challengeId)
+      : null
+    const mergedAccount = localDraft
+      ? { ...nextAccount, entryPixels: localDraft.pixels }
+      : nextAccount
+    userIdRef.current = currentUser?.id ?? null
     setUser(currentUser)
     setGallery(nextGallery)
-    setAccount(nextAccount)
-    pixelsRef.current = [...(nextAccount.entryPixels ?? emptyDrawing())]
-    setDisplayName(nextAccount.profileName ?? '')
+    setAccount(mergedAccount)
+    pixelsRef.current = [...(mergedAccount.entryPixels ?? emptyDrawing())]
+    setDisplayName(mergedAccount.profileName ?? '')
     setLoadedChallengeId(challengeId)
-    return true
+    localDraftStoredRef.current = Boolean(localDraft)
+    if (localDraft) saveQueueRef.current?.schedule(challengeId, localDraft.pixels)
+    return localDraft ? 'local' : 'server'
   }, [])
 
   useEffect(() => {
@@ -130,8 +158,10 @@ export function MonthlyDraw({
         const initial = nextChallenges.find(item => ['drawing', 'voting'].includes(item.challenge_status)) ?? nextChallenges[0]
         if (!initial) return setStatus('Még nincs havi kihívás.')
         setSelectedId(initial.challenge_id)
-        const loaded = await refresh(initial.challenge_id, currentUser)
-        if (!cancelled && loaded) setStatus('A havi kihívás naprakész.')
+        const loaded = await refresh(initial.challenge_id, initial.challenge_status === 'drawing', currentUser)
+        if (!cancelled && loaded) setStatus(loaded === 'local'
+          ? 'A helyi vázlat visszaállítva. Mentés folyamatban…'
+          : 'A havi kihívás naprakész.')
       } catch (error) {
         if (!cancelled) setStatus(errorMessage(error))
       } finally {
@@ -153,6 +183,16 @@ export function MonthlyDraw({
     }
     window.addEventListener('beforeunload', warnBeforeUnload)
     return () => window.removeEventListener('beforeunload', warnBeforeUnload)
+  }, [])
+
+  useEffect(() => {
+    const retrySave = () => {
+      if (!saveQueueRef.current?.hasUnsavedChanges()) return
+      setStatus('Kapcsolat helyreállt. Mentés újrapróbálása…')
+      void saveQueueRef.current.flush().catch(() => undefined)
+    }
+    window.addEventListener('online', retrySave)
+    return () => window.removeEventListener('online', retrySave)
   }, [])
 
   const flushDrawing = useCallback(async () => {
@@ -182,7 +222,8 @@ export function MonthlyDraw({
     setLoadedChallengeId(null)
     setGalleryPage(1)
     try {
-      const loaded = await refresh(challengeId)
+      const selectedChallenge = challenges.find(item => item.challenge_id === challengeId)
+      const loaded = await refresh(challengeId, selectedChallenge?.challenge_status === 'drawing')
       if (loaded) setStatus('A kiválasztott hónap betöltve.')
     }
     catch (error) { setStatus(errorMessage(error)) }
@@ -202,7 +243,7 @@ export function MonthlyDraw({
         setAccount(current => ({ ...current, profileName: rememberedName }))
         setDisplayName(rememberedName)
       }
-      if (selectedId && nextUser) await refresh(selectedId, nextUser)
+      if (selectedId && nextUser) await refresh(selectedId, challenge?.challenge_status === 'drawing', nextUser)
       setStatus('Sikeresen bejelentkeztél.')
     } catch (error) { setStatus(errorMessage(error)) }
     finally { setBusy(false) }
@@ -212,7 +253,7 @@ export function MonthlyDraw({
     setBusy(true)
     try {
       await setWeeklyProfile(displayName)
-      if (selectedId) await refresh(selectedId, user)
+      if (selectedId) await refresh(selectedId, challenge?.challenge_status === 'drawing', user)
       setStatus('A megjelenített neved elmentve.')
     } catch (error) { setStatus(errorMessage(error)) }
     finally { setBusy(false) }
@@ -236,15 +277,19 @@ export function MonthlyDraw({
 
   const handleDrawingChange = useCallback((pixels: string[]) => {
     pixelsRef.current = pixels
-    setStatus('Havi rajz mentése…')
-    if (selectedId) saveQueueRef.current?.schedule(selectedId, pixels)
+    setStatus('Mentés folyamatban…')
+    const userId = userIdRef.current
+    if (selectedId && userId) {
+      localDraftStoredRef.current = saveChallengeDraft('monthly', userId, selectedId, pixels)
+      saveQueueRef.current?.schedule(selectedId, pixels)
+    }
   }, [selectedId])
 
   const handleVote = async (entry: MonthlyGalleryEntry) => {
     setBusy(true)
     try {
       await setMonthlyVote(entry.entry_id, !entry.has_voted)
-      if (selectedId) await refresh(selectedId, user)
+      if (selectedId) await refresh(selectedId, isDrawing, user)
       setStatus(entry.has_voted ? 'A szavazatot visszavontad.' : 'Szavazat elmentve.')
     } catch (error) { setStatus(errorMessage(error)) }
     finally { setBusy(false) }
@@ -256,7 +301,7 @@ export function MonthlyDraw({
     try {
       if (!(await flushDrawing())) return
       await submitMonthlyEntry(selectedId)
-      await refresh(selectedId, user)
+      await refresh(selectedId, true, user)
       setStatus('A havi rajzod bekerült a nevezések közé. A szavazás kezdetéig tovább szerkesztheted.')
     } catch (error) { setStatus(errorMessage(error)) }
     finally { setBusy(false) }
@@ -266,7 +311,7 @@ export function MonthlyDraw({
     setBusy(true)
     try {
       await addGalleryComment('monthly', entryId, content)
-      if (selectedId) await refresh(selectedId, user)
+      if (selectedId) await refresh(selectedId, isDrawing, user)
       setStatus('A kommented megmaradt a kép alatt.')
     } catch (error) {
       setStatus(errorMessage(error))
@@ -278,7 +323,7 @@ export function MonthlyDraw({
     setBusy(true)
     try {
       await updateGalleryComment(commentId, content)
-      if (selectedId) await refresh(selectedId, user)
+      if (selectedId) await refresh(selectedId, isDrawing, user)
       setStatus('A kommented módosításai elmentve.')
     } catch (error) {
       setStatus(errorMessage(error))

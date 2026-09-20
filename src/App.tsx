@@ -1369,7 +1369,6 @@ function App() {
 
       <footer>
         <span>Bitscrawl MVP</span>
-        <span>14. mérföldkő · Heti rajz</span>
       </footer>
 
       <BugReport

@@ -3,6 +3,11 @@ import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
 import ts from 'typescript'
 import { createDrawingSaveQueue } from '../src/lib/drawingSaveQueue.ts'
+import {
+  clearChallengeDraft,
+  loadChallengeDraft,
+  saveChallengeDraft,
+} from '../src/lib/challengeDrafts.ts'
 
 const emptyDrawing = () => Array(1024).fill('transparent')
 const turn = () => new Promise(resolve => setImmediate(resolve))
@@ -49,6 +54,25 @@ test('a failed drawing save remains pending and can be retried', async () => {
   await queue.flush()
   assert.equal(attempts, 2)
   assert.equal(queue.hasUnsavedChanges(), false)
+})
+
+test('an unsent challenge drawing survives reload and only its saved version is cleared', () => {
+  const values = new Map()
+  const storage = {
+    getItem: key => values.get(key) ?? null,
+    removeItem: key => { values.delete(key) },
+    setItem: (key, value) => { values.set(key, value) },
+  }
+  const first = emptyDrawing(); first[0] = '#d3493b'
+  const newer = [...first]; newer[1] = '#67ba62'
+
+  assert.equal(saveChallengeDraft('weekly', 'player-1', 7, first, storage), true)
+  assert.deepEqual(loadChallengeDraft('weekly', 'player-1', 7, storage)?.pixels, first)
+  assert.equal(saveChallengeDraft('weekly', 'player-1', 7, newer, storage), true)
+  assert.equal(clearChallengeDraft('weekly', 'player-1', 7, first, storage), false)
+  assert.deepEqual(loadChallengeDraft('weekly', 'player-1', 7, storage)?.pixels, newer)
+  assert.equal(clearChallengeDraft('weekly', 'player-1', 7, newer, storage), true)
+  assert.equal(loadChallengeDraft('weekly', 'player-1', 7, storage), null)
 })
 
 test('a temporary auth error preserves an existing local session', async () => {
@@ -101,6 +125,7 @@ test('failed multiplayer pixel chunks stay queued for a later retry', async () =
   const source = await readFile(new URL('../src/components/PixelCanvas.tsx', import.meta.url), 'utf8')
   assert.match(source, /if \(!pendingChangesRef\.current\.has\(key\)\) pendingChangesRef\.current\.set\(key, change\)/)
   assert.match(source, /if \(pendingChangesRef\.current\.size\) flushPendingChangesRef\.current\(\)/)
+  assert.match(source, /addEventListener\('online', retryPendingChanges\)/)
 })
 
 function hookRuntime() {
@@ -162,6 +187,11 @@ async function loadComponent(file, imports, hooks) {
     'react/jsx-runtime': { jsx: (type, props) => ({ type, props }), jsxs: (type, props) => ({ type, props }), Fragment: 'Fragment' },
     '../lib/drawing': { emptyDrawing },
     '../lib/drawingSaveQueue': { createDrawingSaveQueue },
+    '../lib/challengeDrafts': {
+      clearChallengeDraft: () => true,
+      loadChallengeDraft: () => null,
+      saveChallengeDraft: () => true,
+    },
     '../lib/weekly': { getWeeklyUser: async () => ({ id: 'audit-user', user_metadata: { display_name: 'Audit' } }) },
     './PixelCanvas': { PixelCanvas: 'PixelCanvas' },
     './GalleryPagination': { GALLERY_PAGE_SIZE: 6, GalleryPagination: 'Pagination' },

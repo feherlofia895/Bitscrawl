@@ -879,6 +879,15 @@ export function PixelCanvas({
   }, [roundId])
 
   useEffect(() => {
+    if (localDrawing) return
+    const retryPendingChanges = () => {
+      if (pendingChangesRef.current.size) flushPendingChangesRef.current()
+    }
+    window.addEventListener('online', retryPendingChanges)
+    return () => window.removeEventListener('online', retryPendingChanges)
+  }, [localDrawing, roundId])
+
+  useEffect(() => {
     const frame = canvasFrameRef.current
     if (!frame) return
 

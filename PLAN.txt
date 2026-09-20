@@ -22,9 +22,11 @@ Jelölések:
   a profil mentése alatt a név és a profilkép nem módosítható.
 - [x] A profilablak Escape-je csak a legfelső ablakot zárja; a fejlesztői
   Wrangler/Miniflare/Sharp függőséglánc ismert sérülékenysége frissítve.
+- [x] Hálózatkimaradás után a multiplayer pixelcsomagok és a heti/havi rajzmentés
+  automatikusan újraindul; a be nem küldött kihívásrajz felhasználónként és
+  kihívásonként helyi vázlatban is megmarad, majd sikeres szervermentéskor törlődik.
 - [>] Következő auditcsomag: szerveroldali galéria-, komment-, rajzesemény- és
-  chatlapozás; a kliens által állított online jelenléti azonosító szerveres hitelesítése;
-  hálózatkimaradás után automatikus pixel-újraküldés és tartós helyi vázlat.
+  chatlapozás; a kliens által állított online jelenléti azonosító szerveres hitelesítése.
 
 2026-09-19-i záró állapot:
 - Az aktuális kiadott commit 2be5512 az `agent/12-color-palette-logo` ágon; a helyi ág
