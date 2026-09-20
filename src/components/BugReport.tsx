@@ -22,6 +22,7 @@ const categoryLabels: Record<BugReportCategory, string> = {
 
 export function BugReport(props: BugReportProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [reportMode, setReportMode] = useState<'bug' | 'idea'>('bug')
   const [category, setCategory] = useState<BugReportCategory>('bug')
   const [description, setDescription] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -36,7 +37,9 @@ export function BugReport(props: BugReportProps) {
     return () => window.removeEventListener('keydown', closeWithEscape)
   }, [isOpen, isSubmitting])
 
-  const openReport = () => {
+  const openReport = (mode: 'bug' | 'idea') => {
+    setReportMode(mode)
+    setCategory(mode)
     setFeedback('')
     setIsOpen(true)
   }
@@ -44,7 +47,7 @@ export function BugReport(props: BugReportProps) {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     if (description.trim().length < 10) {
-      setFeedback('Írd le a hibát legalább 10 karakterben.')
+      setFeedback(`Írd le ${reportMode === 'idea' ? 'az ötletet' : 'a hibát'} legalább 10 karakterben.`)
       return
     }
 
@@ -53,7 +56,9 @@ export function BugReport(props: BugReportProps) {
     try {
       await submitBugReport({ ...props, category, description, steps: '' })
       setDescription('')
-      setFeedback('Köszönjük! A hibajelentés megérkezett.')
+      setFeedback(reportMode === 'idea'
+        ? 'Köszönjük! Az ötleted bekerült a ládába.'
+        : 'Köszönjük! A hibajelentés megérkezett.')
     } catch (error) {
       console.error(error)
       setFeedback('Nem sikerült elküldeni. Ellenőrizd az internetkapcsolatot, majd próbáld újra.')
@@ -64,9 +69,14 @@ export function BugReport(props: BugReportProps) {
 
   return (
     <>
-      <button className="bug-report-trigger" onClick={openReport} type="button">
-        Hibát találtam
-      </button>
+      <div className="feedback-triggers">
+        <button className="bug-report-trigger" onClick={() => openReport('bug')} type="button">
+          Hibát találtam
+        </button>
+        <button className="bug-report-trigger idea-box-trigger" onClick={() => openReport('idea')} type="button">
+          Ötletláda
+        </button>
+      </div>
       {isOpen
         ? createPortal(
             <div className="bug-report-backdrop" role="presentation">
@@ -78,11 +88,11 @@ export function BugReport(props: BugReportProps) {
               >
                 <div className="bug-report-heading">
                   <div>
-                    <p className="step-label">Tesztelői visszajelzés</p>
-                    <h2 id="bug-report-title">Hibát találtál?</h2>
+                    <p className="step-label">{reportMode === 'idea' ? 'Ötletek a játékhoz' : 'Tesztelői visszajelzés'}</p>
+                    <h2 id="bug-report-title">{reportMode === 'idea' ? 'Van egy ötleted?' : 'Hibát találtál?'}</h2>
                   </div>
                   <button
-                    aria-label="Hibajelentő bezárása"
+                    aria-label={`${reportMode === 'idea' ? 'Ötletláda' : 'Hibajelentő'} bezárása`}
                     disabled={isSubmitting}
                     onClick={() => setIsOpen(false)}
                     type="button"
@@ -91,28 +101,32 @@ export function BugReport(props: BugReportProps) {
                   </button>
                 </div>
                 <form className="bug-report-form" onSubmit={handleSubmit}>
+                  {reportMode === 'bug' ? (
+                    <label className="field">
+                      <span>Típus</span>
+                      <select
+                        disabled={isSubmitting}
+                        onChange={(event) =>
+                          setCategory(event.target.value as BugReportCategory)
+                        }
+                        value={category}
+                      >
+                        {Object.entries(categoryLabels).map(([value, label]) => (
+                          <option key={value} value={value}>{label}</option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : null}
                   <label className="field">
-                    <span>Típus</span>
-                    <select
-                      disabled={isSubmitting}
-                      onChange={(event) =>
-                        setCategory(event.target.value as BugReportCategory)
-                      }
-                      value={category}
-                    >
-                      {Object.entries(categoryLabels).map(([value, label]) => (
-                        <option key={value} value={value}>{label}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="field">
-                    <span>Na mi van?</span>
+                    <span>{reportMode === 'idea' ? 'Na mi legyen?' : 'Na mi van?'}</span>
                     <textarea
                       autoFocus
                       disabled={isSubmitting}
                       maxLength={1500}
                       onChange={(event) => setDescription(event.target.value)}
-                      placeholder="Írd le kérlek, mi történt, és legyen szép napod!"
+                      placeholder={reportMode === 'idea'
+                        ? 'Tűkön ülök, hogy halljam!'
+                        : 'Írd le kérlek, mi történt, és legyen szép napod!'}
                       required
                       rows={5}
                       value={description}
@@ -123,7 +137,9 @@ export function BugReport(props: BugReportProps) {
                   </p>
                   {feedback ? <p aria-live="polite" className="bug-report-feedback">{feedback}</p> : null}
                   <button disabled={isSubmitting} type="submit">
-                    {isSubmitting ? 'Küldés…' : 'Hibajelentés elküldése'}
+                    {isSubmitting
+                      ? 'Küldés…'
+                      : reportMode === 'idea' ? 'Ötlet elküldése' : 'Hibajelentés elküldése'}
                   </button>
                 </form>
               </section>

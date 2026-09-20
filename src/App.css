@@ -735,16 +735,26 @@ footer {
   isolation: isolate;
 }
 
-.bug-report-trigger {
+.feedback-triggers {
   position: fixed;
   left: max(12px, env(safe-area-inset-left));
   bottom: max(12px, env(safe-area-inset-bottom));
   z-index: 950;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.bug-report-trigger {
   min-height: 42px;
   padding: 8px 12px;
   color: var(--yellow);
   background: var(--blue);
   box-shadow: 4px 4px 0 var(--ink);
+}
+
+.idea-box-trigger {
+  background-image: url('/ui/nagy-gomb-turkiz-5.png') !important;
 }
 
 .bug-report-backdrop {
@@ -2995,24 +3005,27 @@ canvas.player-avatar {
 }
 
 .drawing-palette[data-palette-size='12'] {
-  grid-template-columns: repeat(6, 16px);
-  grid-template-rows: repeat(2, 16px);
-  gap: 3px 2px;
-  width: 133px;
-  height: 40px;
-  padding: 3px 13px 2px 15px;
-  background: url('/ui/palette-shape.png') 0 0 / 133px 40px no-repeat;
-  border: 0;
-  clip-path: none;
-  image-rendering: pixelated;
+  grid-template-columns: repeat(12, 16px);
+  grid-template-rows: 16px;
+  gap: 4px;
+  width: fit-content;
+  height: auto;
+  padding: 7px;
+  background: color-mix(in srgb, var(--paper) 72%, var(--mint));
+  border: 2px solid var(--ink);
+  clip-path: var(--pixel-corner);
 }
 
 .drawing-palette[data-palette-size='12'] button {
   width: 16px;
   height: 16px;
   min-height: 0;
+  padding: 0;
   border: 0;
   border-radius: 50%;
+  background-image: none;
+  box-shadow: none;
+  clip-path: none;
 }
 
 .drawing-palette[data-palette-size='12'] button[aria-pressed='true'] {

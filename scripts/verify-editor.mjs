@@ -23,6 +23,14 @@ test('the visible 12-color buttons use the same hex values as drawing and saving
     css,
     /\.drawing-palette\[data-palette-size=['"]12['"]\]\s+button\s*\{[^}]*background-color:\s*transparent/,
   )
+  assert.match(
+    css,
+    /\.drawing-palette\[data-palette-size=['"]12['"]\]\s*\{[^}]*grid-template-columns:\s*repeat\(12,\s*16px\)/,
+  )
+  assert.match(
+    css,
+    /\.drawing-palette\[data-palette-size=['"]12['"]\]\s+button\s*\{[^}]*background-image:\s*none/,
+  )
 })
 
 test('empty drawings do not share mutable data', () => {
