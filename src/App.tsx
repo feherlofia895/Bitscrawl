@@ -6,6 +6,7 @@ import { RoundDurationControl } from './components/RoundDurationControl'
 import { editorText } from './lib/editorText'
 import { DEFAULT_ROUND_DURATION, isRoundDuration, roundDurations, roundDurationText, type RoundDuration } from './lib/roundDuration'
 import { BugReport } from './components/BugReport'
+import { ActiveUsers } from './components/ActiveUsers'
 import { ConfirmModal } from './components/ConfirmModal'
 import { WeeklyDraw } from './components/WeeklyDraw'
 import { ProfileAvatar } from './components/ProfileAvatar'
@@ -1329,6 +1330,11 @@ function App() {
       </footer>
 
       <BugReport
+        extraTrigger={<ActiveUsers
+          currentProfile={playerProfile}
+          onOpenProfile={() => openHomeView('profile')}
+          profileAccessDisabled={Boolean(lobby)}
+        />}
         playerName={playerName}
         roomCode={lobby?.room.code ?? null}
         roomId={lobby?.room.id ?? null}

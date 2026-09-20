@@ -98,6 +98,27 @@ export type Database = {
           },
         ]
       }
+      lobby_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: number
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: never
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: never
+          user_id?: string
+        }
+        Relationships: []
+      }
       room_players: {
         Row: {
           avatar_pixels: Json | null
@@ -418,6 +439,17 @@ export type Database = {
           voting_starts_at: string
         }[]
       }
+      get_global_lobby_messages: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          author_avatar: Json | null
+          author_name: string
+          content: string
+          created_at: string
+          is_own: boolean
+          message_id: number
+        }[]
+      }
       get_gallery_comments: {
         Args: { target_challenge_id: number; target_kind: string }
         Returns: {
@@ -453,6 +485,14 @@ export type Database = {
           submitted_at: string | null
           updated_at: string | null
           votes_used: number
+        }[]
+      }
+      get_online_profiles: {
+        Args: { requested_user_ids: string[] }
+        Returns: {
+          avatar_pixels: Json | null
+          display_name: string
+          user_id: string
         }[]
       }
       get_weekly_gallery: {
@@ -506,6 +546,10 @@ export type Database = {
       }
       send_room_message: {
         Args: { message_content: string; target_room_id: number }
+        Returns: number
+      }
+      send_global_lobby_message: {
+        Args: { requested_content: string }
         Returns: number
       }
       save_weekly_draft: {

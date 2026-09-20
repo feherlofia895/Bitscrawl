@@ -771,6 +771,11 @@ Javasolt sorrend és függőségek:
 - 2026-09-20: a heti és havi galéria készítői, a kommentelők, valamint a játékszoba
   játékosnevei kattinthatók; a közös profilablak nagy méretben mutatja a nevet és a
   megrajzolt profilképet, személyes fiókadatok nélkül.
+- 2026-09-20: elkészült a közösségi előszoba helyi változata. Az Ötletláda melletti
+  Aktívak gomb a bejelentkezett profilokat Supabase Presence segítségével mutatja,
+  a nevekről megnyitható a nagy profilnézet, az előszoba-chat legutóbbi 100 üzenete
+  pedig tartósan megmarad. A külön adattábla RLS-védett, csak profilhoz kötött fiók
+  olvashat és írhat, a küldés szerveroldali hossz- és sebességkorlátot kapott.
 - 2026-09-20: az ingyenes Supabase levélküldés óránkénti korlátja miatt az e-mailes
   regisztráció azonnali megerősítéssel működik, így nem fogyaszt megerősítő levelet.
   Emiatt az e-mail-cím valódisága egyelőre nincs ellenőrizve; nyilvános indulás előtt

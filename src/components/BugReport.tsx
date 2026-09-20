@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import {
   submitBugReport,
@@ -6,6 +6,7 @@ import {
 } from '../lib/bugReports'
 
 type BugReportProps = {
+  extraTrigger?: ReactNode
   playerName: string
   roomCode: string | null
   roomId: number | null
@@ -20,7 +21,7 @@ const categoryLabels: Record<BugReportCategory, string> = {
   idea: 'Ötlet',
 }
 
-export function BugReport(props: BugReportProps) {
+export function BugReport({ extraTrigger, ...props }: BugReportProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [reportMode, setReportMode] = useState<'bug' | 'idea'>('bug')
   const [category, setCategory] = useState<BugReportCategory>('bug')
@@ -76,6 +77,7 @@ export function BugReport(props: BugReportProps) {
         <button className="bug-report-trigger idea-box-trigger" onClick={() => openReport('idea')} type="button">
           Ötletláda
         </button>
+        {extraTrigger}
       </div>
       {isOpen
         ? createPortal(

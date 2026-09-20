@@ -8,6 +8,7 @@ const db = new PGlite()
 const users = Array.from({ length: 6 }, (_, index) =>
   `10000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`)
 const anonymousUser = '20000000-0000-4000-8000-000000000001'
+const unprofiledUser = '20000000-0000-4000-8000-000000000002'
 let challengeId
 let monthlyChallengeId
 const colors = ['#d3493b', '#da7149', '#e29958', '#f5e57a', '#a5d967', '#67ba62']
@@ -39,7 +40,7 @@ before(async () => {
       $$ select decode(substr(md5(random()::text) || md5(random()::text), 1, n * 2), 'hex') $$;
     create publication supabase_realtime;
   `)
-  for (const user of [...users, anonymousUser]) await db.query('insert into auth.users values ($1)', [user])
+  for (const user of [...users, anonymousUser, unprofiledUser]) await db.query('insert into auth.users values ($1)', [user])
   const migrationDir = new URL('../supabase/migrations/', import.meta.url)
   const files = (await readdir(migrationDir)).filter(file => file.endsWith('.sql')).sort()
   for (const file of files) {
@@ -108,6 +109,51 @@ test('profile avatars are validated, private and copied beside room names', asyn
     [roomId, users[0]],
   )).rows
   assert.deepEqual(roomAvatar, updatedAvatar)
+})
+
+test('global lobby exposes only safe profile fields and persists rate-limited chat', async () => {
+  await assert.rejects(
+    asUser(anonymousUser, 'select * from public.get_online_profiles($1::uuid[])', [[users[0]]], { anonymous: true }),
+    /WEEKLY_ACCOUNT_REQUIRED/,
+  )
+  await assert.rejects(
+    asUser(unprofiledUser, 'select * from public.get_online_profiles($1::uuid[])', [[users[0]]]),
+    /LOBBY_PROFILE_REQUIRED/,
+  )
+
+  const profiles = await asUser(
+    users[0],
+    'select * from public.get_online_profiles($1::uuid[])',
+    [[users[0], users[1], users[0]]],
+  )
+  assert.equal(profiles.length, 2)
+  assert(profiles.every(profile => !('email' in profile) && !('created_at' in profile)))
+
+  await assert.rejects(
+    asUser(users[0], 'insert into public.lobby_messages (user_id, content) values ($1, $2)', [users[0], 'Tiltott']),
+    /permission denied/,
+  )
+  await assert.rejects(
+    asUser(users[0], 'select public.send_global_lobby_message($1)', ['   ']),
+    /LOBBY_MESSAGE_INVALID/,
+  )
+  await asUser(users[0], 'select public.send_global_lobby_message($1)', ['  Sziasztok   mindenkinek!  '])
+  await assert.rejects(
+    asUser(users[0], 'select public.send_global_lobby_message($1)', ['Túl gyors']),
+    /LOBBY_MESSAGE_RATE_LIMIT/,
+  )
+  await db.query("update public.lobby_messages set created_at = clock_timestamp() - interval '3 seconds'")
+  await asUser(users[1], 'select public.send_global_lobby_message($1)', ['Helló!'])
+
+  const ownMessages = await asUser(users[0], 'select * from public.get_global_lobby_messages()')
+  const otherMessages = await asUser(users[1], 'select * from public.get_global_lobby_messages()')
+  assert.deepEqual(ownMessages.map(message => message.content), ['Sziasztok mindenkinek!', 'Helló!'])
+  assert.deepEqual(ownMessages.map(message => message.is_own), [true, false])
+  assert.deepEqual(otherMessages.map(message => message.is_own), [false, true])
+  assert(ownMessages.every(message => !('user_id' in message)))
+
+  assert.equal((await asUser(users[0], 'select * from public.lobby_messages')).length, 2)
+  assert.equal((await asUser(unprofiledUser, 'select * from public.lobby_messages')).length, 0)
 })
 
 test('monthly challenge keeps entries editable only before the seven-day voting window', async () => {
