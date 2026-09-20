@@ -3646,6 +3646,26 @@ canvas.player-avatar {
   background: var(--mint);
 }
 
+.tool-buttons .tool-sprite-button {
+  width: 64px;
+  min-height: 48px;
+  height: 48px;
+  background-position: 0 var(--tool-sprite-y-large);
+  background-size: 78px 384px;
+}
+
+.tool-buttons .tool-icon-button {
+  width: 64px;
+  min-height: 48px;
+  height: 48px;
+  padding: 6px 16px;
+}
+
+.tool-buttons .tool-icon-button img {
+  width: 27px;
+  height: 27px;
+}
+
 .drawing-palette[data-palette-size='12'] {
   grid-template-columns: repeat(12, 16px);
   grid-template-rows: 16px;
@@ -3715,6 +3735,12 @@ canvas.player-avatar {
 @media (max-width: 560px) {
   .app-shell {
     padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .tool-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 64px);
+    justify-content: center;
   }
 
   .feedback-triggers {

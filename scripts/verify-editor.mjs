@@ -61,6 +61,22 @@ test('canvas view controls use compact zoom buttons and omit coordinates', async
   )
 })
 
+test('the regular toolbar omits its duplicate pan hand and enlarges the drawn controls', async () => {
+  const [css, canvasSource] = await Promise.all([
+    readFile(new URL('../src/App.css', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/PixelCanvas.tsx', import.meta.url), 'utf8'),
+  ])
+  const toolbarStart = canvasSource.indexOf('<div className="tool-buttons">')
+  const toolbarEnd = canvasSource.indexOf('className="drawing-palette"', toolbarStart)
+  const regularToolbar = canvasSource.slice(toolbarStart, toolbarEnd)
+
+  assert(toolbarStart >= 0 && toolbarEnd > toolbarStart)
+  assert.doesNotMatch(regularToolbar, /Vászon mozgatása|\/icons\/tools\/pan\.svg/)
+  assert.match(css, /\.tool-buttons \.tool-sprite-button\s*\{[^}]*width:\s*64px[^}]*height:\s*48px/)
+  assert.match(css, /background-size:\s*78px 384px/)
+  assert.match(css, /@media \(max-width:\s*560px\)[\s\S]*?\.tool-buttons\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*64px\)/)
+})
+
 test('empty drawings do not share mutable data', () => {
   const first = emptyDrawing()
   first[0] = '#d3493b'

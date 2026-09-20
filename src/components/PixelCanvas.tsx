@@ -193,7 +193,10 @@ const toolButtons: Array<{
 ]
 
 function toolSpriteStyle(spriteRow: number) {
-  return { '--tool-sprite-y': `${spriteRow * -32}px` } as CSSProperties
+  return {
+    '--tool-sprite-y': `${spriteRow * -32}px`,
+    '--tool-sprite-y-large': `${spriteRow * -48}px`,
+  } as CSSProperties
 }
 
 function selectionBounds(from: PixelPoint, to: PixelPoint): SelectionBounds {
@@ -1052,17 +1055,6 @@ export function PixelCanvas({
                 {icon ? <img alt="" aria-hidden="true" src={icon} /> : null}
               </button>
             ))}
-            <button
-              aria-label="Vászon mozgatása"
-              aria-pressed={isPanMode}
-              className="tool-icon-button"
-              disabled={zoom === MIN_ZOOM}
-              onClick={selectPanTool}
-              title="Vászon mozgatása"
-              type="button"
-            >
-              <img alt="" aria-hidden="true" src="/icons/tools/pan.svg" />
-            </button>
             <button
               aria-label="Visszavonás"
               className="tool-sprite-button"
