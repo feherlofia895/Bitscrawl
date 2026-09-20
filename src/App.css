@@ -1313,7 +1313,7 @@ footer {
 }
 
 .immersive-side-controls button[aria-pressed='true'] {
-  background: var(--mint);
+  background-color: var(--mint);
 }
 
 .immersive-side-controls button:disabled {
@@ -1348,7 +1348,7 @@ footer {
 }
 
 .immersive-tool-menu button[aria-pressed='true'] {
-  background: var(--mint);
+  background-color: var(--mint);
 }
 
 .immersive-palette-menu {
@@ -3647,6 +3647,24 @@ canvas.player-avatar {
 }
 
 .tool-buttons .tool-sprite-button {
+  width: 42px;
+  min-height: 48px;
+  height: 48px;
+  background-position: -24px calc(var(--tool-sprite-y-large) - 3px);
+  background-size: 78px 384px;
+}
+
+.immersive-side-controls .tool-sprite-button[aria-pressed='true'],
+.immersive-side-controls .tool-sprite-button:active:not(:disabled),
+.immersive-tool-menu .tool-sprite-button[aria-pressed='true'],
+.immersive-tool-menu .tool-sprite-button:active:not(:disabled) {
+  background-image: url('/ui/toolbar-normal.png');
+  outline: 3px solid var(--blue);
+  outline-offset: 1px;
+}
+
+.immersive-side-controls .tool-sprite-button,
+.immersive-tool-menu .tool-sprite-button {
   width: 42px;
   min-height: 48px;
   height: 48px;
