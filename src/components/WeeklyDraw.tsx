@@ -21,6 +21,7 @@ import { ConfirmModal } from './ConfirmModal'
 import { PixelCanvas } from './PixelCanvas'
 import { ProfileAvatar } from './ProfileAvatar'
 import { WeeklyArtwork } from './WeeklyArtwork'
+import { MonthlyDraw } from './MonthlyDraw'
 
 type GallerySort = 'discovery' | 'likes' | 'newest'
 
@@ -46,7 +47,7 @@ function discoveryScore(entry: WeeklyGalleryEntry) {
   return hash >>> 0
 }
 
-export function WeeklyDraw({ mode, onBack }: { mode: 'challenge' | 'gallery'; onBack: () => void }) {
+function WeeklyDrawContent({ mode, onBack, onSelectMonthly }: { mode: 'challenge' | 'gallery'; onBack: () => void; onSelectMonthly: () => void }) {
   const [challenges, setChallenges] = useState<WeeklyChallenge[]>([])
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [gallery, setGallery] = useState<WeeklyGalleryEntry[]>([])
@@ -214,6 +215,10 @@ export function WeeklyDraw({ mode, onBack }: { mode: 'challenge' | 'gallery'; on
         </div>
         <button onClick={onBack} type="button">Vissza a főmenübe</button>
       </header>
+      <nav className="challenge-period-switch" aria-label="Kihívás időtartama">
+        <button aria-pressed="true" type="button">{mode === 'gallery' ? 'Heti galéria' : 'Heti kihívás'}</button>
+        <button onClick={onSelectMonthly} type="button">{mode === 'gallery' ? 'Havi galéria' : 'Havi kihívás'}</button>
+      </nav>
 
       {challenge ? (
         <section className="weekly-challenge-card">
@@ -324,4 +329,11 @@ export function WeeklyDraw({ mode, onBack }: { mode: 'challenge' | 'gallery'; on
       {showSubmit ? <ConfirmModal confirmLabel="Beküldöm" isBusy={busy} message="A beküldött rajz ezen a héten már nem módosítható. Biztosan kész van?" onCancel={() => setShowSubmit(false)} onConfirm={() => { setShowSubmit(false); void handleSubmit() }} title="Mehet a galériába?" /> : null}
     </section>
   )
+}
+
+export function WeeklyDraw({ mode, onBack }: { mode: 'challenge' | 'gallery'; onBack: () => void }) {
+  const [period, setPeriod] = useState<'weekly' | 'monthly'>('weekly')
+  return period === 'monthly'
+    ? <MonthlyDraw mode={mode} onBack={onBack} onSelectWeekly={() => setPeriod('weekly')} />
+    : <WeeklyDrawContent mode={mode} onBack={onBack} onSelectMonthly={() => setPeriod('monthly')} />
 }

@@ -404,6 +404,45 @@ export type Database = {
           week_key: string
         }[]
       }
+      get_monthly_challenges: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          challenge_id: number
+          challenge_status: string
+          description: string | null
+          ends_at: string
+          month_key: string
+          prompt: string
+          server_now: string
+          starts_at: string
+          voting_starts_at: string
+        }[]
+      }
+      get_monthly_gallery: {
+        Args: { target_challenge_id: number }
+        Returns: {
+          author_avatar: Json | null
+          author_name: string
+          entry_id: number
+          has_voted: boolean
+          is_own: boolean
+          is_winner: boolean
+          pixels: Json
+          updated_at: string
+          vote_count: number
+        }[]
+      }
+      get_monthly_account_state: {
+        Args: { target_challenge_id: number }
+        Returns: {
+          entry_id: number | null
+          entry_pixels: Json | null
+          profile_name: string | null
+          submitted_at: string | null
+          updated_at: string | null
+          votes_used: number
+        }[]
+      }
       get_weekly_gallery: {
         Args: { target_challenge_id: number }
         Returns: {
@@ -461,6 +500,14 @@ export type Database = {
         Args: { drawing_pixels: Json; target_challenge_id: number }
         Returns: string
       }
+      save_monthly_entry: {
+        Args: { drawing_pixels: Json; target_challenge_id: number }
+        Returns: number
+      }
+      submit_monthly_entry: {
+        Args: { target_challenge_id: number }
+        Returns: string
+      }
       resume_room: {
         Args: { room_code: string }
         Returns: {
@@ -486,6 +533,10 @@ export type Database = {
         Returns: Json
       }
       set_weekly_vote: {
+        Args: { target_entry_id: number; vote_enabled: boolean }
+        Returns: { active_vote_count: number; voted: boolean }[]
+      }
+      set_monthly_vote: {
         Args: { target_entry_id: number; vote_enabled: boolean }
         Returns: { active_vote_count: number; voted: boolean }[]
       }

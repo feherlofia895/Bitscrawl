@@ -9,6 +9,7 @@ const users = Array.from({ length: 6 }, (_, index) =>
   `10000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`)
 const anonymousUser = '20000000-0000-4000-8000-000000000001'
 let challengeId
+let monthlyChallengeId
 const colors = ['#d3493b', '#da7149', '#e29958', '#f5e57a', '#a5d967', '#67ba62']
 const drawing = (color) => Array.from({ length: 1024 }, (_, index) => index < 4 ? color : 'transparent')
 
@@ -46,6 +47,7 @@ before(async () => {
     catch (error) { throw new Error(`Migration failed: ${file}: ${error.message}`) }
   }
   ;[{ challenge_id: challengeId }] = await asUser(null, 'select * from public.get_weekly_challenges()', [], { role: 'anon' })
+  ;[{ challenge_id: monthlyChallengeId }] = await asUser(null, 'select * from public.get_monthly_challenges()', [], { role: 'anon' })
 })
 
 after(async () => { await db.close() })
@@ -106,6 +108,88 @@ test('profile avatars are validated, private and copied beside room names', asyn
     [roomId, users[0]],
   )).rows
   assert.deepEqual(roomAvatar, updatedAvatar)
+})
+
+test('monthly challenge keeps entries editable only before the seven-day voting window', async () => {
+  const [challenge] = await asUser(null, 'select * from public.get_monthly_challenges()', [], { role: 'anon' })
+  assert.equal(challenge.prompt, 'Béka')
+  assert.equal(challenge.challenge_status, 'drawing')
+  assert.equal(new Date(challenge.ends_at) - new Date(challenge.voting_starts_at), 7 * 24 * 60 * 60 * 1000)
+
+  await asUser(
+    users[5], 'select public.save_monthly_entry($1, $2::jsonb)',
+    [monthlyChallengeId, JSON.stringify(Array(1024).fill('transparent'))],
+  )
+  await assert.rejects(
+    asUser(users[5], 'select public.submit_monthly_entry($1)', [monthlyChallengeId]),
+    /MONTHLY_DRAWING_INVALID/,
+  )
+
+  for (let index = 0; index < users.length; index += 1) {
+    await asUser(
+      users[index], 'select public.save_monthly_entry($1, $2::jsonb)',
+      [monthlyChallengeId, JSON.stringify(drawing(colors[index]))],
+    )
+  }
+  for (let index = 0; index < 5; index += 1) {
+    await asUser(users[index], 'select public.submit_monthly_entry($1)', [monthlyChallengeId])
+  }
+  await asUser(
+    users[0], 'select public.save_monthly_entry($1, $2::jsonb)',
+    [monthlyChallengeId, JSON.stringify(drawing(colors[5]))],
+  )
+  const [account] = await asUser(users[0], 'select * from public.get_monthly_account_state($1)', [monthlyChallengeId])
+  assert.deepEqual(account.entry_pixels, drawing(colors[5]))
+  assert(account.submitted_at)
+  assert.equal((await asUser(null, 'select * from public.get_monthly_gallery($1)', [monthlyChallengeId], { role: 'anon' })).length, 0)
+
+  const [{ id: targetBeforeVoting }] = (await db.query(
+    'select id from public.monthly_entries where challenge_id = $1 and user_id = $2',
+    [monthlyChallengeId, users[1]],
+  )).rows
+  await assert.rejects(
+    asUser(users[0], 'select * from public.set_monthly_vote($1, true)', [targetBeforeVoting]),
+    /MONTHLY_VOTING_CLOSED/,
+  )
+
+  await db.query(
+    "update public.monthly_challenges set voting_starts_at = clock_timestamp() - interval '1 second', ends_at = clock_timestamp() + interval '1 day' where id = $1",
+    [monthlyChallengeId],
+  )
+  await assert.rejects(
+    asUser(users[0], 'select public.save_monthly_entry($1, $2::jsonb)', [monthlyChallengeId, JSON.stringify(drawing(colors[0]))]),
+    /MONTHLY_DRAWING_LOCKED/,
+  )
+  await assert.rejects(
+    asUser(users[5], 'select public.submit_monthly_entry($1)', [monthlyChallengeId]),
+    /MONTHLY_DRAWING_LOCKED/,
+  )
+  const gallery = await asUser(users[0], 'select * from public.get_monthly_gallery($1)', [monthlyChallengeId])
+  assert.equal(gallery.length, 5)
+  assert(!gallery.some(entry => entry.author_name === 'Artist6'))
+  assert(gallery.every(entry => !('user_id' in entry)))
+  const own = gallery.find(entry => entry.is_own)
+  const others = gallery.filter(entry => !entry.is_own)
+  await assert.rejects(
+    asUser(users[0], 'select * from public.set_monthly_vote($1, true)', [own.entry_id]),
+    /MONTHLY_OWN_VOTE_FORBIDDEN/,
+  )
+  for (const entry of others.slice(0, 3)) {
+    await asUser(users[0], 'select * from public.set_monthly_vote($1, true)', [entry.entry_id])
+  }
+  await assert.rejects(
+    asUser(users[0], 'select * from public.set_monthly_vote($1, true)', [others[3].entry_id]),
+    /MONTHLY_VOTE_LIMIT/,
+  )
+
+  await db.query("update public.monthly_challenges set ends_at = clock_timestamp() - interval '1 second' where id = $1", [monthlyChallengeId])
+  await assert.rejects(
+    asUser(users[1], 'select * from public.set_monthly_vote($1, true)', [others[0].entry_id]),
+    /MONTHLY_VOTING_CLOSED/,
+  )
+  const closedGallery = await asUser(null, 'select * from public.get_monthly_gallery($1)', [monthlyChallengeId], { role: 'anon' })
+  assert(closedGallery.some(entry => entry.is_winner))
+  await assert.rejects(db.query('delete from public.monthly_challenges where id = $1', [monthlyChallengeId]), /foreign key/)
 })
 
 test('drafts are validated, private and atomically replaceable', async () => {

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
 import {
   emptyDrawing,
@@ -7,6 +8,22 @@ import {
   rasterizeDrawing,
 } from '../src/lib/drawing.ts'
 import { basePalette } from '../src/lib/palette.ts'
+
+test('the visible 12-color buttons use the same hex values as drawing and saving', async () => {
+  const [css, canvasSource] = await Promise.all([
+    readFile(new URL('../src/App.css', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/PixelCanvas.tsx', import.meta.url), 'utf8'),
+  ])
+
+  assert.equal(basePalette.length, 12)
+  assert.equal(new Set(basePalette.map(({ hex }) => hex)).size, 12)
+  assert(basePalette.every(({ hex }) => /^#[0-9a-f]{6}$/.test(hex)))
+  assert.match(canvasSource, /style=\{\{ backgroundColor: color\.hex \}\}/)
+  assert.doesNotMatch(
+    css,
+    /\.drawing-palette\[data-palette-size=['"]12['"]\]\s+button\s*\{[^}]*background-color:\s*transparent/,
+  )
+})
 
 test('empty drawings do not share mutable data', () => {
   const first = emptyDrawing()

@@ -2203,6 +2203,8 @@ button,
 .weekly-entry-author { display: flex; align-items: center; min-width: 0; gap: 8px; }
 .weekly-entry-author .profile-avatar { flex: 0 0 auto; width: 32px; height: 32px; }
 .weekly-entry-author strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.challenge-period-switch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 18px 0; }
+.challenge-period-switch button[aria-pressed='true'] { background: var(--yellow); }
 .weekly-entry button[aria-pressed='true'] { background: var(--yellow); }
 .weekly-submitted .weekly-artwork { width: min(180px, 42vw); flex: 0 0 auto; }
 .weekly-empty { margin: 20px 0 0; text-align: center; }
@@ -2971,7 +2973,6 @@ canvas.player-avatar {
   width: 16px;
   height: 16px;
   min-height: 0;
-  background-color: transparent !important;
   border: 0;
   border-radius: 50%;
 }
