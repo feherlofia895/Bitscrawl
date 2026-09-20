@@ -18,10 +18,6 @@ const MIN_ZOOM = 1
 const ZOOM_BUTTON_STEP = 0.5
 const CANVAS_SURFACE_RATIO = 0.93
 const CENTERED_CANVAS_OFFSET = (1 - CANVAS_SURFACE_RATIO) / 2
-const PIXEL_COORDINATES = Array.from(
-  { length: CANVAS_SIZE },
-  (_, index) => index + 1,
-)
 
 type PixelCanvasProps = {
   localDrawing?: {
@@ -315,7 +311,6 @@ export function PixelCanvas({
   const [selectedArea, setSelectedArea] = useState<SelectionBounds | null>(null)
   const [selectionOffset, setSelectionOffset] = useState<PixelPoint>({ x: 0, y: 0 })
   const [showGrid, setShowGrid] = useState(false)
-  const [showCoordinates, setShowCoordinates] = useState(false)
   const [isImmersive, setIsImmersive] = useState(false)
   const [areImmersiveToolsOpen, setAreImmersiveToolsOpen] = useState(false)
   const [isImmersivePaletteOpen, setIsImmersivePaletteOpen] = useState(false)
@@ -1110,19 +1105,19 @@ export function PixelCanvas({
         </div>
       ) : null}
 
-      <div className="canvas-zoom-controls" aria-label="Vászon nagyítása">
-        <span>Nagyító</span>
+      <div className="canvas-view-controls" aria-label="Vászon nézetének vezérlése">
         <button
           aria-label="Kicsinyítés"
+          className="canvas-zoom-button"
           disabled={zoom <= MIN_ZOOM}
           onClick={() => stepZoom(-1)}
           type="button"
         >
           −
         </button>
-        <output aria-live="polite">{Math.round(zoom * 100)}%</output>
         <button
           aria-label="Nagyítás"
+          className="canvas-zoom-button"
           disabled={zoom >= maximumZoom()}
           onClick={() => stepZoom(1)}
           type="button"
@@ -1130,15 +1125,9 @@ export function PixelCanvas({
           +
         </button>
         <button
-          disabled={zoom === MIN_ZOOM}
-          onClick={() => changeZoom(MIN_ZOOM)}
-          type="button"
-        >
-          100%
-        </button>
-        <button
           aria-label="Mozgatás"
           aria-pressed={isPanMode}
+          className="canvas-pan-button"
           disabled={zoom === MIN_ZOOM}
           onClick={() => setIsPanMode((current) => !current)}
           title="Mozgatás"
@@ -1148,19 +1137,13 @@ export function PixelCanvas({
         </button>
         <button
           aria-pressed={showGrid}
+          className="canvas-grid-button"
           onClick={() => setShowGrid((current) => !current)}
           type="button"
         >
           Rács
         </button>
-        <button
-          aria-pressed={showCoordinates}
-          onClick={() => setShowCoordinates((current) => !current)}
-          type="button"
-        >
-          Koordináták
-        </button>
-        <button onClick={enterImmersiveMode} type="button">
+        <button className="canvas-immersive-button" onClick={enterImmersiveMode} type="button">
           Teljes nézet
         </button>
       </div>
@@ -1297,14 +1280,6 @@ export function PixelCanvas({
               +
             </button>
             <button
-              aria-label="100%"
-              disabled={zoom === MIN_ZOOM}
-              onClick={() => changeZoom(MIN_ZOOM)}
-              type="button"
-            >
-              1:1
-            </button>
-            <button
               aria-label="Mozgatás"
               aria-pressed={isPanMode}
               disabled={zoom === MIN_ZOOM}
@@ -1321,14 +1296,6 @@ export function PixelCanvas({
               type="button"
             >
               #
-            </button>
-            <button
-              aria-label="Koordináták"
-              aria-pressed={showCoordinates}
-              onClick={() => setShowCoordinates((current) => !current)}
-              type="button"
-            >
-              1–32
             </button>
           </div>
         </aside>
@@ -1348,26 +1315,6 @@ export function PixelCanvas({
               : `${CANVAS_SURFACE_RATIO * zoom * 100}%`,
           }}
         >
-          {showCoordinates ? (
-            <>
-              <div
-                aria-hidden="true"
-                className="pixel-coordinate-ruler is-horizontal"
-              >
-                {PIXEL_COORDINATES.map((coordinate) => (
-                  <span key={coordinate}>{coordinate}</span>
-                ))}
-              </div>
-              <div
-                aria-hidden="true"
-                className="pixel-coordinate-ruler is-vertical"
-              >
-                {PIXEL_COORDINATES.map((coordinate) => (
-                  <span key={coordinate}>{coordinate}</span>
-                ))}
-              </div>
-            </>
-          ) : null}
           {selectedArea ? (
             <div
               aria-hidden="true"

@@ -45,6 +45,22 @@ test('the editor 32-color palette is unique, keeps every base color and uses a f
   )
 })
 
+test('canvas view controls use compact zoom buttons and omit coordinates', async () => {
+  const [css, canvasSource] = await Promise.all([
+    readFile(new URL('../src/App.css', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/PixelCanvas.tsx', import.meta.url), 'utf8'),
+  ])
+
+  assert.match(canvasSource, /className="canvas-zoom-button"[\s\S]*?>\s*−\s*<\/button>/)
+  assert.match(canvasSource, /className="canvas-zoom-button"[\s\S]*?>\s*\+\s*<\/button>/)
+  assert.match(canvasSource, />\s*Rács\s*<\/button>/)
+  assert.doesNotMatch(canvasSource, /Koordináták|showCoordinates|PIXEL_COORDINATES/)
+  assert.match(
+    css,
+    /\.canvas-view-controls \.canvas-zoom-button,[\s\S]*?width:\s*34px/,
+  )
+})
+
 test('empty drawings do not share mutable data', () => {
   const first = emptyDrawing()
   first[0] = '#d3493b'
