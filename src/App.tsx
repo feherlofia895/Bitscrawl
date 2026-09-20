@@ -53,6 +53,32 @@ import { loadOwnProfile, parseAvatarPixels, type PlayerProfile } from './lib/pro
 type BackendStatus = 'checking' | 'online' | 'reconnecting' | 'offline'
 type HomeView = 'main' | 'play' | 'editor' | 'challenge' | 'gallery' | 'create' | 'join' | 'settings' | 'profile'
 
+const homeViews = new Set<HomeView>([
+  'main', 'play', 'editor', 'challenge', 'gallery', 'create', 'join', 'settings', 'profile',
+])
+
+const homeViewParents: Record<Exclude<HomeView, 'main'>, HomeView> = {
+  play: 'main',
+  editor: 'main',
+  challenge: 'main',
+  gallery: 'main',
+  create: 'play',
+  join: 'play',
+  settings: 'main',
+  profile: 'main',
+}
+
+function historyState() {
+  return window.history.state && typeof window.history.state === 'object'
+    ? window.history.state
+    : {}
+}
+
+function historyHomeView(): HomeView {
+  const view = historyState().bitscrawlHomeView
+  return homeViews.has(view) ? view : 'main'
+}
+
 const backendStatusLabels: Record<BackendStatus, string> = {
   checking: 'Szerver: ellenőrzés',
   online: 'Szerver: online',
@@ -94,13 +120,14 @@ function App() {
   const [playerName, setPlayerName] = useState('')
   const [newRoomDuration, setNewRoomDuration] = useState<RoundDuration>(DEFAULT_ROUND_DURATION)
   const [isChangingRoundDuration, setIsChangingRoundDuration] = useState(false)
-  const [homeView, setHomeView] = useState<HomeView>('main')
+  const [homeView, setHomeView] = useState<HomeView>(historyHomeView)
   const [editorDirty, setEditorDirty] = useState(false)
   const [editorStorageAvailable, setEditorStorageAvailable] = useState(true)
   const [showEditorLeaveConfirmation, setShowEditorLeaveConfirmation] = useState(false)
   const [weeklyUserLabel, setWeeklyUserLabel] = useState('Vendég')
   const [playerProfile, setPlayerProfile] = useState<PlayerProfile | null>(null)
   const allowEditorLeaveRef = useRef(false)
+  const requestedHomeBackTargetRef = useRef<HomeView | null>(null)
   const [reduceMotion, setReduceMotion] = useState(
     () => window.localStorage.getItem('bitscrawl-reduce-motion') === 'true',
   )
@@ -130,17 +157,22 @@ function App() {
   const isLeavingRoomRef = useRef(false)
 
   const openHomeView = useCallback((view: Exclude<HomeView, 'main'>) => {
-    window.history.pushState({ bitscrawlHomeView: view }, '')
+    if (view === homeView) return
+    window.history.pushState({ ...historyState(), bitscrawlHomeView: view }, '')
     setHomeView(view)
-  }, [])
+  }, [homeView])
 
   const closeHomeView = useCallback(() => {
-    if (window.history.state?.bitscrawlHomeView) {
+    if (homeView === 'main') return
+    const fallback = homeViewParents[homeView]
+    if (historyHomeView() === homeView) {
+      requestedHomeBackTargetRef.current = fallback
       window.history.back()
     } else {
-      setHomeView('main')
+      window.history.replaceState({ ...historyState(), bitscrawlHomeView: fallback }, '')
+      setHomeView(fallback)
     }
-  }, [])
+  }, [homeView])
 
   useEffect(() => {
     let cancelled = false
@@ -166,8 +198,19 @@ function App() {
     if (lobby) return
 
     const handlePopState = (event: PopStateEvent) => {
-      const nextView: HomeView = event.state?.bitscrawlHomeView ?? 'main'
-      if (nextView === homeView) return
+      const requestedBackTarget = requestedHomeBackTargetRef.current
+      requestedHomeBackTargetRef.current = null
+      const nextView = homeViews.has(event.state?.bitscrawlHomeView)
+        ? event.state.bitscrawlHomeView as HomeView
+        : 'main'
+      if (nextView === homeView) {
+        if (requestedBackTarget !== null) {
+          const nextState = event.state && typeof event.state === 'object' ? event.state : {}
+          window.history.replaceState({ ...nextState, bitscrawlHomeView: requestedBackTarget }, '')
+          setHomeView(requestedBackTarget)
+        }
+        return
+      }
       if (homeView === 'editor' && editorDirty && !allowEditorLeaveRef.current) {
         window.history.pushState({ bitscrawlHomeView: 'editor' }, '')
         setShowEditorLeaveConfirmation(true)

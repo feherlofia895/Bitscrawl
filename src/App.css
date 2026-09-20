@@ -3483,10 +3483,15 @@ canvas.player-avatar {
 }
 
 .weekly-auth-form .primary-button,
-.weekly-section-heading > .primary-button,
-.weekly-entry > button[aria-pressed='true'] {
+.weekly-section-heading > .primary-button {
   background-color: transparent;
   background-image: url('/ui/menu-button-3.png');
+}
+
+.weekly-entry > button[aria-pressed='true'] {
+  background-color: var(--olive);
+  background-image: none;
+  border: 2px solid var(--ink);
 }
 
 /* A teljes méretű szöveges műveletek ugyanazt a rajzolt gombcsaládot

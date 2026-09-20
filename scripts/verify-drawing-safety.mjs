@@ -81,6 +81,22 @@ test('the profile dialog owns Escape before the background page', async () => {
   assert.match(comments, /document\.querySelector\('\.profile-preview-modal'\)/)
 })
 
+test('home navigation restores history state and escapes stale duplicate entries', async () => {
+  const source = await readFile(new URL('../src/App.tsx', import.meta.url), 'utf8')
+  assert.match(source, /useState<HomeView>\(historyHomeView\)/)
+  assert.match(source, /pushState\(\{ \.\.\.historyState\(\), bitscrawlHomeView: view \}/)
+  assert.match(source, /requestedHomeBackTargetRef\.current = fallback/)
+  assert.match(source, /if \(nextView === homeView\) \{[\s\S]*requestedBackTarget !== null[\s\S]*setHomeView\(requestedBackTarget\)/)
+})
+
+test('a selected gallery vote uses one plain color instead of layered button artwork', async () => {
+  const css = await readFile(new URL('../src/App.css', import.meta.url), 'utf8')
+  const selectedVoteRule = css.match(/\.weekly-entry > button\[aria-pressed='true'\] \{([^}]*)\}/)?.[1] ?? ''
+  assert.match(selectedVoteRule, /background-color:\s*var\(--olive\)/)
+  assert.match(selectedVoteRule, /background-image:\s*none/)
+  assert.doesNotMatch(selectedVoteRule, /url\(/)
+})
+
 test('failed multiplayer pixel chunks stay queued for a later retry', async () => {
   const source = await readFile(new URL('../src/components/PixelCanvas.tsx', import.meta.url), 'utf8')
   assert.match(source, /if \(!pendingChangesRef\.current\.has\(key\)\) pendingChangesRef\.current\.set\(key, change\)/)
