@@ -756,6 +756,10 @@ Javasolt sorrend és függőségek:
   felhasználónként helyben is megmarad, az online Supabase-mentés pedig 2026-09-20-án élesedett.
 - 2026-09-20: a rajzolt profilkép a Heti kihívás nyilvános galériájában is megjelenik
   a készítő neve mellett, a felhasználói azonosító és a profil egyéb adatai nélkül.
+- 2026-09-20: az ingyenes Supabase levélküldés óránkénti korlátja miatt az e-mailes
+  regisztráció azonnali megerősítéssel működik, így nem fogyaszt megerősítő levelet.
+  Emiatt az e-mail-cím valódisága egyelőre nincs ellenőrizve; nyilvános indulás előtt
+  ingyenes vagy saját SMTP-szolgáltatást és ismét kötelező e-mail-megerősítést tervezünk.
 - A vendégként, azonnali névvel történő játék továbbra is maradjon lehetséges.
 - Később opcionális Supabase-fiók kapcsolható a vendéghez, az egész játék újraírása nélkül.
 - Első fiókos változatként elég lehet a megjelenített név és az elmentett alapbeállítások.
