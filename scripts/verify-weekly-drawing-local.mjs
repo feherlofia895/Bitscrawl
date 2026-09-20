@@ -68,6 +68,46 @@ test('only permanent users can create unique, validated profiles', async () => {
   )
 })
 
+test('profile avatars are validated, private and copied beside room names', async () => {
+  await assert.rejects(
+    asUser(anonymousUser, 'select public.set_profile_avatar($1::jsonb)', [JSON.stringify(drawing(colors[0]))], { anonymous: true }),
+    /WEEKLY_ACCOUNT_REQUIRED/,
+  )
+  await assert.rejects(
+    asUser(users[0], 'select public.set_profile_avatar($1::jsonb)', [JSON.stringify(['#d3493b'])]),
+    /PROFILE_AVATAR_INVALID/,
+  )
+
+  const firstAvatar = drawing(colors[0])
+  await asUser(users[0], 'select public.set_profile_avatar($1::jsonb)', [JSON.stringify(firstAvatar)])
+  const ownProfile = await asUser(users[0], 'select avatar_pixels from public.profiles where user_id = $1', [users[0]])
+  const hiddenProfile = await asUser(users[1], 'select avatar_pixels from public.profiles where user_id = $1', [users[0]])
+  assert.deepEqual(ownProfile[0].avatar_pixels, firstAvatar)
+  assert.equal(hiddenProfile.length, 0)
+
+  const [{ id: roomId }] = (await db.query(
+    "insert into public.rooms (code, host_user_id) values ('AVATAR', $1) returning id",
+    [users[0]],
+  )).rows
+  await db.query(
+    'insert into public.room_players (room_id, user_id, display_name) values ($1, $2, $3)',
+    [roomId, users[0], 'Artist1'],
+  )
+  let [{ avatar_pixels: roomAvatar }] = (await db.query(
+    'select avatar_pixels from public.room_players where room_id = $1 and user_id = $2',
+    [roomId, users[0]],
+  )).rows
+  assert.deepEqual(roomAvatar, firstAvatar)
+
+  const updatedAvatar = drawing(colors[1])
+  await asUser(users[0], 'select public.set_profile_avatar($1::jsonb)', [JSON.stringify(updatedAvatar)])
+  ;[{ avatar_pixels: roomAvatar }] = (await db.query(
+    'select avatar_pixels from public.room_players where room_id = $1 and user_id = $2',
+    [roomId, users[0]],
+  )).rows
+  assert.deepEqual(roomAvatar, updatedAvatar)
+})
+
 test('drafts are validated, private and atomically replaceable', async () => {
   await assert.rejects(
     asUser(users[0], 'select public.save_weekly_draft($1, $2::jsonb)', [challengeId, JSON.stringify(['#d3493b'])]),

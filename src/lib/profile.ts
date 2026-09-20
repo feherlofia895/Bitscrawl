@@ -1,0 +1,104 @@
+import type { User } from '@supabase/supabase-js'
+import type { Json } from '../types/database'
+import { basePalette } from './palette'
+import { supabase } from './supabase'
+import { getWeeklyUser } from './weekly'
+
+export type PlayerProfile = {
+  avatarPixels: string[] | null
+  displayName: string
+}
+
+export type ProfileAvatarSaveResult = {
+  pixels: string[]
+  storage: 'cloud' | 'local'
+}
+
+const validAvatarColors = new Set(['transparent', ...basePalette.map(color => color.hex)])
+const avatarStoragePrefix = 'bitscrawl-profile-avatar:'
+
+function localAvatarKey(userId: string) {
+  return `${avatarStoragePrefix}${userId}`
+}
+
+function loadLocalAvatar(userId: string) {
+  try {
+    const stored = window.localStorage.getItem(localAvatarKey(userId))
+    return stored ? parseAvatarPixels(JSON.parse(stored) as Json) : null
+  } catch {
+    return null
+  }
+}
+
+function saveLocalAvatar(userId: string, pixels: string[]) {
+  window.localStorage.setItem(localAvatarKey(userId), JSON.stringify(pixels))
+}
+
+function avatarEndpointIsMissing(error: { code?: string; message?: string }) {
+  return error.code === 'PGRST202' || error.code === 'PGRST204' ||
+    Boolean(error.message?.includes('set_profile_avatar')) ||
+    Boolean(error.message?.includes('avatar_pixels'))
+}
+
+export function parseAvatarPixels(value: Json | null): string[] | null {
+  return Array.isArray(value) && value.length === 1024 &&
+    value.every(color => typeof color === 'string' && validAvatarColors.has(color))
+    ? value as string[]
+    : null
+}
+
+function profileError(error: unknown) {
+  const raw = typeof error === 'object' && error !== null && 'message' in error
+    ? String(error.message)
+    : 'A profilművelet nem sikerült.'
+  if (raw.includes('PROFILE_AVATAR_INVALID')) return new Error('A profilkép adatai nem érvényesek.')
+  if (raw.includes('WEEKLY_PROFILE_REQUIRED')) return new Error('Előbb mentsd el a megjelenített nevedet.')
+  return new Error(raw)
+}
+
+export async function loadOwnProfile(): Promise<{ profile: PlayerProfile | null; user: User | null }> {
+  const user = await getWeeklyUser()
+  if (!user) return { profile: null, user: null }
+
+  let { data, error } = await supabase
+    .from('profiles')
+    .select('display_name, avatar_pixels')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  // The fallback keeps the current live database usable until the migration is deployed.
+  if (error?.message.includes('avatar_pixels')) {
+    const legacy = await supabase
+      .from('profiles')
+      .select('display_name')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    data = legacy.data ? { ...legacy.data, avatar_pixels: null } : null
+    error = legacy.error
+  }
+
+  if (error) throw profileError(error)
+  return {
+    profile: data ? {
+      avatarPixels: parseAvatarPixels(data.avatar_pixels) ?? loadLocalAvatar(user.id),
+      displayName: data.display_name,
+    } : null,
+    user,
+  }
+}
+
+export async function saveProfileAvatar(pixels: string[]): Promise<ProfileAvatarSaveResult> {
+  if (!parseAvatarPixels(pixels as Json)) throw new Error('A profilkép adatai nem érvényesek.')
+  const user = await getWeeklyUser()
+  if (!user) throw new Error('A profilkép mentéséhez jelentkezz be.')
+  const { data, error } = await supabase.rpc('set_profile_avatar', { requested_pixels: pixels })
+  if (error && !avatarEndpointIsMissing(error)) throw profileError(error)
+
+  saveLocalAvatar(user.id, pixels)
+  if (error) return { pixels, storage: 'local' }
+
+  return {
+    pixels: parseAvatarPixels(data) ?? pixels,
+    storage: 'cloud',
+  }
+}

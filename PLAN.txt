@@ -738,6 +738,14 @@ Javasolt sorrend és függőségek:
 
 [ ] 18. FELHASZNÁLÓI FIÓKOK
 
+- 2026-09-20: elkészült az első helyi profilváltozat. A felső profilsávból és a
+  Beállítások > Profil pontból elérhető a belépés, regisztráció és a saját profil.
+  A bejelentkezett játékos 32×32 pixeles profilképet rajzolhat a 12 színű
+  alappalettával; a kép a saját neve mellett és a szoba játékoslistájában is megjelenik.
+  Az adatbázis csak szabályos méretű és engedélyezett színű képet fogad el, a profil
+  pedig csak a tulajdonos számára olvasható és módosítható. A helyi migrációs teszt,
+  a build, a lint és a vendég nézet asztali/mobil ellenőrzése sikeres. A profilkép
+  felhasználónként helyben is megmarad, az online Supabase-mentés pedig 2026-09-20-án élesedett.
 - A vendégként, azonnali névvel történő játék továbbra is maradjon lehetséges.
 - Később opcionális Supabase-fiók kapcsolható a vendéghez, az egész játék újraírása nélkül.
 - Első fiókos változatként elég lehet a megjelenített név és az elmentett alapbeállítások.

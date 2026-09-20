@@ -8,6 +8,8 @@ import { DEFAULT_ROUND_DURATION, isRoundDuration, roundDurations, roundDurationT
 import { BugReport } from './components/BugReport'
 import { ConfirmModal } from './components/ConfirmModal'
 import { WeeklyDraw } from './components/WeeklyDraw'
+import { ProfileAvatar } from './components/ProfileAvatar'
+import { ProfilePanel } from './components/ProfilePanel'
 import { RoomChat } from './components/RoomChat'
 import { RoundChat } from './components/RoundChat'
 import { RoundTimer } from './components/RoundTimer'
@@ -44,10 +46,10 @@ import {
 } from './lib/lobby'
 import { basePalette, type PaletteSize } from './lib/palette'
 import { checkSupabaseConnection } from './lib/supabase'
-import { getWeeklyUser } from './lib/weekly'
+import { loadOwnProfile, parseAvatarPixels, type PlayerProfile } from './lib/profile'
 
 type BackendStatus = 'checking' | 'online' | 'reconnecting' | 'offline'
-type HomeView = 'main' | 'play' | 'editor' | 'challenge' | 'gallery' | 'create' | 'join' | 'settings'
+type HomeView = 'main' | 'play' | 'editor' | 'challenge' | 'gallery' | 'create' | 'join' | 'settings' | 'profile'
 
 const backendStatusLabels: Record<BackendStatus, string> = {
   checking: 'Szerver: ellenőrzés',
@@ -95,6 +97,7 @@ function App() {
   const [editorStorageAvailable, setEditorStorageAvailable] = useState(true)
   const [showEditorLeaveConfirmation, setShowEditorLeaveConfirmation] = useState(false)
   const [weeklyUserLabel, setWeeklyUserLabel] = useState('Vendég')
+  const [playerProfile, setPlayerProfile] = useState<PlayerProfile | null>(null)
   const allowEditorLeaveRef = useRef(false)
   const [reduceMotion, setReduceMotion] = useState(
     () => window.localStorage.getItem('bitscrawl-reduce-motion') === 'true',
@@ -139,15 +142,23 @@ function App() {
 
   useEffect(() => {
     let cancelled = false
-    void getWeeklyUser().then((user) => {
+    void loadOwnProfile().then(({ profile, user }) => {
       if (cancelled) return
-      const displayName = typeof user?.user_metadata.display_name === 'string'
-        ? user.user_metadata.display_name.trim()
-        : ''
-      setWeeklyUserLabel(displayName || user?.email || 'Vendég')
+      setPlayerProfile(profile)
+      setWeeklyUserLabel(profile?.displayName || user?.email || 'Vendég')
+    }).catch(() => {
+      if (!cancelled) {
+        setPlayerProfile(null)
+        setWeeklyUserLabel('Vendég')
+      }
     })
     return () => { cancelled = true }
   }, [homeView])
+
+  const handleProfileChange = useCallback((profile: PlayerProfile | null) => {
+    setPlayerProfile(profile)
+    setWeeklyUserLabel(profile?.displayName ?? 'Vendég')
+  }, [])
 
   useEffect(() => {
     if (lobby) return
@@ -714,7 +725,17 @@ function App() {
             {homeView === 'editor' && !lobby ? editorText.localMode : backendStatusLabels[backendStatus]}
           </span>
           <span className="prototype-badge">Korai prototípus</span>
-          <span className="user-badge" title={weeklyUserLabel}>Fiók: {weeklyUserLabel}</span>
+          <button
+            aria-label={weeklyUserLabel === 'Vendég' ? 'Profil és belépés' : `Saját profil: ${weeklyUserLabel}`}
+            className="user-badge profile-menu-button"
+            disabled={Boolean(lobby) || homeView === 'profile'}
+            onClick={() => openHomeView('profile')}
+            title={lobby ? 'A profil a szobából kilépés után nyitható meg.' : 'Saját profil'}
+            type="button"
+          >
+            <ProfileAvatar label="" pixels={playerProfile?.avatarPixels ?? null} />
+            <span>{weeklyUserLabel}</span>
+          </button>
         </div>
       </header>
 
@@ -778,12 +799,17 @@ function App() {
                 const isHost = player.user_id === lobby.room.host_user_id
                 const isCurrentPlayer = player.user_id === lobby.currentUserId
                 const isOnline = playerIsOnline(player.last_seen_at)
+                const avatarPixels = parseAvatarPixels(player.avatar_pixels)
 
                 return (
                   <li key={player.id}>
-                    <span className="player-avatar" aria-hidden="true">
-                      {player.display_name.slice(0, 1).toUpperCase()}
-                    </span>
+                    {avatarPixels ? (
+                      <ProfileAvatar className="player-avatar" label={`${player.display_name} profilképe`} pixels={avatarPixels} />
+                    ) : (
+                      <span className="player-avatar" aria-hidden="true">
+                        {player.display_name.slice(0, 1).toUpperCase()}
+                      </span>
+                    )}
                     <span className="player-name">
                       {gameIsFinished ? `${index + 1}. ` : ''}
                       {player.display_name}
@@ -1018,6 +1044,8 @@ function App() {
             </p>
           </div>
         </section>
+      ) : homeView === 'profile' ? (
+        <ProfilePanel onBack={closeHomeView} onProfileChange={handleProfileChange} />
       ) : homeView === 'editor' ? (
         <DrawingEditor onBack={closeHomeView} onDirtyChange={setEditorDirty} onStorageChange={setEditorStorageAvailable} />
       ) : homeView === 'challenge' ? (
@@ -1254,6 +1282,17 @@ function App() {
                   <h2 id="lobby-title">Beállítások</h2>
                 </div>
                 <div className="settings-list">
+                  <button
+                    className="setting-row profile-setting-row"
+                    onClick={() => openHomeView('profile')}
+                    type="button"
+                  >
+                    <span className="profile-setting-label">
+                      <ProfileAvatar label="" pixels={playerProfile?.avatarPixels ?? null} />
+                      Profil
+                    </span>
+                    <strong>{playerProfile ? 'MEGNYITÁS' : 'BELÉPÉS'}</strong>
+                  </button>
                   <button
                     aria-pressed={reduceMotion}
                     className="setting-row"

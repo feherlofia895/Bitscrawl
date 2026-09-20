@@ -2339,6 +2339,202 @@ button,
   border: 2px solid var(--ink);
 }
 
+.profile-menu-button {
+  min-height: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  box-shadow: none;
+  clip-path: none;
+}
+
+.profile-menu-button:disabled {
+  cursor: default;
+}
+
+.profile-menu-button > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-avatar {
+  width: 32px;
+  height: 32px;
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  color: var(--ink);
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(45deg, rgb(36 38 48 / 12%) 25%, transparent 25%),
+    linear-gradient(-45deg, rgb(36 38 48 / 12%) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgb(36 38 48 / 12%) 75%),
+    linear-gradient(-45deg, transparent 75%, rgb(36 38 48 / 12%) 75%);
+  background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+  background-size: 8px 8px;
+  border: 2px solid var(--ink);
+  image-rendering: pixelated;
+}
+
+canvas.profile-avatar {
+  object-fit: contain;
+}
+
+.profile-avatar-empty img {
+  width: 19px;
+  height: 19px;
+}
+
+.profile-menu-button .profile-avatar {
+  width: 24px;
+  height: 24px;
+  border-width: 1px;
+}
+
+canvas.player-avatar {
+  padding: 0;
+  object-fit: contain;
+}
+
+.profile-page {
+  display: grid;
+  gap: 22px;
+  width: min(100%, 920px);
+  margin: 34px auto 0;
+}
+
+.profile-header,
+.profile-summary-card,
+.profile-editor-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.profile-header h1,
+.profile-editor-heading h2,
+.profile-card h2 {
+  margin: 0;
+}
+
+.profile-header p,
+.profile-card p,
+.profile-editor-heading p {
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+
+.profile-card,
+.profile-editor-section {
+  padding: clamp(18px, 4vw, 28px);
+  background: transparent;
+  border: 16px solid transparent;
+  border-image: url('/ui/menu-window-mint.png') 16 fill stretch;
+  image-rendering: pixelated;
+}
+
+.profile-auth-card {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(260px, 1.2fr);
+  gap: 24px;
+}
+
+.profile-auth-card .profile-avatar,
+.profile-summary-card .profile-avatar {
+  width: 72px;
+  height: 72px;
+}
+
+.profile-form,
+.profile-save-controls {
+  display: grid;
+  gap: 12px;
+}
+
+.profile-summary-card > button {
+  margin-left: auto;
+}
+
+.profile-editor-section {
+  display: grid;
+  gap: 18px;
+  padding-top: clamp(42px, 6vw, 56px);
+}
+
+.profile-avatar-drawer > .drawing-panel {
+  width: min(100%, 700px);
+  margin-inline: auto;
+}
+
+.profile-save-controls {
+  width: min(310px, 100%);
+}
+
+.profile-status {
+  margin-top: 0;
+}
+
+.profile-avatar-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  width: 100%;
+  min-height: 74px;
+  padding: 12px 18px;
+  text-align: left;
+  background: var(--paper);
+}
+
+.profile-avatar-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.profile-avatar-toggle .profile-avatar {
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+}
+
+.profile-avatar-toggle strong,
+.profile-avatar-toggle small {
+  display: block;
+}
+
+.profile-avatar-toggle small {
+  margin-top: 5px;
+  font-family: var(--body-font);
+  line-height: 1.35;
+}
+
+.profile-avatar-drawer {
+  padding-top: 4px;
+}
+
+.profile-inline-status {
+  margin: 0;
+  padding: 12px 14px;
+  line-height: 1.45;
+  background: color-mix(in srgb, var(--paper) 78%, transparent);
+  border: 2px solid var(--ink);
+}
+
+.profile-setting-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-setting-row .profile-avatar {
+  width: 28px;
+  height: 28px;
+  border-width: 1px;
+}
+
 .home-logo {
   width: 384px;
   max-width: 84vw !important;
@@ -2784,6 +2980,46 @@ button,
 @media (max-width: 560px) {
   .user-badge {
     max-width: 128px;
+  }
+
+  .profile-menu-button {
+    max-width: 116px;
+    padding: 4px 6px;
+  }
+
+  .profile-menu-button .profile-avatar {
+    width: 22px;
+    height: 22px;
+  }
+
+  .profile-page {
+    margin-top: 20px;
+  }
+
+  .profile-header,
+  .profile-summary-card,
+  .profile-editor-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .profile-auth-card {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-summary-card > button,
+  .profile-save-controls {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .profile-editor-section {
+    padding-top: 46px;
+  }
+
+  .profile-avatar-toggle {
+    align-items: flex-start;
+    padding-inline: 12px;
   }
 
   .game-mode-grid {

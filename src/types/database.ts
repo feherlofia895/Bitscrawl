@@ -100,6 +100,7 @@ export type Database = {
       }
       room_players: {
         Row: {
+          avatar_pixels: Json | null
           display_name: string
           id: number
           joined_at: string
@@ -109,6 +110,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          avatar_pixels?: Json | null
           display_name: string
           id?: never
           joined_at?: string
@@ -118,6 +120,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          avatar_pixels?: Json | null
           display_name?: string
           id?: never
           joined_at?: string
@@ -135,6 +138,27 @@ export type Database = {
             referencedColumns: ['id']
           },
         ]
+      }
+      profiles: {
+        Row: {
+          avatar_pixels: Json | null
+          created_at: string
+          display_name: string
+          user_id: string
+        }
+        Insert: {
+          avatar_pixels?: Json | null
+          created_at?: string
+          display_name: string
+          user_id: string
+        }
+        Update: {
+          avatar_pixels?: Json | null
+          created_at?: string
+          display_name?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       rooms: {
         Row: {
@@ -455,6 +479,10 @@ export type Database = {
       set_weekly_profile: {
         Args: { requested_name: string }
         Returns: string
+      }
+      set_profile_avatar: {
+        Args: { requested_pixels: Json }
+        Returns: Json
       }
       set_weekly_vote: {
         Args: { target_entry_id: number; vote_enabled: boolean }
