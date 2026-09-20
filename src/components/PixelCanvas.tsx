@@ -1041,7 +1041,7 @@ export function PixelCanvas({
       {canDraw ? (
         <div className="pixel-toolbar" aria-label="Rajzeszközök">
           <div className="tool-buttons">
-            {toolButtons.map(({ icon, label, spriteRow, tool }) => (
+            {toolButtons.filter(({ tool }) => tool !== 'select').map(({ icon, label, spriteRow, tool }) => (
               <button
                 aria-label={label}
                 aria-pressed={activeTool === tool}
@@ -1072,6 +1072,16 @@ export function PixelCanvas({
               title="Teljes vászon törlése"
               type="button"
             />
+            <button
+              aria-label="Kijelölés"
+              aria-pressed={activeTool === 'select'}
+              className="tool-icon-button"
+              onClick={() => selectDrawingTool('select')}
+              title="Kijelölés"
+              type="button"
+            >
+              <img alt="" aria-hidden="true" src="/icons/tools/select.svg" />
+            </button>
           </div>
           <div
             className="drawing-palette"

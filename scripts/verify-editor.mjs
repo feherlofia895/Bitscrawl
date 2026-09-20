@@ -72,9 +72,12 @@ test('the regular toolbar omits its duplicate pan hand and enlarges the drawn co
 
   assert(toolbarStart >= 0 && toolbarEnd > toolbarStart)
   assert.doesNotMatch(regularToolbar, /Vászon mozgatása|\/icons\/tools\/pan\.svg/)
-  assert.match(css, /\.tool-buttons \.tool-sprite-button\s*\{[^}]*width:\s*64px[^}]*height:\s*48px/)
+  assert.match(css, /\.tool-buttons \.tool-sprite-button\s*\{[^}]*width:\s*42px[^}]*height:\s*48px/)
   assert.match(css, /background-size:\s*78px 384px/)
-  assert.match(css, /@media \(max-width:\s*560px\)[\s\S]*?\.tool-buttons\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*64px\)/)
+  assert.match(css, /\.tool-buttons \.tool-sprite-button\[aria-pressed='true'\][\s\S]*?background-image:\s*url\('\/ui\/toolbar-normal\.png'\)[^}]*outline:\s*3px solid var\(--blue\)/)
+  assert.match(css, /\.tool-buttons button\[aria-pressed='true'\]\s*\{[^}]*background-color:\s*var\(--mint\)/)
+  assert.match(css, /@media \(max-width:\s*560px\)[\s\S]*?\.tool-buttons\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*42px\)/)
+  assert.match(regularToolbar, /Teljes vászon törlése[\s\S]*?aria-label="Kijelölés"/)
 })
 
 test('empty drawings do not share mutable data', () => {

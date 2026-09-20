@@ -1438,7 +1438,7 @@ footer {
 }
 
 .tool-buttons button[aria-pressed='true'] {
-  background: var(--mint);
+  background-color: var(--mint);
 }
 
 .tool-buttons button:disabled {
@@ -3647,23 +3647,30 @@ canvas.player-avatar {
 }
 
 .tool-buttons .tool-sprite-button {
-  width: 64px;
+  width: 42px;
   min-height: 48px;
   height: 48px;
-  background-position: 0 var(--tool-sprite-y-large);
+  background-position: -24px calc(var(--tool-sprite-y-large) - 3px);
   background-size: 78px 384px;
 }
 
 .tool-buttons .tool-icon-button {
-  width: 64px;
+  width: 42px;
   min-height: 48px;
   height: 48px;
-  padding: 6px 16px;
+  padding: 6px 5px;
 }
 
 .tool-buttons .tool-icon-button img {
   width: 27px;
   height: 27px;
+}
+
+.tool-buttons .tool-sprite-button[aria-pressed='true'],
+.tool-buttons .tool-sprite-button:active:not(:disabled) {
+  background-image: url('/ui/toolbar-normal.png');
+  outline: 3px solid var(--blue);
+  outline-offset: 1px;
 }
 
 .drawing-palette[data-palette-size='12'] {
@@ -3739,7 +3746,7 @@ canvas.player-avatar {
 
   .tool-buttons {
     display: grid;
-    grid-template-columns: repeat(3, 64px);
+    grid-template-columns: repeat(3, 42px);
     justify-content: center;
   }
 
