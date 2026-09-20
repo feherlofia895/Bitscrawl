@@ -11,6 +11,7 @@ type GuessResult = {
 
 type RoundChatProps = {
   currentUserId: string
+  isImmersive: boolean
   isDrawer: boolean
   messages: RoundMessage[]
   onError: (error: unknown) => void
@@ -21,6 +22,7 @@ type RoundChatProps = {
 
 export function RoundChat({
   currentUserId,
+  isImmersive,
   isDrawer,
   messages,
   onError,
@@ -39,6 +41,11 @@ export function RoundChat({
         message.sender_user_id === currentUserId,
     )
   const canSubmitGuess = !isDrawer && !hasGuessedCorrectly
+  const panelClassName = [
+    'guess-panel',
+    canSubmitGuess ? 'is-guessing' : '',
+    isImmersive ? 'is-immersive' : '',
+  ].filter(Boolean).join(' ')
 
   useEffect(() => {
     setGuess('')
@@ -66,7 +73,7 @@ export function RoundChat({
   const playerProfile = (userId: string) => players.find((player) => player.user_id === userId)
 
   return (
-    <section className={`guess-panel${canSubmitGuess ? ' is-guessing' : ''}`} aria-labelledby="round-chat-title">
+    <section className={panelClassName} aria-labelledby="round-chat-title">
       <div className="round-chat-heading">
         <div>
           <p className="round-label">Csak a szerver ellenőrzi</p>

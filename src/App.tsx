@@ -151,6 +151,7 @@ function App() {
   const [showLeaveConfirmation, setShowLeaveConfirmation] = useState(false)
   const [lobby, setLobby] = useState<Lobby | null>(null)
   const [roundView, setRoundView] = useState<RoundView | null>(null)
+  const [isRoundCanvasImmersive, setIsRoundCanvasImmersive] = useState(false)
   const [drawEvents, setDrawEvents] = useState<DrawEvent[]>([])
   const [roundMessages, setRoundMessages] = useState<RoundMessage[]>([])
   const [roomMessages, setRoomMessages] = useState<RoomMessage[]>([])
@@ -1037,6 +1038,7 @@ function App() {
                         : 'Nem sikerült elküldeni a pixelmódosítást.',
                     )
                   }
+                  onImmersiveChange={setIsRoundCanvasImmersive}
                   onSubmit={(changes) =>
                     submitPixelChanges(roundView.round_id, changes)
                   }
@@ -1047,6 +1049,7 @@ function App() {
                 <div className="play-side-column">
                   <RoundChat
                     currentUserId={lobby.currentUserId}
+                    isImmersive={isRoundCanvasImmersive}
                     isDrawer={roundView.is_drawer}
                     messages={roundMessages}
                     onError={(error) =>

@@ -764,6 +764,42 @@ footer {
   isolation: isolate;
 }
 
+.guess-panel.is-immersive.is-guessing {
+  position: fixed;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  left: 50%;
+  z-index: 1200;
+  width: min(560px, calc(100vw - 32px));
+  margin: 0;
+  padding: 11px;
+  gap: 8px;
+  transform: translateX(-50%);
+  box-shadow: 0 -5px 0 rgb(36 26 53 / 42%);
+}
+
+.guess-panel.is-immersive.is-guessing .round-chat-heading {
+  align-items: center;
+}
+
+.guess-panel.is-immersive.is-guessing .round-label,
+.guess-panel.is-immersive.is-guessing .round-message-list {
+  display: none;
+}
+
+.guess-panel.is-immersive.is-guessing .round-chat-heading h3 {
+  font-size: 1.2rem;
+}
+
+.guess-panel.is-immersive.is-guessing .guess-form {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px;
+}
+
+.guess-panel.is-immersive.is-guessing .guess-form input,
+.guess-panel.is-immersive.is-guessing .guess-form button {
+  min-height: 44px;
+}
+
 .feedback-triggers {
   position: fixed;
   left: max(12px, env(safe-area-inset-left));
@@ -2275,6 +2311,11 @@ button,
     padding: 9px;
     gap: 7px;
     box-shadow: 0 -5px 0 rgb(36 26 53 / 38%);
+    transform: none;
+  }
+
+  .round-play-area.is-guesser .guess-panel.is-immersive.is-guessing {
+    z-index: 1200;
   }
 
   .round-play-area.is-guesser .guess-panel.is-guessing .round-chat-heading {

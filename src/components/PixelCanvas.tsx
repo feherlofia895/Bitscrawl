@@ -34,6 +34,7 @@ type PixelCanvasProps = {
   drawingEndsAt: string | null
   events: DrawEvent[]
   onError: (error: unknown) => void
+  onImmersiveChange?: (isImmersive: boolean) => void
   onSubmit: (changes: PixelChange[]) => Promise<unknown>
   paletteSize: PaletteSize
   roundId: number
@@ -255,6 +256,7 @@ export function PixelCanvas({
   drawingEndsAt,
   events,
   onError,
+  onImmersiveChange,
   onSubmit,
   paletteSize,
   roundId,
@@ -915,6 +917,12 @@ export function PixelCanvas({
     })
     return () => window.cancelAnimationFrame(animationFrame)
   }, [isImmersive])
+
+  useEffect(() => {
+    onImmersiveChange?.(isImmersive)
+  }, [isImmersive, onImmersiveChange])
+
+  useEffect(() => () => onImmersiveChange?.(false), [onImmersiveChange])
 
   useEffect(() => {
     if (!isImmersive) {

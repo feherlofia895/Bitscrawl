@@ -128,9 +128,23 @@ test('mobile guessers keep a compact guess dock visible below the live drawing',
     readFile(new URL('../src/App.css', import.meta.url), 'utf8'),
   ])
   assert.match(app, /round-play-area \$\{roundView\.is_drawer \? 'is-drawer' : 'is-guesser'\}/)
-  assert.match(chat, /guess-panel\$\{canSubmitGuess \? ' is-guessing' : ''\}/)
+  assert.match(chat, /canSubmitGuess \? 'is-guessing' : ''/)
   assert.match(css, /\.round-play-area\.is-guesser \.guess-panel\.is-guessing\s*\{[\s\S]*?position:\s*fixed/)
   assert.match(css, /\.round-play-area \.guess-panel\s*\{[\s\S]*?order:\s*1/)
+})
+
+test('the same guess form stays available over immersive canvas on desktop and mobile', async () => {
+  const [app, canvas, chat, css] = await Promise.all([
+    readFile(new URL('../src/App.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/PixelCanvas.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/RoundChat.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/App.css', import.meta.url), 'utf8'),
+  ])
+  assert.match(app, /onImmersiveChange=\{setIsRoundCanvasImmersive\}/)
+  assert.match(app, /isImmersive=\{isRoundCanvasImmersive\}/)
+  assert.match(canvas, /onImmersiveChange\?\.\(isImmersive\)/)
+  assert.match(chat, /isImmersive \? 'is-immersive' : ''/)
+  assert.match(css, /\.guess-panel\.is-immersive\.is-guessing\s*\{[\s\S]*?z-index:\s*1200/)
 })
 
 test('failed multiplayer pixel chunks stay queued for a later retry', async () => {
