@@ -502,6 +502,35 @@ footer {
   font-weight: 850;
 }
 
+.profile-preview-trigger {
+  min-width: 0;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  font: inherit;
+  text-align: left;
+}
+
+.profile-preview-trigger:hover,
+.profile-preview-trigger:focus-visible {
+  color: var(--violet-dark);
+}
+
+.profile-preview-trigger:focus-visible {
+  outline: 3px solid var(--coral);
+  outline-offset: 3px;
+}
+
+.player-profile-trigger {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  flex: 1;
+  gap: 12px;
+}
+
 .host-badge {
   padding: 6px 8px;
   background: var(--yellow);
@@ -1357,6 +1386,15 @@ footer {
 .round-message strong {
   color: var(--violet);
   font-size: 0.78rem;
+}
+
+.chat-profile-trigger {
+  width: fit-content;
+}
+
+.chat-profile-trigger:hover strong,
+.chat-profile-trigger:focus-visible strong {
+  color: var(--coral);
 }
 
 .correct-message {
@@ -2239,10 +2277,11 @@ button,
 .gallery-comment-list { max-height: 250px; padding: 0; margin: 0; overflow-y: auto; list-style: none; }
 .gallery-comment-list li { padding: 8px; background: color-mix(in srgb, var(--mint) 18%, white); border: 1px solid var(--ink); }
 .gallery-comment-list p { margin: 6px 0 0; overflow-wrap: anywhere; line-height: 1.35; }
-.gallery-comment-author { display: grid; grid-template-columns: 24px minmax(0, 1fr); align-items: center; gap: 3px 6px; }
-.gallery-comment-author .profile-avatar { grid-row: 1 / 3; width: 24px; height: 24px; }
+.gallery-comment-author-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px; }
+.gallery-comment-author { display: flex; align-items: center; min-width: 0; gap: 6px; }
+.gallery-comment-author .profile-avatar { width: 24px; height: 24px; }
 .gallery-comment-author strong { overflow: hidden; font-size: .78rem; text-overflow: ellipsis; white-space: nowrap; }
-.gallery-comment-author time { color: var(--muted); font-size: .68rem; }
+.gallery-comment-author-row time { color: var(--muted); font-size: .68rem; white-space: nowrap; }
 .gallery-comment-form textarea { width: 100%; min-height: 72px; padding: 8px; resize: vertical; color: var(--ink); background: white; border: 2px solid var(--ink); font: inherit; }
 .gallery-comment-edit { display: grid; gap: 6px; margin-top: 7px; }
 .gallery-comment-edit textarea { width: 100%; min-height: 64px; padding: 7px; resize: vertical; color: var(--ink); background: white; border: 2px solid var(--ink); font: inherit; }
@@ -2295,6 +2334,29 @@ button,
   background: var(--paper);
   color: var(--ink);
   font: inherit;
+}
+
+.editor-palette-picker {
+  width: min(100%, 520px);
+  margin-top: 14px;
+  background: color-mix(in srgb, var(--paper) 72%, var(--mint));
+}
+
+.editor-palette-picker .palette-mode-buttons button {
+  color: var(--ink);
+  background-color: transparent;
+  background-image: url('/ui/menu-button-yellow-2.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
+  border: 0;
+  box-shadow: none;
+  clip-path: none;
+  image-rendering: pixelated;
+}
+
+.editor-palette-picker .palette-mode-buttons button[aria-pressed='true'] {
+  background-image: url('/ui/menu-button-3.png');
 }
 
 /* A főmenü saját, kézzel rajzolt kerete. A 16 pixeles szélek érintetlenek,
@@ -2437,6 +2499,64 @@ canvas.profile-avatar {
 .profile-avatar-empty img {
   width: 19px;
   height: 19px;
+}
+
+.profile-preview-backdrop {
+  z-index: 2400;
+}
+
+.profile-preview-modal {
+  display: grid;
+  justify-items: center;
+  width: min(430px, 100%);
+  padding: clamp(24px, 6vw, 40px);
+  color: var(--ink);
+  background: var(--mint);
+  border: 3px solid var(--ink);
+  box-shadow: 9px 9px 0 rgb(36 26 53 / 58%);
+  clip-path: var(--pixel-corner);
+  text-align: center;
+}
+
+.profile-preview-modal .step-label {
+  justify-self: start;
+  margin: 0 0 18px;
+}
+
+.profile-preview-modal .profile-preview-avatar {
+  width: min(224px, 55vw);
+  height: min(224px, 55vw);
+  border-width: 4px;
+  box-shadow: 7px 7px 0 var(--ink);
+}
+
+.profile-preview-modal .profile-avatar-empty img {
+  width: 42%;
+  height: 42%;
+}
+
+.profile-preview-modal h2 {
+  max-width: 100%;
+  margin: 24px 0 0;
+  overflow-wrap: anywhere;
+  font-family: var(--display-font);
+  font-size: clamp(2rem, 9vw, 3.2rem);
+  line-height: 1;
+}
+
+.profile-preview-empty {
+  margin: 14px 0 0;
+  color: var(--muted);
+}
+
+.profile-preview-close {
+  width: 100%;
+  margin-top: 24px;
+  padding: 12px 18px;
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
+  font: 900 .72rem/1 var(--pixel-font);
 }
 
 .profile-menu-button .profile-avatar {
@@ -3033,6 +3153,43 @@ canvas.player-avatar {
   outline-offset: 1px;
 }
 
+.drawing-palette[data-palette-size='32'] {
+  grid-template-columns: repeat(8, 20px);
+  grid-template-rows: repeat(4, 20px);
+  gap: 4px;
+  width: fit-content;
+  padding: 7px;
+  background: color-mix(in srgb, var(--paper) 72%, var(--mint));
+  border: 2px solid var(--ink);
+  clip-path: var(--pixel-corner);
+}
+
+.drawing-palette[data-palette-size='32'] button {
+  width: 20px;
+  height: 20px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background-image: none;
+  box-shadow: none;
+  clip-path: none;
+}
+
+.drawing-palette[data-palette-size='32'] button[aria-pressed='true'] {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+}
+
+.immersive-palette-menu[data-palette-size='32'] {
+  grid-template-columns: repeat(8, 28px);
+  gap: 4px;
+}
+
+.immersive-palette-menu[data-palette-size='32'] button {
+  width: 28px;
+}
+
 @media (max-width: 560px) {
   .user-badge {
     max-width: 128px;
@@ -3046,6 +3203,30 @@ canvas.player-avatar {
   .profile-menu-button .profile-avatar {
     width: 22px;
     height: 22px;
+  }
+
+  .editor-palette-picker .palette-mode-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .drawing-palette[data-palette-size='32'] {
+    grid-template-columns: repeat(8, 18px);
+    grid-template-rows: repeat(4, 18px);
+    gap: 3px;
+    padding: 6px;
+  }
+
+  .drawing-palette[data-palette-size='32'] button {
+    width: 18px;
+    height: 18px;
+  }
+
+  .immersive-palette-menu[data-palette-size='32'] {
+    grid-template-columns: repeat(8, 26px);
+  }
+
+  .immersive-palette-menu[data-palette-size='32'] button {
+    width: 26px;
   }
 
   .profile-page {

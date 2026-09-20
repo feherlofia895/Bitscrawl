@@ -9,6 +9,7 @@ import { BugReport } from './components/BugReport'
 import { ConfirmModal } from './components/ConfirmModal'
 import { WeeklyDraw } from './components/WeeklyDraw'
 import { ProfileAvatar } from './components/ProfileAvatar'
+import { ProfilePreviewButton } from './components/ProfilePreviewButton'
 import { ProfilePanel } from './components/ProfilePanel'
 import { RoomChat } from './components/RoomChat'
 import { RoundChat } from './components/RoundChat'
@@ -44,7 +45,7 @@ import {
   type Lobby,
   type RoomMessage,
 } from './lib/lobby'
-import { basePalette, type PaletteSize } from './lib/palette'
+import { basePalette, type RoomPaletteSize } from './lib/palette'
 import { checkSupabaseConnection } from './lib/supabase'
 import { loadOwnProfile, parseAvatarPixels, type PlayerProfile } from './lib/profile'
 
@@ -803,18 +804,20 @@ function App() {
 
                 return (
                   <li key={player.id}>
-                    {avatarPixels ? (
-                      <ProfileAvatar className="player-avatar" label={`${player.display_name} profilképe`} pixels={avatarPixels} />
-                    ) : (
-                      <span className="player-avatar" aria-hidden="true">
-                        {player.display_name.slice(0, 1).toUpperCase()}
+                    <ProfilePreviewButton className="player-profile-trigger" name={player.display_name} pixels={avatarPixels}>
+                      {avatarPixels ? (
+                        <ProfileAvatar className="player-avatar" label={`${player.display_name} profilképe`} pixels={avatarPixels} />
+                      ) : (
+                        <span className="player-avatar" aria-hidden="true">
+                          {player.display_name.slice(0, 1).toUpperCase()}
+                        </span>
+                      )}
+                      <span className="player-name">
+                        {gameIsFinished ? `${index + 1}. ` : ''}
+                        {player.display_name}
+                        {isCurrentPlayer ? ' (te)' : ''}
                       </span>
-                    )}
-                    <span className="player-name">
-                      {gameIsFinished ? `${index + 1}. ` : ''}
-                      {player.display_name}
-                      {isCurrentPlayer ? ' (te)' : ''}
-                    </span>
+                    </ProfilePreviewButton>
                     {isHost ? <span className="host-badge">Host</span> : null}
                     {!isOnline ? (
                       <span className="offline-player-badge">Nincs kapcsolat</span>
@@ -986,7 +989,7 @@ function App() {
                   onSubmit={(changes) =>
                     submitPixelChanges(roundView.round_id, changes)
                   }
-                  paletteSize={lobby.room.palette_size as PaletteSize}
+                  paletteSize={lobby.room.palette_size as RoomPaletteSize}
                   roundId={roundView.round_id}
                   serverNow={roundView.server_now}
                 />

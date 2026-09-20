@@ -3,13 +3,14 @@ import { PixelCanvas } from './PixelCanvas'
 import { ConfirmModal } from './ConfirmModal'
 import { emptyDrawing, parseDrawingDraft, rasterizeDrawing } from '../lib/drawing'
 import { editorText as text } from '../lib/editorText'
+import type { EditorPaletteSize } from '../lib/palette'
 
 const STORAGE_KEY = 'bitscrawl-editor-v1'
 function readDrawing() {
   try {
     return { ...parseDrawingDraft(localStorage.getItem(STORAGE_KEY)), storageAvailable: true }
   } catch { /* An unavailable or old draft must not prevent drawing. */ }
-  return { pixels: emptyDrawing(), exported: true, storageAvailable: false }
+  return { pixels: emptyDrawing(), exported: true, paletteSize: 12 as const, storageAvailable: false }
 }
 
 export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
@@ -21,6 +22,7 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
   const pixelsRef = useRef(initial.pixels)
   const [revision, setRevision] = useState(0)
   const [scale, setScale] = useState(1)
+  const [paletteSize, setPaletteSize] = useState<EditorPaletteSize>(initial.paletteSize)
   const [dirty, setDirty] = useState(!initial.exported)
   const [status, setStatus] = useState<string>(initial.storageAvailable ? text.local : text.storageError)
   const [exporting, setExporting] = useState(false)
@@ -37,9 +39,9 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
     return () => { mountedRef.current = false }
   }, [])
 
-  const persist = useCallback((pixels: string[], exported: boolean) => {
+  const persist = useCallback((pixels: string[], exported: boolean, selectedPalette = paletteSize) => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ pixels, exported }))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ pixels, exported, paletteSize: selectedPalette }))
       onStorageChange(true)
       return true
     } catch {
@@ -47,7 +49,7 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
       setStatus(text.storageError)
       return false
     }
-  }, [onStorageChange])
+  }, [onStorageChange, paletteSize])
 
   const handleChange = useCallback((pixels: string[]) => {
     pixelsRef.current = pixels
@@ -78,6 +80,11 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
     if (pixelsRef.current.some(color => color !== 'transparent')) {
       setConfirmation({ title: text.newDrawingTitle, message: text.replace, label: text.newDrawing, action: resetDrawing })
     } else resetDrawing()
+  }
+
+  const changePalette = (nextPalette: EditorPaletteSize) => {
+    setPaletteSize(nextPalette)
+    if (persist(pixelsRef.current, !dirty, nextPalette)) setStatus(text.local)
   }
 
   const downloadPng = async () => {
@@ -133,6 +140,17 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
           <button className="primary-button" onClick={() => void downloadPng()} disabled={exporting} type="button">{text.export}</button>
         </div>
         <p className="status-message" role="status">{status}</p>
+        <fieldset className="palette-mode-fieldset editor-palette-picker">
+          <legend>{text.palette}</legend>
+          <div className="palette-mode-buttons">
+            <button aria-pressed={paletteSize === 12} onClick={() => changePalette(12)} type="button">
+              {text.paletteBase}
+            </button>
+            <button aria-pressed={paletteSize === 32} onClick={() => changePalette(32)} type="button">
+              {text.paletteExpanded}
+            </button>
+          </div>
+        </fieldset>
       </div>
       <PixelCanvas
         canDraw
@@ -141,7 +159,7 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
         events={[]}
         onError={() => setStatus(text.storageError)}
         onSubmit={async () => undefined}
-        paletteSize={12}
+        paletteSize={paletteSize}
         roundId={revision}
         serverNow=""
         localDrawing={{

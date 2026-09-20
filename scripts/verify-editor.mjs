@@ -7,7 +7,7 @@ import {
   parseDrawingDraft,
   rasterizeDrawing,
 } from '../src/lib/drawing.ts'
-import { basePalette } from '../src/lib/palette.ts'
+import { basePalette, editorPalette32 } from '../src/lib/palette.ts'
 
 test('the visible 12-color buttons use the same hex values as drawing and saving', async () => {
   const [css, canvasSource] = await Promise.all([
@@ -33,6 +33,18 @@ test('the visible 12-color buttons use the same hex values as drawing and saving
   )
 })
 
+test('the editor 32-color palette is unique, keeps every base color and uses a four-row grid', async () => {
+  const css = await readFile(new URL('../src/App.css', import.meta.url), 'utf8')
+  assert.equal(editorPalette32.length, 32)
+  assert.equal(new Set(editorPalette32.map(({ hex }) => hex)).size, 32)
+  assert(editorPalette32.every(({ hex }) => /^#[0-9a-f]{6}$/.test(hex)))
+  assert(basePalette.every(({ hex }) => editorPalette32.some(color => color.hex === hex)))
+  assert.match(
+    css,
+    /\.drawing-palette\[data-palette-size=['"]32['"]\]\s*\{[^}]*grid-template-columns:\s*repeat\(8,\s*20px\)[^}]*grid-template-rows:\s*repeat\(4,\s*20px\)/,
+  )
+})
+
 test('empty drawings do not share mutable data', () => {
   const first = emptyDrawing()
   first[0] = '#d3493b'
@@ -49,9 +61,20 @@ test('the monthly canvas waits for the saved drawing before mounting', async () 
 test('local draft restores colors, transparency and export status', () => {
   const pixels = emptyDrawing()
   basePalette.forEach(({ hex }, index) => { pixels[index * 32 + index] = hex })
-  assert.deepEqual(parseDrawingDraft(JSON.stringify({ pixels, exported: false })), { pixels, exported: false })
+  assert.deepEqual(parseDrawingDraft(JSON.stringify({ pixels, exported: false })), {
+    pixels, exported: false, paletteSize: 12,
+  })
   assert.equal(parseDrawingDraft(JSON.stringify({ pixels, exported: true })).exported, true)
   assert.equal(parseDrawingDraft(JSON.stringify({ pixels })).exported, false)
+})
+
+test('local draft restores the expanded editor palette and its colors', () => {
+  const pixels = emptyDrawing()
+  pixels[0] = editorPalette32[0].hex
+  pixels[1] = editorPalette32.at(-1).hex
+  assert.deepEqual(parseDrawingDraft(JSON.stringify({ pixels, exported: false, paletteSize: 32 })), {
+    pixels, exported: false, paletteSize: 32,
+  })
 })
 
 test('corrupt or unsupported drafts cannot become pixel data', () => {
@@ -59,7 +82,7 @@ test('corrupt or unsupported drafts cannot become pixel data', () => {
     JSON.stringify({ pixels: Array(1024).fill('#ffffff') }),
     JSON.stringify({ pixels: Array(1024).fill(123) })]
   for (const value of cases) {
-    assert.deepEqual(parseDrawingDraft(value), { pixels: emptyDrawing(), exported: true })
+    assert.deepEqual(parseDrawingDraft(value), { pixels: emptyDrawing(), exported: true, paletteSize: 12 })
   }
 })
 

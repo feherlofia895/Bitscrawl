@@ -1,8 +1,18 @@
-import { basePalette } from './palette.ts'
+import {
+  basePalette,
+  editorPalette32,
+  expandedPalette,
+  type EditorPaletteSize,
+} from './palette.ts'
 
 export const DRAWING_SIZE = 32
 export const TRANSPARENT_PIXEL = 'transparent'
-const validColors = new Set([TRANSPARENT_PIXEL, ...basePalette.map(({ hex }) => hex)])
+const validColors = new Set([
+  TRANSPARENT_PIXEL,
+  ...basePalette.map(({ hex }) => hex),
+  ...expandedPalette.map(({ hex }) => hex),
+  ...editorPalette32.map(({ hex }) => hex),
+])
 
 export type PixelSelection = { left: number; top: number; right: number; bottom: number }
 export type PixelOffset = { x: number; y: number }
@@ -41,16 +51,26 @@ export function movePixelSelection(
   return { offset, pixels: moved }
 }
 
-export function parseDrawingDraft(serialized: string | null): { pixels: string[]; exported: boolean } {
+export type DrawingDraft = {
+  pixels: string[]
+  exported: boolean
+  paletteSize: EditorPaletteSize
+}
+
+export function parseDrawingDraft(serialized: string | null): DrawingDraft {
   try {
     const stored: unknown = JSON.parse(serialized ?? 'null')
     if (typeof stored === 'object' && stored !== null && 'pixels' in stored &&
       Array.isArray(stored.pixels) && stored.pixels.length === DRAWING_SIZE * DRAWING_SIZE &&
       stored.pixels.every((color: unknown) => typeof color === 'string' && validColors.has(color))) {
-      return { pixels: [...stored.pixels], exported: 'exported' in stored && stored.exported === true }
+      return {
+        pixels: [...stored.pixels],
+        exported: 'exported' in stored && stored.exported === true,
+        paletteSize: 'paletteSize' in stored && stored.paletteSize === 32 ? 32 : 12,
+      }
     }
   } catch { /* Invalid drafts start with a blank canvas. */ }
-  return { pixels: emptyDrawing(), exported: true }
+  return { pixels: emptyDrawing(), exported: true, paletteSize: 12 }
 }
 
 // Pure pixel conversion: PNG export and its tests use the same RGBA buffer.

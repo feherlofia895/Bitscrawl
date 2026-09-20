@@ -20,6 +20,7 @@ import {
 import { ConfirmModal } from './ConfirmModal'
 import { PixelCanvas } from './PixelCanvas'
 import { ProfileAvatar } from './ProfileAvatar'
+import { ProfilePreviewButton } from './ProfilePreviewButton'
 import { WeeklyArtwork } from './WeeklyArtwork'
 import { MonthlyDraw } from './MonthlyDraw'
 import { GalleryComments } from './GalleryComments'
@@ -342,10 +343,10 @@ function WeeklyDrawContent({ mode, onBack, onSelectMonthly }: { mode: 'challenge
             {entry.is_winner ? <span className="weekly-winner">Heti győztes</span> : null}
             <WeeklyArtwork label={`${entry.author_name} heti rajza`} pixels={entry.pixels} />
             <div className="weekly-entry-meta">
-              <div className="weekly-entry-author">
+              <ProfilePreviewButton className="weekly-entry-author" name={entry.author_name} pixels={entry.authorAvatar}>
                 <ProfileAvatar label={`${entry.author_name} profilképe`} pixels={entry.authorAvatar} />
                 <strong>{entry.author_name}</strong>
-              </div>
+              </ProfilePreviewButton>
               <span>{entry.vote_count} szavazat</span>
             </div>
             <button aria-pressed={entry.has_voted} disabled={busy || !user || !isActive || entry.is_own || (!entry.has_voted && account.votesUsed >= 3)} onClick={() => void handleVote(entry)} type="button">

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { GalleryComment } from '../lib/galleryComments'
 import { ProfileAvatar } from './ProfileAvatar'
+import { ProfilePreviewButton } from './ProfilePreviewButton'
 
 function dateLabel(value: string) {
   return new Intl.DateTimeFormat('hu-HU', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value))
@@ -53,9 +54,11 @@ export function GalleryComments({
     </button>
     {open ? <div className="gallery-comments-body">
       {comments.length ? <ol className="gallery-comment-list">{comments.map(comment => <li key={comment.comment_id}>
-        <div className="gallery-comment-author">
-          <ProfileAvatar label={`${comment.author_name} profilképe`} pixels={comment.authorAvatar} />
-          <strong>{comment.author_name}</strong>
+        <div className="gallery-comment-author-row">
+          <ProfilePreviewButton className="gallery-comment-author" name={comment.author_name} pixels={comment.authorAvatar}>
+            <ProfileAvatar label={`${comment.author_name} profilképe`} pixels={comment.authorAvatar} />
+            <strong>{comment.author_name}</strong>
+          </ProfilePreviewButton>
           <time dateTime={comment.created_at}>{dateLabel(comment.created_at)}</time>
         </div>
         {editingId === comment.comment_id ? <form className="gallery-comment-edit" onSubmit={event => { event.preventDefault(); void update() }}>

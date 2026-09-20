@@ -1,5 +1,5 @@
 import type { Database } from '../types/database'
-import type { PaletteSize } from './palette'
+import type { RoomPaletteSize } from './palette'
 import { DEFAULT_ROUND_DURATION, isRoundDuration, roundDurationText, type RoundDuration } from './roundDuration'
 import { ensurePlayerSession, supabase } from './supabase'
 
@@ -231,7 +231,7 @@ export async function setRoomTestMode(roomId: number, enabled: boolean) {
 
 export async function setRoomPaletteSize(
   roomId: number,
-  paletteSize: PaletteSize,
+  paletteSize: RoomPaletteSize,
 ) {
   try {
     await ensurePlayerSession()

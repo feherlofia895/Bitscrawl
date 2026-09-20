@@ -664,6 +664,18 @@ Első működő eszköztár-bővítés (2026-09-19):
 - A saját 32 színű paletta megtervezése, verziózott tárolása és szerveroldali engedélyezése
   még ennek a mérföldkőnek a következő része.
 
+Szerkesztői 32 színű paletta (2026-09-20):
+- A helyi Szerkesztőben elkészült a 12 színű alap- és a 32 színű bővített paletta
+  közötti választás. A 32 szín négy, nyolcszínes sorba rendeződik, és az összes
+  korábbi alapszínt tartalmazza.
+- A kiválasztott palettamód a rajzzal együtt helyben megmarad; a régi mentések
+  automatikusan a 12 színű alappalettával nyílnak meg.
+- Az új színek a PNG-exportban, a helyi mentésben, a teljes nézetben és mobilos
+  elrendezésben is támogatottak. A 12/32 színkészletet és a mentés visszatöltését
+  automatizált teszt ellenőrzi.
+- A 32 színű mód játékszobákba vitele, verziózott szerveroldali palettaazonosítója
+  és multiplayer-ellenőrzése továbbra is külön következő lépés.
+
 
 [ ] 14. TELJES VISSZAELLENŐRZÉS
 
@@ -756,6 +768,9 @@ Javasolt sorrend és függőségek:
   felhasználónként helyben is megmarad, az online Supabase-mentés pedig 2026-09-20-án élesedett.
 - 2026-09-20: a rajzolt profilkép a Heti kihívás nyilvános galériájában is megjelenik
   a készítő neve mellett, a felhasználói azonosító és a profil egyéb adatai nélkül.
+- 2026-09-20: a heti és havi galéria készítői, a kommentelők, valamint a játékszoba
+  játékosnevei kattinthatók; a közös profilablak nagy méretben mutatja a nevet és a
+  megrajzolt profilképet, személyes fiókadatok nélkül.
 - 2026-09-20: az ingyenes Supabase levélküldés óránkénti korlátja miatt az e-mailes
   regisztráció azonnali megerősítéssel működik, így nem fogyaszt megerősítő levelet.
   Emiatt az e-mail-cím valódisága egyelőre nincs ellenőrizve; nyilvános indulás előtt
