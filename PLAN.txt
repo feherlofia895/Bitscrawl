@@ -754,6 +754,8 @@ Javasolt sorrend és függőségek:
   pedig csak a tulajdonos számára olvasható és módosítható. A helyi migrációs teszt,
   a build, a lint és a vendég nézet asztali/mobil ellenőrzése sikeres. A profilkép
   felhasználónként helyben is megmarad, az online Supabase-mentés pedig 2026-09-20-án élesedett.
+- 2026-09-20: a rajzolt profilkép a Heti kihívás nyilvános galériájában is megjelenik
+  a készítő neve mellett, a felhasználói azonosító és a profil egyéb adatai nélkül.
 - A vendégként, azonnali névvel történő játék továbbra is maradjon lehetséges.
 - Később opcionális Supabase-fiók kapcsolható a vendéghez, az egész játék újraírása nélkül.
 - Első fiókos változatként elég lehet a megjelenített név és az elmentett alapbeállítások.
@@ -827,6 +829,10 @@ szóra és ugyanazzal a palettával készülnek rajzok.
 - Az első változatban csak részvétel, szavazás és heti eredménylista készüljön; jutalmak,
   jelvények és sorozatok egy későbbi külön mérföldkő részei legyenek.
 - Mobilon és számítógépen is lehessen folytatni a félbehagyott heti rajzot.
+- Későbbi bővítésként a bejelentkezett játékosok tartós hozzászólásokat írhassanak
+  a galéria képei alá. A megoldás külön komment-adatszerkezetet, szerveroldali
+  hosszkorlátot és jogosultság-ellenőrzést, időbélyeget, saját hozzászólás törlését,
+  moderációs elrejtést, spamkorlátozást, mobil felületet és automatizált próbákat kapjon.
 
 Éles állapot (2026-09-19, a Bitscrawl Heti Rajz v0.1 átadó alapján):
 - Elkészült a külön heti adatmodell, a hétfő 00:00-kor (Europe/Budapest) váltó

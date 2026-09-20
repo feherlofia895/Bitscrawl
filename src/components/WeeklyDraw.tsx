@@ -19,6 +19,7 @@ import {
 } from '../lib/weekly'
 import { ConfirmModal } from './ConfirmModal'
 import { PixelCanvas } from './PixelCanvas'
+import { ProfileAvatar } from './ProfileAvatar'
 import { WeeklyArtwork } from './WeeklyArtwork'
 
 type GallerySort = 'discovery' | 'likes' | 'newest'
@@ -305,7 +306,13 @@ export function WeeklyDraw({ mode, onBack }: { mode: 'challenge' | 'gallery'; on
           <article className={`weekly-entry${entry.is_winner ? ' is-winner' : ''}`} key={entry.entry_id}>
             {entry.is_winner ? <span className="weekly-winner">Heti győztes</span> : null}
             <WeeklyArtwork label={`${entry.author_name} heti rajza`} pixels={entry.pixels} />
-            <div className="weekly-entry-meta"><strong>{entry.author_name}</strong><span>{entry.vote_count} szavazat</span></div>
+            <div className="weekly-entry-meta">
+              <div className="weekly-entry-author">
+                <ProfileAvatar label={`${entry.author_name} profilképe`} pixels={entry.authorAvatar} />
+                <strong>{entry.author_name}</strong>
+              </div>
+              <span>{entry.vote_count} szavazat</span>
+            </div>
             <button aria-pressed={entry.has_voted} disabled={busy || !user || !isActive || entry.is_own || (!entry.has_voted && account.votesUsed >= 3)} onClick={() => void handleVote(entry)} type="button">
               {entry.is_own ? 'A te rajzod' : entry.has_voted ? 'Szavazat visszavonása' : 'Szavazok'}
             </button>

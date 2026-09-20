@@ -2198,8 +2198,11 @@ button,
   image-rendering: pixelated;
 }
 
-.weekly-entry-meta { display: flex; justify-content: space-between; gap: 8px; }
+.weekly-entry-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .weekly-entry-meta span { color: var(--muted); font-size: .86rem; }
+.weekly-entry-author { display: flex; align-items: center; min-width: 0; gap: 8px; }
+.weekly-entry-author .profile-avatar { flex: 0 0 auto; width: 32px; height: 32px; }
+.weekly-entry-author strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .weekly-entry button[aria-pressed='true'] { background: var(--yellow); }
 .weekly-submitted .weekly-artwork { width: min(180px, 42vw); flex: 0 0 auto; }
 .weekly-empty { margin: 20px 0 0; text-align: center; }
@@ -2704,7 +2707,8 @@ canvas.player-avatar {
   margin-top: 24px;
 }
 
-.home-panel[data-home-view='play'] .lobby-heading {
+.home-panel[data-home-view='play'] .lobby-heading,
+.home-panel[data-home-view='settings'] .lobby-heading {
   margin-top: 20px;
 }
 

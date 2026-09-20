@@ -407,6 +407,7 @@ export type Database = {
       get_weekly_gallery: {
         Args: { target_challenge_id: number }
         Returns: {
+          author_avatar: Json | null
           author_name: string
           entry_id: number
           has_voted: boolean

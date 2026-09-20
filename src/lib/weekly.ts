@@ -14,6 +14,7 @@ export type WeeklyChallenge = {
 }
 
 export type WeeklyGalleryEntry = {
+  authorAvatar: string[] | null
   author_name: string
   entry_id: number
   has_voted: boolean
@@ -99,7 +100,11 @@ export async function loadWeeklyChallenges() {
 export async function loadWeeklyGallery(challengeId: number) {
   const { data, error } = await supabase.rpc('get_weekly_gallery', { target_challenge_id: challengeId })
   if (error) throw weeklyError(error)
-  return data.map(entry => ({ ...entry, pixels: pixels(entry.pixels) ?? [] })) as WeeklyGalleryEntry[]
+  return data.map(entry => ({
+    ...entry,
+    authorAvatar: pixels(entry.author_avatar),
+    pixels: pixels(entry.pixels) ?? [],
+  })) as WeeklyGalleryEntry[]
 }
 
 export async function loadWeeklyAccountState(challengeId: number): Promise<WeeklyAccountState> {

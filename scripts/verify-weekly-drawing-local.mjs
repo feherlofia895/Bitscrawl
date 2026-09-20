@@ -140,6 +140,9 @@ test('one validated entry per account reaches the public gallery', async () => {
   const gallery = await asUser(null, 'select * from public.get_weekly_gallery($1)', [challengeId], { role: 'anon' })
   assert.equal(gallery.length, users.length)
   assert(gallery.every(entry => Number(entry.vote_count) === 0 && entry.has_voted === false))
+  assert.deepEqual(gallery.find(entry => entry.author_name === 'Artist1').author_avatar, drawing(colors[1]))
+  assert(gallery.filter(entry => entry.author_name !== 'Artist1').every(entry => entry.author_avatar === null))
+  assert(gallery.every(entry => !('user_id' in entry)))
   await assert.rejects(
     asUser(null, 'select user_id from public.weekly_entries', [], { role: 'anon' }),
     /permission denied/,
