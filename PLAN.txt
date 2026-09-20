@@ -690,6 +690,14 @@ Részellenőrzés:
 
 Csak a fenti kezelhetőségi változtatások stabil nyilvános próbája után.
 
+Első PWA-alap (2026-09-20):
+- Elkészült a web app manifest a Bitscrawl névvel, saját pixelikonnal, színekkel és
+  önálló alkalmazásablakos megjelenéssel; a szükséges HTML-metaadatok is bekerültek.
+- Automatizált próba ellenőrzi a manifest kötelező adatait, az ikon elérhetőségét és
+  a mobilos metaadatokat.
+- Service worker és offline gyorsítótár még nincs: a multiplayerhez szükséges friss
+  hálózati állapotot nem kockáztatjuk egy túl korán bevezetett gyorsítótárral.
+
 - Web app manifest.
 - Bitscrawl név, színek és alkalmazásikonok.
 - Telepíthetőség Androidon és számítógépen.

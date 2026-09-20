@@ -1,0 +1,20 @@
+{
+  "name": "Bitscrawl – Draw and scrawl it!",
+  "short_name": "Bitscrawl",
+  "description": "Online pixel art rajzolós-kitalálós játék.",
+  "lang": "hu",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#a5adb0",
+  "theme_color": "#549d8c",
+  "icons": [
+    {
+      "src": "/icons/bitscrawl-app.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
