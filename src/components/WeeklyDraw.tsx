@@ -24,6 +24,7 @@ import { ProfilePreviewButton } from './ProfilePreviewButton'
 import { WeeklyArtwork } from './WeeklyArtwork'
 import { MonthlyDraw } from './MonthlyDraw'
 import { GalleryComments } from './GalleryComments'
+import { GALLERY_PAGE_SIZE, GalleryPagination } from './GalleryPagination'
 import { addGalleryComment, updateGalleryComment } from '../lib/galleryComments'
 
 type GallerySort = 'discovery' | 'likes' | 'newest'
@@ -60,6 +61,7 @@ function WeeklyDrawContent({ mode, onBack, onSelectMonthly }: { mode: 'challenge
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState('A heti kihívás betöltése…')
   const [sort, setSort] = useState<GallerySort>('discovery')
+  const [galleryPage, setGalleryPage] = useState(1)
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -114,6 +116,7 @@ function WeeklyDrawContent({ mode, onBack, onSelectMonthly }: { mode: 'challenge
 
   const chooseChallenge = async (challengeId: number) => {
     setSelectedId(challengeId)
+    setGalleryPage(1)
     setLoading(true)
     try {
       await refresh(challengeId)
@@ -233,6 +236,15 @@ function WeeklyDrawContent({ mode, onBack, onSelectMonthly }: { mode: 'challenge
     if (sort === 'newest') return Date.parse(second.submitted_at) - Date.parse(first.submitted_at)
     return discoveryScore(first) - discoveryScore(second)
   }), [gallery, sort])
+  const galleryPageCount = Math.max(1, Math.ceil(sortedGallery.length / GALLERY_PAGE_SIZE))
+  const visibleGallery = useMemo(() => {
+    const pageStart = (galleryPage - 1) * GALLERY_PAGE_SIZE
+    return sortedGallery.slice(pageStart, pageStart + GALLERY_PAGE_SIZE)
+  }, [galleryPage, sortedGallery])
+
+  useEffect(() => {
+    setGalleryPage(current => Math.min(current, galleryPageCount))
+  }, [galleryPageCount])
 
   const canEdit = Boolean(isActive && user && account.profileName && !account.entryId)
 
@@ -336,25 +348,28 @@ function WeeklyDrawContent({ mode, onBack, onSelectMonthly }: { mode: 'challenge
       {mode === 'gallery' ? <section className="weekly-gallery" aria-labelledby="weekly-gallery-title">
         <div className="weekly-section-heading">
           <div><p className="step-label">Közösség</p><h2 id="weekly-gallery-title">Galéria</h2></div>
-          <label className="field weekly-sort"><span>Sorrend</span><select onChange={event => setSort(event.target.value as GallerySort)} value={sort}><option value="discovery">Felfedezés</option><option value="likes">Legkedveltebb</option><option value="newest">Legújabb</option></select></label>
+          <label className="field weekly-sort"><span>Sorrend</span><select onChange={event => { setSort(event.target.value as GallerySort); setGalleryPage(1) }} value={sort}><option value="discovery">Felfedezés</option><option value="likes">Legkedveltebb</option><option value="newest">Legújabb</option></select></label>
         </div>
-        {sortedGallery.length ? <div className="weekly-gallery-grid">{sortedGallery.map(entry => (
-          <article className={`weekly-entry${entry.is_winner ? ' is-winner' : ''}`} key={entry.entry_id}>
-            {entry.is_winner ? <span className="weekly-winner">Heti győztes</span> : null}
-            <WeeklyArtwork label={`${entry.author_name} heti rajza`} pixels={entry.pixels} />
-            <div className="weekly-entry-meta">
-              <ProfilePreviewButton className="weekly-entry-author" name={entry.author_name} pixels={entry.authorAvatar}>
-                <ProfileAvatar label={`${entry.author_name} profilképe`} pixels={entry.authorAvatar} />
-                <strong>{entry.author_name}</strong>
-              </ProfilePreviewButton>
-              <span>{entry.vote_count} szavazat</span>
-            </div>
-            <button aria-pressed={entry.has_voted} disabled={busy || !user || !isActive || entry.is_own || (!entry.has_voted && account.votesUsed >= 3)} onClick={() => void handleVote(entry)} type="button">
-              {entry.is_own ? 'A te rajzod' : entry.has_voted ? 'Szavazat visszavonása' : 'Szavazok'}
-            </button>
-            <GalleryComments busy={busy} comments={entry.comments} isSignedIn={Boolean(user && account.profileName)} onSubmit={content => handleComment(entry.entry_id, content)} onUpdate={handleCommentUpdate} />
-          </article>
-        ))}</div> : <p className="weekly-empty">Ezen a héten még nincs nevezés. Lehetsz te az első!</p>}
+        {sortedGallery.length ? <>
+          <div className="weekly-gallery-grid">{visibleGallery.map(entry => (
+            <article className={`weekly-entry${entry.is_winner ? ' is-winner' : ''}`} key={entry.entry_id}>
+              {entry.is_winner ? <span className="weekly-winner">Heti győztes</span> : null}
+              <WeeklyArtwork label={`${entry.author_name} heti rajza`} pixels={entry.pixels} />
+              <div className="weekly-entry-meta">
+                <ProfilePreviewButton className="weekly-entry-author" name={entry.author_name} pixels={entry.authorAvatar}>
+                  <ProfileAvatar label={`${entry.author_name} profilképe`} pixels={entry.authorAvatar} />
+                  <strong>{entry.author_name}</strong>
+                </ProfilePreviewButton>
+                <span>{entry.vote_count} szavazat</span>
+              </div>
+              <button aria-pressed={entry.has_voted} disabled={busy || !user || !isActive || entry.is_own || (!entry.has_voted && account.votesUsed >= 3)} onClick={() => void handleVote(entry)} type="button">
+                {entry.is_own ? 'A te rajzod' : entry.has_voted ? 'Szavazat visszavonása' : 'Szavazok'}
+              </button>
+              <GalleryComments artworkAuthor={entry.author_name} busy={busy} comments={entry.comments} isSignedIn={Boolean(user && account.profileName)} onSubmit={content => handleComment(entry.entry_id, content)} onUpdate={handleCommentUpdate} />
+            </article>
+          ))}</div>
+          <GalleryPagination currentPage={galleryPage} onPageChange={setGalleryPage} totalItems={sortedGallery.length} />
+        </> : <p className="weekly-empty">Ezen a héten még nincs nevezés. Lehetsz te az első!</p>}
       </section> : null}
 
       <p className="status-message weekly-message" aria-live="polite">{status}</p>

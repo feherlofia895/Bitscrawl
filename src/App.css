@@ -2559,6 +2559,33 @@ button,
   margin-top: 18px;
 }
 
+.gallery-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.gallery-pagination button {
+  min-width: 132px;
+  background: var(--yellow);
+}
+
+.gallery-pagination span {
+  min-width: 74px;
+  padding: 10px 12px;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  font-family: var(--pixel-font);
+  font-size: .68rem;
+  text-align: center;
+}
+
+.gallery-pagination button:disabled {
+  opacity: .45;
+}
+
 .weekly-entry {
   position: relative;
   display: grid;
@@ -2610,10 +2637,68 @@ button,
   text-align: left;
 }
 
+.gallery-comments-backdrop {
+  z-index: 2300;
+}
+
+.gallery-comments-modal {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(680px, 100%);
+  max-height: min(720px, calc(100dvh - 36px));
+  padding: clamp(16px, 3vw, 26px);
+  overflow: hidden;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--yellow) 72%, var(--paper));
+  border: 3px solid var(--ink);
+  box-shadow: 10px 10px 0 rgb(36 26 53 / 62%);
+  clip-path: var(--pixel-corner);
+}
+
+.gallery-comments-heading,
+.gallery-comments-heading-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.gallery-comments-heading {
+  align-items: flex-start;
+  padding-bottom: 14px;
+  border-bottom: 3px solid var(--ink);
+}
+
+.gallery-comments-heading .step-label {
+  margin: 0 0 5px;
+}
+
+.gallery-comments-heading h2 {
+  margin: 0;
+  font-family: var(--display-font);
+  font-size: clamp(2rem, 7vw, 3rem);
+  line-height: 1;
+}
+
+.gallery-comments-heading-actions span {
+  color: var(--muted);
+  font: 900 .58rem/1 var(--pixel-font);
+  text-transform: uppercase;
+}
+
+.gallery-comments-heading-actions > button {
+  width: 42px;
+  min-height: 42px;
+  padding: 4px;
+  background: var(--mint);
+  font-size: 1.5rem;
+}
+
 .gallery-comments-body,
 .gallery-comment-form,
 .gallery-comment-list { display: grid; gap: 8px; }
-.gallery-comment-list { max-height: 250px; padding: 0; margin: 0; overflow-y: auto; list-style: none; }
+.gallery-comments-body { min-height: 0; padding-top: 14px; overflow: hidden; }
+.gallery-comment-list { min-height: 0; padding: 0 3px 0 0; margin: 0; overflow-y: auto; list-style: none; }
 .gallery-comment-list li { padding: 8px; background: color-mix(in srgb, var(--mint) 18%, white); border: 1px solid var(--ink); }
 .gallery-comment-list p { margin: 6px 0 0; overflow-wrap: anywhere; line-height: 1.35; }
 .gallery-comment-author-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px; }
@@ -2632,6 +2717,21 @@ button,
 .gallery-comment-form button { min-height: 38px; padding: 7px 12px; color: var(--ink); background: var(--mint); border: 2px solid var(--ink); }
 .gallery-comments-empty,
 .gallery-comments-login { margin: 2px 0; color: var(--muted); font-size: .82rem; line-height: 1.4; }
+
+@media (max-width: 540px) {
+  .gallery-comments-backdrop { padding: 8px; }
+  .gallery-comments-modal {
+    max-height: calc(100dvh - 16px);
+    padding: 13px;
+  }
+  .gallery-comments-heading-actions {
+    align-items: flex-end;
+    flex-direction: column-reverse;
+  }
+  .gallery-comments-heading h2 { font-size: 1.9rem; }
+  .gallery-comments-body { overflow-y: auto; }
+  .gallery-comment-list { overflow: visible; }
+}
 .weekly-submitted .weekly-artwork { width: min(180px, 42vw); flex: 0 0 auto; }
 .weekly-empty { margin: 20px 0 0; text-align: center; }
 .weekly-message { margin: 0; }
@@ -2647,6 +2747,9 @@ button,
   .weekly-picker,
   .weekly-sort { width: 100%; }
   .weekly-submitted .weekly-artwork { width: min(100%, 260px); align-self: center; }
+  .gallery-pagination { gap: 7px; }
+  .gallery-pagination button { min-width: 0; padding-inline: 9px; }
+  .gallery-pagination span { min-width: 64px; padding-inline: 8px; }
 }
 
 .editor-intro {
@@ -3242,7 +3345,7 @@ canvas.player-avatar {
 }
 
 .info-panel-copy {
-  padding: 24px 28px;
+  padding: 34px 40px 28px;
   background: url('/ui/menu-divider-wide.png') center / 100% 100% no-repeat;
   image-rendering: pixelated;
 }
@@ -3346,6 +3449,18 @@ canvas.player-avatar {
   box-shadow: none;
   clip-path: none;
   image-rendering: pixelated;
+}
+
+/* A rajzolt ablakkeretek felső gombostűi minden képernyőméreten kapjanak
+   saját, üres sávot. Így a címkék és vezérlők mobilon sem csúsznak rájuk. */
+.lobby-card.home-panel,
+.profile-card,
+.profile-editor-section,
+.weekly-challenge-card,
+.weekly-account-card,
+.weekly-gallery,
+.weekly-submitted {
+  padding-top: clamp(34px, 5vw, 44px);
 }
 
 .weekly-header button,
@@ -3610,8 +3725,11 @@ canvas.player-avatar {
     grid-template-columns: 1fr;
   }
 
-  .lobby-card.home-panel:not([data-home-view='main']) .lobby-heading,
-  .info-panel-copy {
+  .lobby-card.home-panel:not([data-home-view='main']) .lobby-heading {
     padding-inline: 20px;
+  }
+
+  .info-panel-copy {
+    padding: 34px 32px 28px;
   }
 }
