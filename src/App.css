@@ -2461,6 +2461,7 @@ button,
 
 .weekly-page {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 22px;
   width: min(100%, 1080px);
   margin: 0 auto;
@@ -3014,6 +3015,7 @@ canvas.player-avatar {
 
 .profile-page {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 22px;
   width: min(100%, 920px);
   margin: 34px auto 0;
@@ -3128,6 +3130,10 @@ canvas.player-avatar {
 
 .profile-avatar-drawer {
   padding-top: 4px;
+}
+
+.profile-avatar-drawer-heading {
+  display: none;
 }
 
 .profile-inline-status {
@@ -3650,6 +3656,43 @@ canvas.player-avatar {
 }
 
 @media (max-width: 560px) {
+  .app-shell {
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .feedback-triggers {
+    position: static;
+    display: grid;
+    grid-template-columns: minmax(0, 1.16fr) repeat(2, minmax(0, 1fr));
+    width: 100%;
+    max-width: none;
+    margin-top: 14px;
+    gap: 4px;
+  }
+
+  .feedback-triggers .bug-report-trigger {
+    width: 100%;
+    min-width: 0;
+    min-height: 42px;
+    padding: 6px 5px;
+    font-size: .64rem;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+
+  .profile-card,
+  .profile-editor-section,
+  .weekly-challenge-card,
+  .weekly-account-card,
+  .weekly-gallery,
+  .weekly-submitted {
+    padding-top: 52px;
+  }
+
+  .weekly-gallery .weekly-section-heading {
+    padding-inline: 32px;
+  }
+
   .user-badge {
     max-width: 128px;
   }
@@ -3716,6 +3759,57 @@ canvas.player-avatar {
   .profile-avatar-toggle {
     align-items: flex-start;
     padding-inline: 12px;
+  }
+
+  .profile-avatar-drawer {
+    position: fixed;
+    inset: 0;
+    z-index: 1800;
+    padding:
+      max(10px, env(safe-area-inset-top))
+      max(10px, env(safe-area-inset-right))
+      max(18px, env(safe-area-inset-bottom))
+      max(10px, env(safe-area-inset-left));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: color-mix(in srgb, var(--mint) 58%, var(--paper));
+  }
+
+  .profile-avatar-drawer-heading {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 10px 12px;
+    margin-bottom: 10px;
+    background: var(--yellow);
+    border: 2px solid var(--ink);
+    box-shadow: 4px 4px 0 var(--ink);
+  }
+
+  .profile-avatar-drawer-heading .step-label {
+    margin: 0 0 4px;
+  }
+
+  .profile-avatar-drawer-heading strong {
+    display: block;
+    font-family: var(--display-font);
+    font-size: 1.2rem;
+  }
+
+  .profile-avatar-drawer-heading button {
+    flex: 0 0 auto;
+    min-height: 42px;
+    padding: 7px 10px;
+    background: var(--mint);
+  }
+
+  .profile-avatar-drawer > .drawing-panel {
+    width: 100%;
+    margin: 0;
   }
 
   .game-mode-grid {

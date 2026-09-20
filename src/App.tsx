@@ -175,6 +175,13 @@ function App() {
   }, [homeView])
 
   useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      window.scrollTo({ left: 0, top: 0, behavior: 'auto' })
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [homeView])
+
+  useEffect(() => {
     let cancelled = false
     void loadOwnProfile().then(({ profile, user }) => {
       if (cancelled) return

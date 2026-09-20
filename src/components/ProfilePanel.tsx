@@ -215,7 +215,16 @@ export function ProfilePanel({ onBack, onProfileChange }: {
               <span aria-hidden="true">{avatarEditorOpen ? '▲' : '▼'}</span>
             </button>
             {avatarEditorOpen ? (
-              <div className="profile-avatar-drawer">
+              <div aria-label="Profilkép rajzolása" className="profile-avatar-drawer">
+                <div className="profile-avatar-drawer-heading">
+                  <div>
+                    <p className="step-label">Profilkép</p>
+                    <strong>Rajzold meg az avatárod</strong>
+                  </div>
+                  <button aria-label="Profilkép-rajzoló bezárása" onClick={() => setAvatarEditorOpen(false)} type="button">
+                    Bezárás
+                  </button>
+                </div>
                 <PixelCanvas
                   canDraw={!busy}
                   chosenWord={null}
