@@ -38,6 +38,7 @@ export function RoundChat({
         message.kind === 'correct' &&
         message.sender_user_id === currentUserId,
     )
+  const canSubmitGuess = !isDrawer && !hasGuessedCorrectly
 
   useEffect(() => {
     setGuess('')
@@ -65,7 +66,7 @@ export function RoundChat({
   const playerProfile = (userId: string) => players.find((player) => player.user_id === userId)
 
   return (
-    <section className="guess-panel" aria-labelledby="round-chat-title">
+    <section className={`guess-panel${canSubmitGuess ? ' is-guessing' : ''}`} aria-labelledby="round-chat-title">
       <div className="round-chat-heading">
         <div>
           <p className="round-label">Csak a szerver ellenőrzi</p>

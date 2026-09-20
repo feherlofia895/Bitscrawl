@@ -2157,7 +2157,7 @@ button,
   }
 
   .round-play-area .guess-panel {
-    order: -1;
+    order: 1;
     width: 100%;
   }
 }
@@ -2256,8 +2256,57 @@ button,
   }
 
   .round-play-area .guess-panel {
-    order: -1;
+    order: 1;
     margin-top: 0;
+  }
+
+  .round-play-area.is-guesser {
+    padding-bottom: 104px;
+  }
+
+  .round-play-area.is-guesser .guess-panel.is-guessing {
+    position: fixed;
+    right: max(10px, env(safe-area-inset-right));
+    bottom: max(8px, env(safe-area-inset-bottom));
+    left: max(10px, env(safe-area-inset-left));
+    z-index: 900;
+    width: auto;
+    margin: 0;
+    padding: 9px;
+    gap: 7px;
+    box-shadow: 0 -5px 0 rgb(36 26 53 / 38%);
+  }
+
+  .round-play-area.is-guesser .guess-panel.is-guessing .round-chat-heading {
+    align-items: center;
+  }
+
+  .round-play-area.is-guesser .guess-panel.is-guessing .round-label,
+  .round-play-area.is-guesser .guess-panel.is-guessing .round-message-list {
+    display: none;
+  }
+
+  .round-play-area.is-guesser .guess-panel.is-guessing .round-chat-heading h3 {
+    font-size: 1.15rem;
+  }
+
+  .round-play-area.is-guesser .guess-panel.is-guessing .guess-form {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px;
+  }
+
+  .round-play-area.is-guesser .guess-panel.is-guessing .guess-form input,
+  .round-play-area.is-guesser .guess-panel.is-guessing .guess-form button {
+    min-height: 44px;
+  }
+
+  .round-play-area.is-guesser .guess-panel.is-guessing .guess-form button {
+    min-width: 104px;
+    padding-inline: 9px;
+  }
+
+  .round-play-area.is-guesser .mobile-chat-toggle {
+    bottom: calc(max(8px, env(safe-area-inset-bottom)) + 102px);
   }
 
   .mobile-chat-toggle {

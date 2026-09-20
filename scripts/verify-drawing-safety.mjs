@@ -121,6 +121,18 @@ test('a selected gallery vote uses one plain color instead of layered button art
   assert.doesNotMatch(selectedVoteRule, /url\(/)
 })
 
+test('mobile guessers keep a compact guess dock visible below the live drawing', async () => {
+  const [app, chat, css] = await Promise.all([
+    readFile(new URL('../src/App.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/RoundChat.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/App.css', import.meta.url), 'utf8'),
+  ])
+  assert.match(app, /round-play-area \$\{roundView\.is_drawer \? 'is-drawer' : 'is-guesser'\}/)
+  assert.match(chat, /guess-panel\$\{canSubmitGuess \? ' is-guessing' : ''\}/)
+  assert.match(css, /\.round-play-area\.is-guesser \.guess-panel\.is-guessing\s*\{[\s\S]*?position:\s*fixed/)
+  assert.match(css, /\.round-play-area \.guess-panel\s*\{[\s\S]*?order:\s*1/)
+})
+
 test('failed multiplayer pixel chunks stay queued for a later retry', async () => {
   const source = await readFile(new URL('../src/components/PixelCanvas.tsx', import.meta.url), 'utf8')
   assert.match(source, /if \(!pendingChangesRef\.current\.has\(key\)\) pendingChangesRef\.current\.set\(key, change\)/)

@@ -1024,7 +1024,7 @@ function App() {
             )}
 
             {roundView?.round_status === 'drawing' && !isFinishingRound ? (
-              <div className="round-play-area">
+              <div className={`round-play-area ${roundView.is_drawer ? 'is-drawer' : 'is-guesser'}`}>
                 <PixelCanvas
                   canDraw={roundView.is_drawer}
                   chosenWord={roundView.chosen_word}
