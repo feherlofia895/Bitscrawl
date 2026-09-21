@@ -86,6 +86,10 @@ test('profile avatars are validated, private and copied beside room names', asyn
     asUser(users[0], 'select public.set_profile_avatar($1::jsonb)', [JSON.stringify(avatarWithNull)]),
     /PROFILE_AVATAR_INVALID/,
   )
+  await assert.rejects(
+    asUser(users[0], 'select public.set_profile_avatar($1::jsonb)', [JSON.stringify(drawing('#ffffff'))]),
+    /PROFILE_AVATAR_INVALID/,
+  )
 
   const firstAvatar = drawing(colors[0])
   await asUser(users[0], 'select public.set_profile_avatar($1::jsonb)', [JSON.stringify(firstAvatar)])
@@ -108,7 +112,7 @@ test('profile avatars are validated, private and copied beside room names', asyn
   )).rows
   assert.deepEqual(roomAvatar, firstAvatar)
 
-  const updatedAvatar = drawing(colors[1])
+  const updatedAvatar = drawing('#f7f3e8')
   await asUser(users[0], 'select public.set_profile_avatar($1::jsonb)', [JSON.stringify(updatedAvatar)])
   ;[{ avatar_pixels: roomAvatar }] = (await db.query(
     'select avatar_pixels from public.room_players where room_id = $1 and user_id = $2',
@@ -436,7 +440,7 @@ test('one validated entry per account reaches the public gallery', async () => {
   const gallery = await asUser(null, 'select * from public.get_weekly_gallery($1)', [challengeId], { role: 'anon' })
   assert.equal(gallery.length, users.length)
   assert(gallery.every(entry => Number(entry.vote_count) === 0 && entry.has_voted === false))
-  assert.deepEqual(gallery.find(entry => entry.author_name === 'Artist1').author_avatar, drawing(colors[1]))
+  assert.deepEqual(gallery.find(entry => entry.author_name === 'Artist1').author_avatar, drawing('#f7f3e8'))
   assert(gallery.filter(entry => entry.author_name !== 'Artist1').every(entry => entry.author_avatar === null))
   assert(gallery.every(entry => !('user_id' in entry)))
   await assert.rejects(

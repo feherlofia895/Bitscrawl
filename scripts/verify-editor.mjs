@@ -123,6 +123,12 @@ test('the editor uses one share menu for the feed and both challenge entries', a
   assert.match(cssSource, /\.feed-entry-actions\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,/)
 })
 
+test('the profile avatar editor uses the expanded 32-color palette', async () => {
+  const profileSource = await readFile(new URL('../src/components/ProfilePanel.tsx', import.meta.url), 'utf8')
+  assert.match(profileSource, /32 színű bővített palettával/)
+  assert.match(profileSource, /<PixelCanvas[\s\S]*?paletteSize=\{32\}/)
+})
+
 test('the mobile lobby chat keeps its composer inside the panel', async () => {
   const css = await readFile(new URL('../src/App.css', import.meta.url), 'utf8')
   assert.match(css, /\.global-lobby-chat-form label\s*\{\s*min-width:\s*0;/)

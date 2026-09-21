@@ -213,7 +213,7 @@ export function ProfilePanel({ onBack, onProfileChange }: {
                 <ProfileAvatar label="A jelenlegi profilképed" pixels={avatarPixels} />
                 <span>
                   <strong>Profilkép rajzolása</strong>
-                  <small>A játék 12 színével, 32×32 pixeles vásznon</small>
+                  <small>32 színű bővített palettával, 32×32 pixeles vásznon</small>
                 </span>
               </span>
               <span aria-hidden="true">{avatarEditorOpen ? '▲' : '▼'}</span>
@@ -241,7 +241,7 @@ export function ProfilePanel({ onBack, onProfileChange }: {
                   }}
                   onError={error => setStatus(errorMessage(error))}
                   onSubmit={async () => undefined}
-                  paletteSize={12}
+                  paletteSize={32}
                   roundId={revision}
                   serverNow=""
                 />
