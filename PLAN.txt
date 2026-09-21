@@ -7,6 +7,17 @@ Jelölések:
 [ ] még hátra van
 
 2026-09-21-i audit- és visszajelzési állapot:
+- [x] A 14-es teljes regresszió automatizálható része újra lefutott. A build, lint,
+  diff-ellenőrzés, szerkesztő-, rajzbiztonsági-, PWA-, paletta-, köridő- és heti
+  rajztesztek sikeresek. Az élő Supabase-környezetben a köridő, kilépés/hostátadás,
+  hibabejelentési jogosultságok, valamint egy 2 játékosos 6 körös és egy 5 játékosos
+  15 körös teljes meccs is hibátlanul végigment; minden játékos rajzolt, tippelt és
+  pontot kapott, a próbaszobák a végén törlődtek. Az éles felületen ellenőrizve lett
+  a heti/havi kihívás, a galéria lapozása, teljes képes nézete, kommentablaka,
+  profilnézete, visszalépései, a játék- és beállításmenü, továbbá a Szerkesztő két
+  mentett saját képe, teljes nézete és PNG-exportja. A palettamód élő regressziós
+  szkriptje a már elrejtett 16 színű
+  játékmód helyett most a jelenlegi 12 színű módot és a tiltásokat ellenőrzi.
 - [x] A Szerkesztő `Megosztás / nevezés` menüjében elkészült a profilonkénti,
   két férőhelyes privát saját galéria. Mindkét helyre menthető vagy felülírható a
   vászon, a mentett kép előnézhető, visszatölthető további szerkesztésre és külön
@@ -125,13 +136,12 @@ Jelölések:
   lefutott; az éles főmenü és a Gomba kihívás külön böngészős ellenőrzést kapott.
 
 Következő javasolt munkasorrend:
-1. A most elkészült korlátozott szoba-adatfolyamok adatbázis-migrációjának és
-   frontendjének élesítése, majd rövid, többklienses visszacsatlakozási próba.
-2. A 14-es teljes regresszió: többkörös multiplayer, 270/360/390 pixeles mobilnézet,
-   fizikai telefon, megnyíló billentyűzet, teljes nézet, PNG-export és hálózatkimaradás.
-3. A PWA tényleges telepíthetőségi próbája, majd a 16-os MVP-kiadási ellenőrzés és
+1. A 14-es regresszió hátralévő kézi része: 270/360/390 pixeles mobilnézet, fizikai
+   telefon, megnyíló billentyűzet, érintéses teljes nézet, PNG-export és valós
+   hálózatkimaradás/újracsatlakozás.
+2. A PWA tényleges telepíthetőségi próbája, majd a 16-os MVP-kiadási ellenőrzés és
    rövid üzemeltetési/tesztelési README.
-4. A végleges magyar ékezetes betűkészlet és a 13/E fordítási alap csak a fenti
+3. A végleges magyar ékezetes betűkészlet és a 13/E fordítási alap csak a fenti
    stabilizálás után következzen, hogy a mostani hibajavításokat ne keverjük nagy UI-cserével.
 
 
@@ -797,14 +807,24 @@ Az angol fordítás tartalmi elkészítése történhet az első MVP után is, d
 
 Részellenőrzés:
 
+- 2026-09-21-én a kétjátékos próba hat, az ötjátékos próba tizenöt teljes körön át
+  sikeresen lefutott az élő Supabase-környezetben. A rajzolás, hibás és helyes tipp,
+  pontozás, körváltás, kilépés, hostátadás és a próbaszobák törlése működött.
+- Az éles Cloudflare-oldalon a fő útvonalak, heti/havi kihívás, galérialapozás,
+  képnagyítás, komment- és profilablak, valamint a Szerkesztő két férőhelyes saját
+  galériája, teljes nézete és PNG-exportja billentyűzet/egér használatával vissza
+  lett ellenőrizve.
+- A build, lint, diff, szerkesztő-, rajzbiztonsági-, PWA-, paletta-, köridő-, heti
+  rajz- és hibabejelentési jogosultsági tesztek ugyanebben a körben sikeresek voltak.
 - A paraméterezhető multiplayer teszt három külön játékosmunkamenettel, kilenc körön át
   sikeresen lefutott. Mindhárom játékos háromszor rajzolt, a titkos szavak védelme,
   a rajztovábbítás, a hibás és helyes tippek, a pontozás és a körváltás működött.
 - A 2026-09-20-i teljes kódaudit mentési, jogosultsági, hálózati és adatérvényességi
   javításai elkészültek; a helyi adatbázis-integrációs próbák, lint és production build
   többször sikeresen lefutottak.
-- A teljes lezáráshoz még egy összevont fizikai telefonos és többkörös kiadási próba
-  szükséges.
+- A teljes lezáráshoz még a 270/360/390 pixeles kézi mobilpróba, egy fizikai telefonos
+  megnyíló-billentyűzetes próba, az érintéses teljes nézet és a valós
+  hálózatkimaradás/újracsatlakozás ellenőrzése szükséges.
 
 
 [>] 15. PWA – TELEPÍTHETŐ Bitscrawl
