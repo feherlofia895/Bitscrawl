@@ -121,6 +121,83 @@ test('profile avatars are validated, private and copied beside room names', asyn
   assert.deepEqual(roomAvatar, updatedAvatar)
 })
 
+test('each permanent profile owns exactly two private editor gallery slots', async () => {
+  const firstDrawing = drawing(colors[0])
+  const secondDrawing = drawing('#f7f3e8')
+
+  await assert.rejects(
+    asUser(
+      anonymousUser,
+      'select public.save_own_editor_gallery_slot(1, $1::jsonb, 12)',
+      [JSON.stringify(firstDrawing)],
+      { anonymous: true },
+    ),
+    /WEEKLY_ACCOUNT_REQUIRED/,
+  )
+  await assert.rejects(
+    asUser(
+      unprofiledUser,
+      'select public.save_own_editor_gallery_slot(1, $1::jsonb, 12)',
+      [JSON.stringify(firstDrawing)],
+    ),
+    /WEEKLY_PROFILE_REQUIRED/,
+  )
+  await assert.rejects(
+    asUser(users[0], 'select public.save_own_editor_gallery_slot(3, $1::jsonb, 12)', [JSON.stringify(firstDrawing)]),
+    /EDITOR_GALLERY_SLOT_INVALID/,
+  )
+  await assert.rejects(
+    asUser(
+      users[0],
+      'select public.save_own_editor_gallery_slot(1, $1::jsonb, 12)',
+      [JSON.stringify(Array(1024).fill('transparent'))],
+    ),
+    /EDITOR_GALLERY_DRAWING_INVALID/,
+  )
+  await assert.rejects(
+    asUser(users[0], 'select public.save_own_editor_gallery_slot(1, $1::jsonb, 12)', [JSON.stringify(secondDrawing)]),
+    /EDITOR_GALLERY_DRAWING_INVALID/,
+  )
+
+  await asUser(
+    users[0],
+    'select public.save_own_editor_gallery_slot(1, $1::jsonb, 12)',
+    [JSON.stringify(firstDrawing)],
+  )
+  await asUser(
+    users[0],
+    'select public.save_own_editor_gallery_slot(2, $1::jsonb, 32)',
+    [JSON.stringify(secondDrawing)],
+  )
+  let ownGallery = await asUser(users[0], 'select * from public.get_own_editor_gallery()')
+  assert.deepEqual(ownGallery.map(slot => slot.slot_index), [1, 2])
+  assert.deepEqual(ownGallery[0].pixels, firstDrawing)
+  assert.equal(ownGallery[0].palette_size, 12)
+  assert.deepEqual(ownGallery[1].pixels, secondDrawing)
+  assert.equal(ownGallery[1].palette_size, 32)
+  assert.deepEqual(await asUser(users[1], 'select * from public.get_own_editor_gallery()'), [])
+  await assert.rejects(asUser(users[0], 'select * from private.editor_gallery_slots'), /permission denied/)
+
+  const replacement = drawing(colors[2])
+  await asUser(
+    users[0],
+    'select public.save_own_editor_gallery_slot(1, $1::jsonb, 12)',
+    [JSON.stringify(replacement)],
+  )
+  ownGallery = await asUser(users[0], 'select * from public.get_own_editor_gallery()')
+  assert.equal(ownGallery.length, 2)
+  assert.deepEqual(ownGallery[0].pixels, replacement)
+
+  assert.deepEqual(await asUser(users[0], 'select public.delete_own_editor_gallery_slot(2)'), [
+    { delete_own_editor_gallery_slot: true },
+  ])
+  assert.deepEqual(await asUser(users[0], 'select public.delete_own_editor_gallery_slot(2)'), [
+    { delete_own_editor_gallery_slot: false },
+  ])
+  ownGallery = await asUser(users[0], 'select * from public.get_own_editor_gallery()')
+  assert.deepEqual(ownGallery.map(slot => slot.slot_index), [1])
+})
+
 test('daily feed limits posts by Budapest day and protects likes, comments and profile totals', async () => {
   const expandedDrawing = drawing('#f7f3e8')
   await assert.rejects(

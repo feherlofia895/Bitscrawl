@@ -121,6 +121,17 @@ test('a selected gallery vote uses one plain color instead of layered button art
   assert.doesNotMatch(selectedVoteRule, /url\(/)
 })
 
+test('reduced motion keeps the clean settings button and marks only its state badge', async () => {
+  const css = await readFile(new URL('../src/App.css', import.meta.url), 'utf8')
+  const selectedSettingRule = [...css.matchAll(/\.setting-row\[aria-pressed='true'\] \{([^}]*)\}/g)].at(-1)?.[1] ?? ''
+  const selectedBadgeRule = css.match(/\.setting-row\[aria-pressed='true'\] strong \{([^}]*)\}/)?.[1] ?? ''
+  assert.match(selectedSettingRule, /background-image:\s*url\('\/ui\/menu-button-2\.png'\)/)
+  assert.match(selectedSettingRule, /background-repeat:\s*no-repeat/)
+  assert.match(selectedSettingRule, /background-size:\s*100% 100%/)
+  assert.doesNotMatch(selectedSettingRule, /menu-button-yellow/)
+  assert.match(selectedBadgeRule, /background:\s*var\(--coral\)/)
+})
+
 test('gallery defaults to most-liked while discovery receives a fresh random order', async () => {
   const [weeklyDraw, weeklyLib, migration] = await Promise.all([
     readFile(new URL('../src/components/WeeklyDraw.tsx', import.meta.url), 'utf8'),

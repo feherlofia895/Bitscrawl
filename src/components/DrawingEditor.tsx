@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { PixelCanvas } from './PixelCanvas'
 import { ConfirmModal } from './ConfirmModal'
+import { WeeklyArtwork } from './WeeklyArtwork'
 import { emptyDrawing, parseDrawingDraft, rasterizeDrawing } from '../lib/drawing'
 import { editorText as text } from '../lib/editorText'
 import type { EditorPaletteSize } from '../lib/palette'
@@ -15,11 +16,21 @@ import {
 } from '../lib/feed'
 import { loadWeeklyAccountState, loadWeeklyChallenges, submitWeeklyEntry } from '../lib/weekly'
 import { loadMonthlyAccountState, loadMonthlyChallenges, saveMonthlyEntry, submitMonthlyEntry } from '../lib/monthly'
+import {
+  deleteOwnEditorGallerySlot,
+  editorGalleryEndpointIsMissing,
+  loadOwnEditorGallery,
+  saveOwnEditorGallerySlot,
+  type EditorGallerySlot,
+  type EditorGallerySlotIndex,
+} from '../lib/editorGallery'
 
 const STORAGE_KEY = 'bitscrawl-editor-v1'
 const challengeColors = new Set(['transparent', ...basePalette.map(color => color.hex)])
 
 type EditorShareState = {
+  gallerySlots: EditorGallerySlot[]
+  galleryUnavailableMessage: string | null
   feedUnavailableMessage: string | null
   feedPostCount: number
   monthly: { id: number; prompt: string; submitted: boolean } | null
@@ -29,6 +40,8 @@ type EditorShareState = {
 }
 
 const emptyShareState: EditorShareState = {
+  gallerySlots: [],
+  galleryUnavailableMessage: null,
   feedUnavailableMessage: null,
   feedPostCount: 0,
   monthly: null,
@@ -135,7 +148,7 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
         setShareState({ ...emptyShareState, signedIn: Boolean(user), profileReady: Boolean(profile) })
         return
       }
-      const [feedResult, weeklyChallenges, monthlyChallenges] = await Promise.all([
+      const [feedResult, galleryResult, weeklyChallenges, monthlyChallenges] = await Promise.all([
         loadDailyFeedAccountState()
           .then(account => ({ account, error: null as string | null }))
           .catch(error => ({
@@ -143,6 +156,14 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
             error: error instanceof Error && /get_daily_feed_account_state|schema cache/i.test(error.message)
               ? 'A Hírfolyam adatbázis-frissítése még nincs telepítve.'
               : 'A Hírfolyam most nem érhető el.',
+          })),
+        loadOwnEditorGallery()
+          .then(slots => ({ slots, error: null as string | null }))
+          .catch(error => ({
+            slots: [],
+            error: editorGalleryEndpointIsMissing(error)
+              ? 'A saját galéria adatbázis-frissítése még nincs telepítve.'
+              : error instanceof Error ? error.message : 'A saját galéria most nem érhető el.',
           })),
         loadWeeklyChallenges(),
         loadMonthlyChallenges(),
@@ -155,6 +176,8 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
       ])
       if (!mountedRef.current) return
       setShareState({
+        gallerySlots: galleryResult.slots,
+        galleryUnavailableMessage: galleryResult.error,
         feedUnavailableMessage: feedResult.error,
         feedPostCount: feedResult.account?.todayPostCount ?? 0,
         monthly: monthly ? {
@@ -239,6 +262,84 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
     })
   }
 
+  const saveGallerySlot = async (slotIndex: EditorGallerySlotIndex) => {
+    const snapshot = [...pixelsRef.current]
+    if (!snapshot.some(color => color !== 'transparent')) {
+      setStatus('Előbb rajzolj valamit a saját galériába mentéshez.')
+      return
+    }
+    setSharing(true)
+    try {
+      await saveOwnEditorGallerySlot(slotIndex, snapshot, paletteSize)
+      await refreshShareState()
+      setStatus(`A rajzod elmentve a saját galéria ${slotIndex}. helyére.`)
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'A rajz mentése nem sikerült.')
+    } finally {
+      if (mountedRef.current) setSharing(false)
+    }
+  }
+
+  const requestSaveGallerySlot = (slotIndex: EditorGallerySlotIndex, occupied: boolean) => {
+    if (!occupied) {
+      void saveGallerySlot(slotIndex)
+      return
+    }
+    setConfirmation({
+      title: `${slotIndex}. kép felülírása?`,
+      message: 'Az ezen a helyen tárolt rajzot lecseréljük a vásznon lévőre. A régi változat nem állítható vissza.',
+      label: 'Felülírás',
+      action: () => { void saveGallerySlot(slotIndex) },
+    })
+  }
+
+  const loadGallerySlot = (slot: EditorGallerySlot) => {
+    const pixels = [...slot.pixels]
+    pixelsRef.current = pixels
+    setPaletteSize(slot.paletteSize)
+    setChallengePaletteReady(pixels.every(color => challengeColors.has(color)))
+    setDirty(true)
+    const storedLocally = persist(pixels, false, slot.paletteSize)
+    setRevision(value => value + 1)
+    if (storedLocally) setStatus(`A saját galéria ${slot.slotIndex}. képe betöltve szerkesztésre.`)
+    shareMenuRef.current?.removeAttribute('open')
+  }
+
+  const requestLoadGallerySlot = (slot: EditorGallerySlot) => {
+    if (!pixelsRef.current.some(color => color !== 'transparent')) {
+      loadGallerySlot(slot)
+      return
+    }
+    setConfirmation({
+      title: `${slot.slotIndex}. kép betöltése?`,
+      message: 'A mentett kép a vásznon lévő rajz helyére kerül. A jelenlegi rajz csak akkor marad meg, ha előbb elmented.',
+      label: 'Betöltés',
+      action: () => loadGallerySlot(slot),
+    })
+  }
+
+  const deleteGallerySlot = async (slotIndex: EditorGallerySlotIndex) => {
+    setSharing(true)
+    try {
+      await deleteOwnEditorGallerySlot(slotIndex)
+      await refreshShareState()
+      setStatus(`A saját galéria ${slotIndex}. képe törölve.`)
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'A mentett rajz törlése nem sikerült.')
+    } finally {
+      if (mountedRef.current) setSharing(false)
+    }
+  }
+
+  const requestDeleteGallerySlot = (slotIndex: EditorGallerySlotIndex) => {
+    setConfirmation({
+      title: `${slotIndex}. kép törlése?`,
+      message: 'A saját galériából törölt rajzot nem lehet visszaállítani. A vásznon lévő rajz ettől nem változik.',
+      label: 'Törlés',
+      action: () => { void deleteGallerySlot(slotIndex) },
+    })
+  }
+
   const downloadPng = async () => {
     setExporting(true)
     const snapshot = [...pixelsRef.current]
@@ -291,7 +392,7 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
           </label>
           <button className="primary-button" onClick={() => void downloadPng()} disabled={exporting} type="button">{text.export}</button>
           <details className="editor-share-menu" onToggle={event => {
-            if (event.currentTarget.open) void refreshShareState()
+            if (event.target === event.currentTarget && event.currentTarget.open) void refreshShareState()
           }} ref={shareMenuRef}>
             <summary aria-disabled={exporting || sharing}>Megosztás / nevezés</summary>
             <div className="editor-share-options">
@@ -320,6 +421,33 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
                 <button disabled={sharing} onClick={requestProfileAvatar} type="button">
                   Beállítás profilképnek
                 </button>
+                <details className="editor-own-gallery">
+                  <summary>Saját galéria ({shareState.gallerySlots.length}/2)</summary>
+                  {shareState.galleryUnavailableMessage ? (
+                    <small>{shareState.galleryUnavailableMessage}</small>
+                  ) : (
+                    <div className="editor-own-gallery-grid">
+                      {([1, 2] as const).map(slotIndex => {
+                        const slot = shareState.gallerySlots.find(item => item.slotIndex === slotIndex)
+                        return (
+                          <article className="editor-own-gallery-slot" key={slotIndex}>
+                            <strong>{slotIndex}. kép</strong>
+                            {slot ? (
+                              <WeeklyArtwork label={`A saját galéria ${slotIndex}. képe`} pixels={slot.pixels} />
+                            ) : <div className="editor-own-gallery-empty">Üres hely</div>}
+                            <div className="editor-own-gallery-actions">
+                              {slot ? <button disabled={sharing} onClick={() => requestLoadGallerySlot(slot)} type="button">Betöltés</button> : null}
+                              <button disabled={sharing} onClick={() => requestSaveGallerySlot(slotIndex, Boolean(slot))} type="button">
+                                {slot ? 'Felülírás' : 'Ide mentem'}
+                              </button>
+                              {slot ? <button className="danger-button" disabled={sharing} onClick={() => requestDeleteGallerySlot(slotIndex)} type="button">Törlés</button> : null}
+                            </div>
+                          </article>
+                        )
+                      })}
+                    </div>
+                  )}
+                </details>
                 {shareState.feedUnavailableMessage ? <small>{shareState.feedUnavailableMessage}</small> : null}
                 {!challengePaletteReady ? <small>A kihívások a 12 színű palettát fogadják. A Hírfolyam a 32 színt is engedi.</small> : null}
               </>}

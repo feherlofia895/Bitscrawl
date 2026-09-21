@@ -7,6 +7,17 @@ Jelölések:
 [ ] még hátra van
 
 2026-09-21-i audit- és visszajelzési állapot:
+- [x] A Szerkesztő `Megosztás / nevezés` menüjében elkészült a profilonkénti,
+  két férőhelyes privát saját galéria. Mindkét helyre menthető vagy felülírható a
+  vászon, a mentett kép előnézhető, visszatölthető további szerkesztésre és külön
+  törölhető. A felülírás, betöltés és törlés megerősítést kér; a 12/32 színű mód is
+  helyesen áll vissza. A jogosultsági és adatbázis-integrációs teszt, lint, editor-
+  regresszió és production build sikeres. Az adatbázis-migráció éles, a helyi
+  felületen az üres hely, a valódi felhőmentés, a foglalt előnézet és a szerkesztőbe
+  visszatöltés a bejelentkezett profillal ellenőrizve. A GitHub- és Cloudflare-
+  production kiadás 2026-09-21-én elkészült.
+- [x] A Beállítások `Csökkentett mozgás` kapcsolójának BE állapota egyszerűsödött:
+  nem rak egymásra két gombgrafikát, csak a jobb oldali állapotjelző kap korallszínt.
 - [x] Elkészült és élesedett a Galéria harmadik, `Hírfolyam` almenüje. Egy végleges
   fiók naponta két 32×32-es képet tehet közzé, a saját képek szerkeszthetők és
   törölhetők; egy mai kép törlése azonnal visszaad egy napi helyet. Minden képhez

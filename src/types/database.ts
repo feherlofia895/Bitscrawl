@@ -564,6 +564,15 @@ export type Database = {
           received_like_count: number
         }[]
       }
+      get_own_editor_gallery: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          palette_size: number
+          pixels: Json
+          slot_index: number
+          updated_at: string
+        }[]
+      }
       get_gallery_comments: {
         Args: { target_challenge_id: number; target_kind: string }
         Returns: {
@@ -756,6 +765,10 @@ export type Database = {
         Args: { target_post_id: number }
         Returns: boolean
       }
+      delete_own_editor_gallery_slot: {
+        Args: { target_slot: number }
+        Returns: boolean
+      }
       set_daily_feed_like: {
         Args: { like_enabled: boolean; target_post_id: number }
         Returns: { active_like_count: number; liked: boolean }[]
@@ -795,6 +808,10 @@ export type Database = {
       set_profile_avatar: {
         Args: { requested_pixels: Json }
         Returns: Json
+      }
+      save_own_editor_gallery_slot: {
+        Args: { drawing_pixels: Json; requested_palette_size: number; target_slot: number }
+        Returns: string
       }
       set_weekly_vote: {
         Args: { target_entry_id: number; vote_enabled: boolean }

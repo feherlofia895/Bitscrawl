@@ -3096,6 +3096,79 @@ button,
 .editor-share-options button { min-height: 46px; padding: 8px 11px; background: var(--yellow); }
 .editor-share-options button:disabled { opacity: .55; }
 
+.editor-own-gallery {
+  border: 2px solid var(--ink);
+  background: color-mix(in srgb, var(--mint) 42%, var(--paper));
+}
+
+.editor-own-gallery > summary {
+  padding: 11px;
+  cursor: pointer;
+  font: 900 .7rem/1.25 var(--pixel-font);
+  list-style-position: inside;
+}
+
+.editor-own-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  padding: 0 9px 9px;
+}
+
+.editor-own-gallery-slot {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-width: 0;
+  padding: 8px;
+  border: 2px solid var(--ink);
+  background: var(--yellow);
+}
+
+.editor-own-gallery-slot > strong {
+  font: 900 .65rem/1.2 var(--pixel-font);
+}
+
+.editor-own-gallery-slot .weekly-artwork,
+.editor-own-gallery-empty {
+  width: min(100%, 112px);
+  aspect-ratio: 1;
+  justify-self: center;
+}
+
+.editor-own-gallery-slot .weekly-artwork {
+  border-width: 2px;
+}
+
+.editor-own-gallery-empty {
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--ink);
+  color: color-mix(in srgb, var(--ink) 60%, transparent);
+  font: 800 .58rem/1.25 var(--pixel-font);
+}
+
+.editor-own-gallery-actions {
+  display: grid;
+  gap: 5px;
+}
+
+.editor-share-options .editor-own-gallery-actions button {
+  min-height: 34px;
+  padding: 5px 6px;
+  font-size: .62rem;
+}
+
+.editor-share-options .editor-own-gallery-actions .danger-button {
+  background: var(--coral);
+}
+
+@media (max-width: 420px) {
+  .editor-own-gallery-grid { gap: 6px; padding-inline: 6px; }
+  .editor-own-gallery-slot { padding: 6px; }
+  .editor-share-options .editor-own-gallery-actions button { font-size: .56rem; }
+}
+
 .editor-palette-picker {
   width: min(100%, 520px);
   margin-top: 14px;
@@ -3751,7 +3824,15 @@ canvas.player-avatar {
 }
 
 .setting-row[aria-pressed='true'] {
-  background-image: url('/ui/menu-button-yellow-4.png');
+  background-color: transparent;
+  background-image: url('/ui/menu-button-2.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+.setting-row[aria-pressed='true'] strong {
+  background: var(--coral);
 }
 
 .weekly-challenge-card,
