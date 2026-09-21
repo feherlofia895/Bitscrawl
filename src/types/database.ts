@@ -488,12 +488,16 @@ export type Database = {
         }[]
       }
       get_online_profiles: {
-        Args: { requested_user_ids: string[] }
+        Args: Record<PropertyKey, never>
         Returns: {
           avatar_pixels: Json | null
           display_name: string
           user_id: string
         }[]
+      }
+      touch_global_lobby_presence: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       get_weekly_gallery: {
         Args: { target_challenge_id: number }

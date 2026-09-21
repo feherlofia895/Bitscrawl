@@ -18,10 +18,6 @@ export type OnlineProfile = {
 
 export type GlobalLobbyConnectionStatus = 'connecting' | 'connected' | 'reconnecting' | 'offline'
 
-type PresencePayload = {
-  user_id: string
-}
-
 const lobbyErrors: Record<string, string> = {
   LOBBY_ACCOUNT_REQUIRED: 'Az aktív felhasználók megtekintéséhez jelentkezz be.',
   LOBBY_MESSAGE_INVALID: 'Az üzenet 1–500 karakter hosszú legyen.',
@@ -39,13 +35,8 @@ function readableLobbyError(error: unknown) {
   return new Error(code ? lobbyErrors[code] : 'A közösségi előszoba most nem érhető el.')
 }
 
-export async function loadOnlineProfiles(userIds: string[]): Promise<OnlineProfile[]> {
-  const uniqueIds = [...new Set(userIds)].slice(0, 100)
-  if (!uniqueIds.length) return []
-
-  const { data, error } = await supabase.rpc('get_online_profiles', {
-    requested_user_ids: uniqueIds,
-  })
+export async function loadOnlineProfiles(): Promise<OnlineProfile[]> {
+  const { data, error } = await supabase.rpc('get_online_profiles')
   if (error) throw readableLobbyError(error)
 
   return data.map(profile => ({
@@ -53,6 +44,11 @@ export async function loadOnlineProfiles(userIds: string[]): Promise<OnlineProfi
     displayName: profile.display_name,
     userId: profile.user_id,
   }))
+}
+
+export async function touchGlobalLobbyPresence() {
+  const { error } = await supabase.rpc('touch_global_lobby_presence')
+  if (error) throw readableLobbyError(error)
 }
 
 export async function loadGlobalLobbyMessages(): Promise<GlobalLobbyMessage[]> {
@@ -90,61 +86,60 @@ export function subscribeToGlobalLobbyMessages(onChange: () => void) {
   return () => { void supabase.removeChannel(channel) }
 }
 
-function presenceUserIds(state: Record<string, Array<{ user_id?: unknown }>>) {
-  return Object.values(state)
-    .flat()
-    .map(presence => presence.user_id)
-    .filter((userId): userId is string => typeof userId === 'string')
-}
-
 export function subscribeToOnlineProfiles({
   onError,
   onProfiles,
   onStatus,
-  userId,
 }: {
   onError: (error: Error) => void
   onProfiles: (profiles: OnlineProfile[]) => void
   onStatus: (status: GlobalLobbyConnectionStatus) => void
-  userId: string
 }) {
   let disposed = false
-  let syncVersion = 0
-  const channel = supabase.channel('global-lobby', {
-    config: { presence: { enabled: true, key: userId }, private: true },
-  })
+  let heartbeatRunning = false
 
-  const syncProfiles = async () => {
-    const version = ++syncVersion
+  const heartbeat = async () => {
+    if (disposed || heartbeatRunning) return
+    if (!navigator.onLine) {
+      onStatus('offline')
+      return
+    }
+
+    heartbeatRunning = true
     try {
-      const ids = presenceUserIds(channel.presenceState<PresencePayload>())
-      const profiles = await loadOnlineProfiles(ids)
-      if (!disposed && version === syncVersion) onProfiles(profiles)
+      await touchGlobalLobbyPresence()
+      const profiles = await loadOnlineProfiles()
+      if (!disposed) {
+        onProfiles(profiles)
+        onStatus('connected')
+      }
     } catch (error) {
-      if (!disposed) onError(readableLobbyError(error))
+      if (!disposed) {
+        onStatus(navigator.onLine ? 'reconnecting' : 'offline')
+        onError(readableLobbyError(error))
+      }
+    } finally {
+      heartbeatRunning = false
     }
   }
 
-  channel
-    .on('presence', { event: 'sync' }, () => { void syncProfiles() })
-    .subscribe(async status => {
-      if (disposed) return
-      if (status === 'SUBSCRIBED') {
-        onStatus('connected')
-        const result = await channel.track({ user_id: userId } satisfies PresencePayload)
-        if (result !== 'ok' && !disposed) onStatus('reconnecting')
-        return
-      }
-      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        onStatus('reconnecting')
-        return
-      }
-      if (status === 'CLOSED') onStatus('offline')
-    })
+  const handleOnline = () => { void heartbeat() }
+  const handleOffline = () => { if (!disposed) onStatus('offline') }
+  const handleVisibility = () => {
+    if (document.visibilityState === 'visible') void heartbeat()
+  }
+
+  void heartbeat()
+  const intervalId = window.setInterval(() => { void heartbeat() }, 15_000)
+  window.addEventListener('online', handleOnline)
+  window.addEventListener('offline', handleOffline)
+  document.addEventListener('visibilitychange', handleVisibility)
 
   return () => {
     disposed = true
-    void channel.untrack()
-    void supabase.removeChannel(channel)
+    window.clearInterval(intervalId)
+    window.removeEventListener('online', handleOnline)
+    window.removeEventListener('offline', handleOffline)
+    document.removeEventListener('visibilitychange', handleVisibility)
   }
 }

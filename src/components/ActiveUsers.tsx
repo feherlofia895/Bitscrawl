@@ -81,7 +81,6 @@ export function ActiveUsers({
       onError: handleError,
       onProfiles: setOnlineProfiles,
       onStatus: setConnectionStatus,
-      userId: identityUserId,
     })
 
     const refreshMessages = async () => {

@@ -117,23 +117,33 @@ test('profile avatars are validated, private and copied beside room names', asyn
   assert.deepEqual(roomAvatar, updatedAvatar)
 })
 
-test('global lobby exposes only safe profile fields and persists rate-limited chat', async () => {
+test('global lobby authenticates presence, exposes only safe profile fields and persists rate-limited chat', async () => {
   await assert.rejects(
-    asUser(anonymousUser, 'select * from public.get_online_profiles($1::uuid[])', [[users[0]]], { anonymous: true }),
+    asUser(anonymousUser, 'select public.touch_global_lobby_presence()', [], { anonymous: true }),
     /WEEKLY_ACCOUNT_REQUIRED/,
   )
   await assert.rejects(
-    asUser(unprofiledUser, 'select * from public.get_online_profiles($1::uuid[])', [[users[0]]]),
+    asUser(unprofiledUser, 'select public.touch_global_lobby_presence()'),
     /LOBBY_PROFILE_REQUIRED/,
   )
 
-  const profiles = await asUser(
-    users[0],
-    'select * from public.get_online_profiles($1::uuid[])',
-    [[users[0], users[1], users[0]]],
+  await assert.rejects(
+    asUser(users[0], 'insert into private.lobby_presence (user_id) values ($1)', [users[1]]),
+    /permission denied/,
   )
+  await asUser(users[0], 'select public.touch_global_lobby_presence()')
+  await asUser(users[1], 'select public.touch_global_lobby_presence()')
+
+  const profiles = await asUser(users[0], 'select * from public.get_online_profiles()')
   assert.equal(profiles.length, 2)
   assert(profiles.every(profile => !('email' in profile) && !('created_at' in profile)))
+
+  await db.query(
+    "update private.lobby_presence set last_seen_at = clock_timestamp() - interval '46 seconds' where user_id = $1",
+    [users[1]],
+  )
+  const freshProfiles = await asUser(users[0], 'select * from public.get_online_profiles()')
+  assert.deepEqual(freshProfiles.map(profile => profile.user_id), [users[0]])
 
   await assert.rejects(
     asUser(users[0], 'insert into public.lobby_messages (user_id, content) values ($1, $2)', [users[0], 'Tiltott']),
