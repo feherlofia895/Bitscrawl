@@ -1064,6 +1064,7 @@ function App() {
                     roundId={roundView.round_id}
                   />
                   <RoomChat
+                    avoidGuessBar={!roundView.is_drawer}
                     messages={roomMessages}
                     onError={(error) =>
                       setMessage(

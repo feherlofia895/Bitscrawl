@@ -121,15 +121,20 @@ test('a selected gallery vote uses one plain color instead of layered button art
   assert.doesNotMatch(selectedVoteRule, /url\(/)
 })
 
-test('mobile guessers keep a compact guess dock visible below the live drawing', async () => {
-  const [app, chat, css] = await Promise.all([
+test('mobile guessers keep a compact guess dock visible below the live drawing and room chat', async () => {
+  const [app, chat, roomChat, css] = await Promise.all([
     readFile(new URL('../src/App.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/components/RoundChat.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/RoomChat.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/App.css', import.meta.url), 'utf8'),
   ])
   assert.match(app, /round-play-area \$\{roundView\.is_drawer \? 'is-drawer' : 'is-guesser'\}/)
+  assert.match(app, /avoidGuessBar=\{!roundView\.is_drawer\}/)
   assert.match(chat, /canSubmitGuess \? 'is-guessing' : ''/)
-  assert.match(css, /\.round-play-area\.is-guesser \.guess-panel\.is-guessing\s*\{[\s\S]*?position:\s*fixed/)
+  assert.match(roomChat, /avoidGuessBar \? ' has-guess-bar' : ''/)
+  assert.match(css, /\.round-play-area\.is-guesser \.guess-panel\.is-guessing\s*\{[\s\S]*?position:\s*fixed[\s\S]*?z-index:\s*1200/)
+  assert.match(css, /\.mobile-chat-toggle\.has-guess-bar\s*\{[^}]*bottom:\s*calc\(/)
+  assert.match(css, /\.room-chat\.has-guess-bar\s*\{[^}]*bottom:\s*calc\(/)
   assert.match(css, /\.round-play-area \.guess-panel\s*\{[\s\S]*?order:\s*1/)
 })
 

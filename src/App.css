@@ -2272,7 +2272,7 @@ button,
     right: max(10px, env(safe-area-inset-right));
     bottom: max(8px, env(safe-area-inset-bottom));
     left: max(10px, env(safe-area-inset-left));
-    z-index: 900;
+    z-index: 1200;
     width: auto;
     margin: 0;
     padding: 9px;
@@ -2313,7 +2313,7 @@ button,
     padding-inline: 9px;
   }
 
-  .round-play-area.is-guesser .mobile-chat-toggle {
+  .mobile-chat-toggle.has-guess-bar {
     bottom: calc(max(8px, env(safe-area-inset-bottom)) + 102px);
   }
 
@@ -2376,6 +2376,11 @@ button,
 
   .room-chat.is-open {
     display: grid;
+  }
+
+  .room-chat.has-guess-bar {
+    bottom: calc(max(8px, env(safe-area-inset-bottom)) + 96px);
+    max-height: min(64dvh, 560px);
   }
 
   .room-chat .round-message-list {

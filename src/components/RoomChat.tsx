@@ -6,13 +6,14 @@ import { parseAvatarPixels } from '../lib/profile'
 import { ProfilePreviewButton } from './ProfilePreviewButton'
 
 type RoomChatProps = {
+  avoidGuessBar?: boolean
   messages: RoomMessage[]
   onError: (error: unknown) => void
   onSubmit: (message: string) => Promise<number>
   players: RoomPlayer[]
 }
 
-export function RoomChat({ messages, onError, onSubmit, players }: RoomChatProps) {
+export function RoomChat({ avoidGuessBar = false, messages, onError, onSubmit, players }: RoomChatProps) {
   const initialMobile = window.matchMedia('(max-width: 760px)').matches
   const [message, setMessage] = useState(
     () => window.sessionStorage.getItem('bitscrawl-room-chat-draft') ?? '',
@@ -124,7 +125,7 @@ export function RoomChat({ messages, onError, onSubmit, players }: RoomChatProps
     <section
       aria-labelledby="room-chat-title"
       aria-modal={isMobile && isOpen ? 'true' : undefined}
-      className={`room-chat${isOpen ? ' is-open' : ''}`}
+      className={`room-chat${isOpen ? ' is-open' : ''}${avoidGuessBar ? ' has-guess-bar' : ''}`}
       role={isMobile ? 'dialog' : undefined}
     >
       <div className="round-chat-heading">
@@ -195,7 +196,7 @@ export function RoomChat({ messages, onError, onSubmit, players }: RoomChatProps
     <>
       <button
         aria-expanded={isOpen}
-        className="mobile-chat-toggle"
+        className={`mobile-chat-toggle${avoidGuessBar ? ' has-guess-bar' : ''}`}
         onClick={openPanel}
         type="button"
       >
