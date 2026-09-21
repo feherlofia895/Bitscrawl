@@ -1807,8 +1807,6 @@ function App() {
       <BugReport
         extraTrigger={<ActiveUsers
           currentProfile={playerProfile}
-          onOpenProfile={() => openHomeView('profile')}
-          profileAccessDisabled={Boolean(lobby)}
         />}
         playerName={effectivePlayerName}
         roomCode={lobby?.room.code ?? null}

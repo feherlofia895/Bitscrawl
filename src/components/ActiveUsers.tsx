@@ -33,12 +33,8 @@ const connectionLabels: Record<GlobalLobbyConnectionStatus, string> = {
 
 export function ActiveUsers({
   currentProfile,
-  onOpenProfile,
-  profileAccessDisabled,
 }: {
   currentProfile: PlayerProfile | null
-  onOpenProfile: () => void
-  profileAccessDisabled: boolean
 }) {
   const [identity, setIdentity] = useState<Identity | null>(null)
   const [onlineProfiles, setOnlineProfiles] = useState<OnlineProfile[]>([])
@@ -81,6 +77,7 @@ export function ActiveUsers({
       setMessages([])
       setUnreadCount(0)
       setConnectionStatus('offline')
+      setIsOpen(false)
       return
     }
 
@@ -161,14 +158,8 @@ export function ActiveUsers({
     }
   }
 
-  const openOwnProfile = () => {
-    if (profileAccessDisabled) return
-    setIsOpen(false)
-    onOpenProfile()
-  }
-
   return <>
-    <button
+    {identity ? <button
       aria-label={`Aktív felhasználók${unreadCount ? `, ${unreadCount} új előszoba-chat üzenet` : ''}`}
       className="bug-report-trigger active-users-trigger"
       onClick={() => { setFeedback(''); setIsOpen(true) }}
@@ -176,8 +167,8 @@ export function ActiveUsers({
     >
       Aktívak{identity ? ` · ${onlineProfiles.length}` : ''}
       {unreadCount ? <span aria-hidden="true" className="active-users-unread">!</span> : null}
-    </button>
-    {isOpen ? createPortal(
+    </button> : null}
+    {isOpen && identity ? createPortal(
       <div className="active-users-backdrop" onMouseDown={event => {
         if (event.target === event.currentTarget) setIsOpen(false)
       }}>
@@ -193,16 +184,7 @@ export function ActiveUsers({
             </div>
           </header>
 
-          {!identity ? <div className="active-users-login">
-            <ProfileAvatar label="Vendég profil" pixels={null} />
-            <div>
-              <h3>Jelentkezz be az előszobához</h3>
-              <p>Az online profilokat és a közös chatet bejelentkezés után éred el.</p>
-            </div>
-            <button disabled={profileAccessDisabled} onClick={openOwnProfile} type="button">
-              {profileAccessDisabled ? 'Előbb lépj ki a szobából' : 'Profil és belépés'}
-            </button>
-          </div> : <div className="active-users-layout">
+          <div className="active-users-layout">
             <section className="online-profile-section" aria-labelledby="online-profile-title">
               <div className="active-users-section-heading">
                 <h3 id="online-profile-title">Most online</h3>
@@ -243,7 +225,7 @@ export function ActiveUsers({
                 <button disabled={isSending || !message.trim()} type="submit">{isSending ? 'Küldés…' : 'Küldés'}</button>
               </form>
             </section>
-          </div>}
+          </div>
 
           {feedback ? <p aria-live="polite" className="active-users-feedback">{feedback}</p> : null}
         </section>
