@@ -94,10 +94,27 @@ test('signed-in profiles supply the immutable multiplayer display name', async (
 
   assert.match(appSource, /const profilePlayerName = playerProfile\?\.displayName\.trim\(\) \?\? ''/)
   assert.match(appSource, /const effectivePlayerName = profilePlayerName \|\| playerName\.trim\(\)/)
-  assert.match(appSource, /createRoom\(effectivePlayerName, newRoomDuration\)/)
+  assert.match(appSource, /createRoom\(effectivePlayerName, newRoomDuration, \{[\s\S]*?gameMode: newRoomGameMode/)
   assert.match(appSource, /joinRoom\(effectivePlayerName, code \?\? ''\)/)
   assert.match(appSource, /profilePlayerName \? \([\s\S]*?className="profile-player-name"[\s\S]*?: \([\s\S]*?id="create-player-name"/)
   assert.match(appSource, /profilePlayerName \? \([\s\S]*?className="profile-player-name"[\s\S]*?: \([\s\S]*?id="join-player-name"/)
+})
+
+test('competition mode exposes timed rounds, parallel drawing and anonymous voting', async () => {
+  const [appSource, gameModeSource, gallerySource] = await Promise.all([
+    readFile(new URL('../src/App.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/lib/gameMode.ts', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/CompetitionGallery.tsx', import.meta.url), 'utf8'),
+  ])
+  assert.match(gameModeSource, /competitionDrawDurations = \[60, 90, 120\]/)
+  assert.match(gameModeSource, /competitionRoundCounts = \[1, 2, 3, 4, 5\]/)
+  assert.match(appSource, /startCompetitionGame\(lobby\.room\.id\)/)
+  assert.match(appSource, /submitCompetitionPixelChanges\(competitionRoundView\.round_id, changes\)/)
+  assert.match(appSource, /finishCompetitionDrawing\(competitionRoundView\.round_id\)/)
+  assert.match(appSource, /finishCompetitionVoting\(competitionRoundView\.round_id\)/)
+  assert.match(appSource, /minimumPlayers = roomIsCompetition \? 3/)
+  assert.match(gallerySource, /isOwn \|\| votePending/)
+  assert.match(gallerySource, /A szavazatodat az idő lejártáig módosíthatod/)
 })
 
 test('the monthly canvas waits for the saved drawing before mounting', async () => {

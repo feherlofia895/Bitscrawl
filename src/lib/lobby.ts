@@ -1,4 +1,14 @@
 import type { Database } from '../types/database'
+import {
+  DEFAULT_COMPETITION_DRAW_DURATION,
+  DEFAULT_COMPETITION_ROUND_COUNT,
+  isCompetitionDrawDuration,
+  isCompetitionRoundCount,
+  isGameMode,
+  type CompetitionDrawDuration,
+  type CompetitionRoundCount,
+  type GameMode,
+} from './gameMode'
 import type { RoomPaletteSize } from './palette'
 import { DEFAULT_ROUND_DURATION, isRoundDuration, roundDurationText, type RoundDuration } from './roundDuration'
 import { ensurePlayerSession, supabase } from './supabase'
@@ -35,11 +45,27 @@ export type LobbyConnectionStatus =
 
 export const ROOM_MESSAGE_LIMIT = 50
 
+export type CreateRoomSettings = {
+  competitionDrawDuration: CompetitionDrawDuration
+  competitionRoundCount: CompetitionRoundCount
+  gameMode: GameMode
+}
+
+const defaultCreateRoomSettings: CreateRoomSettings = {
+  competitionDrawDuration: DEFAULT_COMPETITION_DRAW_DURATION,
+  competitionRoundCount: DEFAULT_COMPETITION_ROUND_COUNT,
+  gameMode: 'classic',
+}
+
 const lobbyErrorMessages: Record<string, string> = {
   ROUND_DURATION_INVALID: roundDurationText.invalid,
   ROUND_DURATION_UNAVAILABLE: roundDurationText.unavailable,
   AUTH_REQUIRED: 'Nem sikerült létrehozni a játékos-munkamenetet.',
   GAME_ALREADY_STARTED: 'Ez a meccs már elindult.',
+  GAME_MODE_INVALID: 'Ismeretlen játékmód.',
+  GAME_MODE_UNAVAILABLE: 'A párhuzamos rajzverseny játékmenete még készül.',
+  COMPETITION_DRAW_TIME_INVALID: 'A verseny rajzolási ideje 60, 90 vagy 120 másodperc lehet.',
+  COMPETITION_ROUND_COUNT_INVALID: 'A verseny 1–5 fordulóból állhat.',
   NOT_ENOUGH_PLAYERS: 'A játék indításához legalább 2 játékos kell.',
   NOT_ENOUGH_ACTIVE_PLAYERS:
     'A játék indításához legalább 2 kapcsolódó játékos kell.',
@@ -86,19 +112,43 @@ async function getRoomEntry(
   playerName: string,
   roomCode?: string,
   roundDuration: RoundDuration = DEFAULT_ROUND_DURATION,
+  settings: CreateRoomSettings = defaultCreateRoomSettings,
 ): Promise<RoomEntry> {
   try {
     if (action === 'create' && !isRoundDuration(roundDuration)) {
       throw new Error('ROUND_DURATION_INVALID')
     }
+    if (action === 'create' && (
+      !isGameMode(settings.gameMode) ||
+      !isCompetitionDrawDuration(settings.competitionDrawDuration) ||
+      !isCompetitionRoundCount(settings.competitionRoundCount)
+    )) {
+      throw new Error('GAME_MODE_INVALID')
+    }
     const user = await ensurePlayerSession()
 
     if (action === 'create') {
       let { data, error } = await supabase
-        .rpc('create_room_with_duration', { player_name: playerName, duration_seconds: roundDuration })
+        .rpc('create_room_with_settings', {
+          duration_seconds: roundDuration,
+          player_name: playerName,
+          requested_competition_draw_seconds: settings.competitionDrawDuration,
+          requested_competition_round_count: settings.competitionRoundCount,
+          requested_game_mode: settings.gameMode,
+        })
         .single()
 
-      // Keep 90-second rooms usable until the local migration is deployed.
+      // Keep classic rooms usable until the competition settings migration is deployed.
+      if (error?.code === 'PGRST202') {
+        if (settings.gameMode !== 'classic') throw new Error('GAME_MODE_UNAVAILABLE')
+        const durationResult = await supabase
+          .rpc('create_room_with_duration', { player_name: playerName, duration_seconds: roundDuration })
+          .single()
+        data = durationResult.data
+        error = durationResult.error
+      }
+
+      // Keep 90-second classic rooms usable until the duration migration is deployed.
       if (error?.code === 'PGRST202') {
         if (roundDuration !== DEFAULT_ROUND_DURATION) throw new Error('ROUND_DURATION_UNAVAILABLE')
         const legacyResult = await supabase.rpc('create_room', { player_name: playerName }).single()
@@ -137,8 +187,36 @@ async function getRoomEntry(
   }
 }
 
-export function createRoom(playerName: string, roundDuration: RoundDuration = DEFAULT_ROUND_DURATION) {
-  return getRoomEntry('create', playerName, undefined, roundDuration)
+export function createRoom(
+  playerName: string,
+  roundDuration: RoundDuration = DEFAULT_ROUND_DURATION,
+  settings: CreateRoomSettings = defaultCreateRoomSettings,
+) {
+  return getRoomEntry('create', playerName, undefined, roundDuration, settings)
+}
+
+export async function setRoomGameSettings(roomId: number, settings: CreateRoomSettings) {
+  if (!isGameMode(settings.gameMode)) throw new Error(lobbyErrorMessages.GAME_MODE_INVALID)
+  if (!isCompetitionDrawDuration(settings.competitionDrawDuration)) {
+    throw new Error(lobbyErrorMessages.COMPETITION_DRAW_TIME_INVALID)
+  }
+  if (!isCompetitionRoundCount(settings.competitionRoundCount)) {
+    throw new Error(lobbyErrorMessages.COMPETITION_ROUND_COUNT_INVALID)
+  }
+  try {
+    await ensurePlayerSession()
+    const { data, error } = await supabase.rpc('set_room_game_settings', {
+      requested_competition_draw_seconds: settings.competitionDrawDuration,
+      requested_competition_round_count: settings.competitionRoundCount,
+      requested_game_mode: settings.gameMode,
+      target_room_id: roomId,
+    }).single()
+    if (error?.code === 'PGRST202') throw new Error('GAME_MODE_UNAVAILABLE')
+    if (error) throw error
+    return data
+  } catch (error) {
+    throw readableLobbyError(error)
+  }
 }
 
 export async function setRoomRoundDuration(roomId: number, duration: RoundDuration) {
@@ -395,6 +473,16 @@ export function subscribeToLobby(
         filter: `room_id=eq.${roomId}`,
         schema: 'public',
         table: 'game_rounds',
+      },
+      onChange,
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        filter: `room_id=eq.${roomId}`,
+        schema: 'public',
+        table: 'competition_rounds',
       },
       onChange,
     )

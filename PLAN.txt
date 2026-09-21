@@ -931,7 +931,7 @@ Javasolt sorrend és függőségek:
   végleges fiókká alakítását.
 
 
-[ ] 19. KÖZÖS SZÓ – PÁRHUZAMOS RAJZVERSENY
+[>] 19. KÖZÖS SZÓ – PÁRHUZAMOS RAJZVERSENY
 
 Cél: minden játékos ugyanazt a szót rajzolja egyszerre, majd egymás munkáira szavaznak.
 
@@ -943,6 +943,8 @@ Cél: minden játékos ugyanazt a szót rajzolja egyszerre, majd egymás munkái
   osszuk meg, de ne bővítsük kezelhetetlen feltételekkel a klasszikus körfüggvényeket.
 - Egy forduló elején minden játékos ugyanazt a szerver által kiválasztott szót és ugyanazt
   a rajzolási időt kapja.
+- A host 1 perc, 1 perc 30 másodperc vagy 2 perc rajzolási időt választhasson, és a
+  fordulók száma 1–5 között legyen állítható; az alapérték 2 forduló.
 - Minden játékos külön, csak általa szerkeszthető vásznon rajzoljon; rajzolás közben mások
   képét ne láthassa.
 - Az idő lejártakor minden rajz egyszerre váljon láthatóvá, a készítő neve pedig csak a
@@ -953,9 +955,9 @@ Cél: minden játékos ugyanazt a szót rajzolja egyszerre, majd egymás munkái
 - A szavazási időt a szerver zárja le; a hiányzó szavazat ne akassza meg a játékot.
 - Egy szavazat alapértelmezetten egy pontot érjen. A forduló után jelenjen meg a rajzok
   sorrendje, készítője és kapott szavazatai.
-- Minden játékos pontosan kétszer rajzoljon, ezért a teljes meccs két közös szavas
-  fordulóból álljon, amelyben mindenki egyszerre készít képet.
-- A meccs végén a két forduló összesített szavazata döntsön; a legtöbb pontot szerző
+- Minden játékos minden beállított fordulóban egyszerre rajzoljon; egy teljes meccs
+  1–5 közös szavas fordulóból álljon.
+- A meccs végén az összes forduló összesített szavazata döntsön; a legtöbb pontot szerző
   játékos nyerjen.
 - A klasszikus gyorsasági pontok és a rajzverseny szavazatpontjai módonként elkülönítve
   legyenek értelmezve; eredményképernyőn ne keverjük őket közös, félreérthető ponttípussá.
@@ -965,6 +967,22 @@ Cél: minden játékos ugyanazt a szót rajzolja egyszerre, majd egymás munkái
   a forduló végéig, de új szavazatot már ne adhasson le.
 - Készüljön automatizált próba legalább 3 és 6 játékossal, beleértve az önmagára szavazás,
   a többszörös szavazás, a kimaradó szavazó és a holtverseny eseteit.
+
+Első alapréteg (2026-09-21):
+- Elkészült a szobák szerveroldali `classic` / `competition` módazonosítója úgy, hogy a
+  meglévő szobák automatikusan klasszikusak maradnak.
+- Elkészült a 60 / 90 / 120 másodperces rajzolási idő és az 1–5 közötti fordulószám
+  kliens- és adatbázis-validációja; az alapérték 90 másodperc és 2 forduló.
+- Elkészült az atomi szobalétrehozó és a csak host által, várakozó állapotban módosítható
+  beállítás-RPC, valamint a létrehozó felület és a várótermi összefoglaló.
+- Elkészült helyben a külön párhuzamos rajzállapotgép: minden játékos saját rejtett
+  eseményfolyamba rajzol, az idő lejárta után pedig egyszerre jelennek meg a képek.
+- Elkészült a 30 másodperces névtelen szavazási szakasz. Saját rajz nem választható,
+  a szavazat a határidőig módosítható, és a készítők neve csak lezáráskor jelenik meg.
+- Elkészült a fordulónkénti pontozás, az 1–5 beállított forduló léptetése, az összesített
+  eredmény és az ugyanazzal a társasággal indítható új verseny.
+- Az első játszható változat migrációja és kliensfelülete helyben kész; élesítés előtt
+  még több böngészős, három–hat játékosos próba és mobil vizuális ellenőrzés szükséges.
 
 
 [x] 20. HETI RAJZ
@@ -1036,18 +1054,15 @@ ELDÖNTÖTT IRÁNYOK
 - A koordinátaszámok a vászon méretéhez igazodva legyenek nagyobbak és olvashatók.
 - A már elkészült paletták, körvonalas alakzatok, dinamikus nagyítás, SVG-ikonformátum
   és meccs közbeni kilépési megerősítés lezárt döntések.
+- A Párhuzamos rajzverseny minimumlétszáma 3 játékos. A rajzok a szavazás végéig
+  névtelenek, egy játékos egy szavazatát a határidőig módosíthatja, saját képre nem
+  szavazhat, holtversenynél pedig minden azonos első helyezett közös győztes.
 
 
 MÉG MEGBESZÉLENDŐ AZ IMPLEMENTÁLÁS ELŐTT
 
 - A végleges betűkészletet 3–4, magyar ékezeteket biztosan támogató látványpróbából
   választjuk ki.
-- A Párhuzamos rajzverseny holtversenyének szabálya: közös győzelem vagy külön
-  döntőforduló.
-- A szavazás legyen-e teljesen névtelen az eredményhirdetésig, és lehessen-e a leadott
-  szavazatot a szavazási idő lejártáig módosítani.
-- A párhuzamos mód minimumlétszáma és kiesési szabálya: két játékossal a kölcsönös
-  szavazás automatikus holtversenyt okoz, ezért legalább három játékos javasolt.
 - Az avatár-készítő szabad rajzolás vagy előre gyártott elemek összeállítása legyen-e?
   Az elemes megoldás jelenleg javaslat, nem végleges felhasználói döntés.
 - A Heti rajz első jutalmai csak kozmetikaiak legyenek-e, vagy később ranglistapontot is adjanak.

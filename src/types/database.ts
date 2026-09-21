@@ -54,6 +54,72 @@ export type Database = {
         }
         Relationships: []
       }
+      competition_draw_events: {
+        Row: {
+          changes: Json
+          created_at: string
+          id: number
+          room_id: number
+          round_id: number
+          user_id: string
+        }
+        Insert: {
+          changes: Json
+          created_at?: string
+          id?: never
+          room_id: number
+          round_id: number
+          user_id: string
+        }
+        Update: {
+          changes?: Json
+          created_at?: string
+          id?: never
+          room_id?: number
+          round_id?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      competition_rounds: {
+        Row: {
+          drawing_ends_at: string
+          drawing_started_at: string
+          finished_at: string | null
+          id: number
+          room_id: number
+          round_number: number
+          status: string
+          voting_ends_at: string | null
+          voting_started_at: string | null
+          word: string
+        }
+        Insert: {
+          drawing_ends_at: string
+          drawing_started_at: string
+          finished_at?: string | null
+          id?: never
+          room_id: number
+          round_number: number
+          status?: string
+          voting_ends_at?: string | null
+          voting_started_at?: string | null
+          word: string
+        }
+        Update: {
+          drawing_ends_at?: string
+          drawing_started_at?: string
+          finished_at?: string | null
+          id?: never
+          room_id?: number
+          round_number?: number
+          status?: string
+          voting_ends_at?: string | null
+          voting_started_at?: string | null
+          word?: string
+        }
+        Relationships: []
+      }
       game_rounds: {
         Row: {
           created_at: string
@@ -183,10 +249,13 @@ export type Database = {
       }
       rooms: {
         Row: {
+          competition_draw_seconds: number
+          competition_round_count: number
           round_duration_seconds: number
           code: string
           created_at: string
           finished_at: string | null
+          game_mode: string
           host_user_id: string
           id: number
           max_players: number
@@ -196,10 +265,13 @@ export type Database = {
           test_mode: boolean
         }
         Insert: {
+          competition_draw_seconds?: number
+          competition_round_count?: number
           round_duration_seconds?: number
           code: string
           created_at?: string
           finished_at?: string | null
+          game_mode?: string
           host_user_id: string
           id?: never
           max_players?: number
@@ -209,10 +281,13 @@ export type Database = {
           test_mode?: boolean
         }
         Update: {
+          competition_draw_seconds?: number
+          competition_round_count?: number
           round_duration_seconds?: number
           code?: string
           created_at?: string
           finished_at?: string | null
+          game_mode?: string
           host_user_id?: string
           id?: never
           max_players?: number
@@ -347,6 +422,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      advance_competition_game: {
+        Args: { target_round_id: number }
+        Returns: {
+          next_round_id: number | null
+          next_round_number: number | null
+          room_id: number
+          room_status: string
+        }[]
+      }
       advance_game: {
         Args: { target_round_id: number }
         Returns: {
@@ -380,6 +464,20 @@ export type Database = {
           room_id: number
         }[]
       }
+      create_room_with_settings: {
+        Args: {
+          duration_seconds?: number
+          player_name: string
+          requested_competition_draw_seconds?: number
+          requested_competition_round_count?: number
+          requested_game_mode?: string
+        }
+        Returns: {
+          player_id: number
+          room_code: string
+          room_id: number
+        }[]
+      }
       set_room_round_duration: {
         Args: { target_room_id: number; duration_seconds: number }
         Returns: {
@@ -387,11 +485,79 @@ export type Database = {
           round_duration_seconds: number
         }[]
       }
+      set_room_game_settings: {
+        Args: {
+          requested_competition_draw_seconds?: number
+          requested_competition_round_count?: number
+          requested_game_mode: string
+          target_room_id: number
+        }
+        Returns: {
+          competition_draw_seconds: number
+          competition_round_count: number
+          game_mode: string
+          room_id: number
+        }[]
+      }
       finish_expired_round: {
         Args: { target_round_id: number }
         Returns: {
           round_id: number
           round_status: string
+        }[]
+      }
+      finish_competition_drawing: {
+        Args: { target_round_id: number }
+        Returns: {
+          round_id: number
+          round_status: string
+          voting_ends_at: string
+        }[]
+      }
+      finish_competition_voting: {
+        Args: { target_round_id: number }
+        Returns: {
+          finished_at: string
+          round_id: number
+          round_status: string
+        }[]
+      }
+      get_competition_draw_updates: {
+        Args: {
+          after_event_id?: number | null
+          requested_limit?: number
+          target_round_id: number
+        }
+        Returns: {
+          changes: Json
+          drawing_id: string
+          id: number
+          round_id: number
+        }[]
+      }
+      get_competition_results: {
+        Args: { target_round_id: number }
+        Returns: {
+          display_name: string | null
+          drawing_id: string
+          is_own: boolean
+          vote_count: number | null
+        }[]
+      }
+      get_competition_round_view: {
+        Args: { target_room_id: number }
+        Returns: {
+          chosen_word: string
+          drawing_ends_at: string
+          finished_at: string | null
+          next_round_at: string | null
+          round_id: number
+          round_number: number
+          round_status: string
+          server_now: string
+          total_rounds: number
+          voted_for_drawing_id: string | null
+          voting_ends_at: string | null
         }[]
       }
       get_round_view: {
@@ -836,6 +1002,14 @@ export type Database = {
           started_at: string
         }[]
       }
+      start_competition_game: {
+        Args: { target_room_id: number }
+        Returns: {
+          room_id: number
+          room_status: string
+          started_at: string
+        }[]
+      }
       submit_guess: {
         Args: { submitted_guess: string; target_round_id: number }
         Returns: {
@@ -852,6 +1026,25 @@ export type Database = {
       submit_weekly_entry: {
         Args: { drawing_pixels: Json; target_challenge_id: number }
         Returns: number
+      }
+      submit_competition_pixel_changes: {
+        Args: { pixel_changes: Json; target_round_id: number }
+        Returns: number
+      }
+      set_competition_vote: {
+        Args: { target_drawing_id: string; target_round_id: number }
+        Returns: {
+          round_id: number
+          voted_for_drawing_id: string
+        }[]
+      }
+      restart_competition_game: {
+        Args: { target_room_id: number }
+        Returns: {
+          room_id: number
+          room_status: string
+          started_at: string
+        }[]
       }
       touch_room_presence: {
         Args: { target_room_id: number }

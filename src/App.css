@@ -3797,6 +3797,123 @@ canvas.player-avatar {
   padding: 0 14px 14px;
 }
 
+.room-settings-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--slate);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.competition-round-panel {
+  gap: 0.65rem;
+}
+
+.competition-drawing-note {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+}
+
+.competition-gallery {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.25rem;
+  padding: clamp(0.8rem, 2vw, 1.25rem);
+  border: 3px solid var(--ink);
+  background: var(--paper);
+  box-shadow: 5px 5px 0 var(--ink);
+}
+
+.competition-gallery-heading {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.competition-gallery-heading strong {
+  font-family: var(--display-font);
+  font-size: clamp(1.1rem, 3vw, 1.45rem);
+}
+
+.competition-drawing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.competition-drawing-card {
+  display: grid;
+  gap: 0.65rem;
+  align-content: start;
+  padding: 0.65rem;
+  border: 2px solid var(--ink);
+  background: var(--yellow);
+}
+
+.competition-drawing-card.is-selected {
+  background: var(--mint);
+  box-shadow: inset 0 0 0 3px var(--ink);
+}
+
+.competition-preview {
+  width: 100%;
+  aspect-ratio: 1;
+  border: 2px solid var(--ink);
+  background-color: #f4f4f4;
+  background-image:
+    linear-gradient(45deg, #d9d9d9 25%, transparent 25%),
+    linear-gradient(-45deg, #d9d9d9 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #d9d9d9 75%),
+    linear-gradient(-45deg, transparent 75%, #d9d9d9 75%);
+  background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+  background-size: 8px 8px;
+  image-rendering: pixelated;
+}
+
+.competition-drawing-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.competition-vote-button {
+  min-height: 42px;
+  border: 2px solid var(--ink);
+  background: var(--mint);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.competition-vote-button[aria-pressed='true'] {
+  background: var(--coral);
+}
+
+.competition-vote-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+@media (max-width: 700px) {
+  .competition-drawing-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .competition-play-area {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 430px) {
+  .competition-drawing-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .room-settings select {
   width: 100%;
   min-height: 44px;

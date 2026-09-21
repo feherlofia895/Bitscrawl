@@ -4,10 +4,24 @@ import { PixelCanvas } from './components/PixelCanvas'
 import { DrawingEditor } from './components/DrawingEditor'
 import { RoundDurationControl } from './components/RoundDurationControl'
 import { editorText } from './lib/editorText'
+import {
+  competitionDrawDurations,
+  competitionRoundCounts,
+  DEFAULT_COMPETITION_DRAW_DURATION,
+  DEFAULT_COMPETITION_ROUND_COUNT,
+  gameModeText,
+  isCompetitionDrawDuration,
+  isCompetitionRoundCount,
+  isGameMode,
+  type CompetitionDrawDuration,
+  type CompetitionRoundCount,
+  type GameMode,
+} from './lib/gameMode'
 import { DEFAULT_ROUND_DURATION, isRoundDuration, roundDurations, roundDurationText, type RoundDuration } from './lib/roundDuration'
 import { BugReport } from './components/BugReport'
 import { ActiveUsers } from './components/ActiveUsers'
 import { ConfirmModal } from './components/ConfirmModal'
+import { CompetitionGallery } from './components/CompetitionGallery'
 import { WeeklyDraw } from './components/WeeklyDraw'
 import { ProfileAvatar } from './components/ProfileAvatar'
 import { ProfilePreviewButton } from './components/ProfilePreviewButton'
@@ -29,6 +43,21 @@ import {
   type RoundMessage,
   type RoundView,
 } from './lib/game'
+import {
+  advanceCompetitionGame,
+  finishCompetitionDrawing,
+  finishCompetitionVoting,
+  loadCompetitionDrawEvents,
+  loadCompetitionResults,
+  loadCompetitionRoundView,
+  restartCompetitionGame,
+  setCompetitionVote,
+  startCompetitionGame,
+  submitCompetitionPixelChanges,
+  type CompetitionDrawEvent,
+  type CompetitionResult,
+  type CompetitionRoundView,
+} from './lib/competitionGame'
 import {
   createRoom,
   joinRoom,
@@ -136,6 +165,11 @@ function mergeRecentById<T extends { id: number }>(
 function App() {
   const [playerName, setPlayerName] = useState('')
   const [newRoomDuration, setNewRoomDuration] = useState<RoundDuration>(DEFAULT_ROUND_DURATION)
+  const [newRoomGameMode, setNewRoomGameMode] = useState<GameMode>('classic')
+  const [competitionDrawDuration, setCompetitionDrawDuration] =
+    useState<CompetitionDrawDuration>(DEFAULT_COMPETITION_DRAW_DURATION)
+  const [competitionRoundCount, setCompetitionRoundCount] =
+    useState<CompetitionRoundCount>(DEFAULT_COMPETITION_ROUND_COUNT)
   const [isChangingRoundDuration, setIsChangingRoundDuration] = useState(false)
   const [homeView, setHomeView] = useState<HomeView>(historyHomeView)
   const [editorDirty, setEditorDirty] = useState(false)
@@ -166,14 +200,21 @@ function App() {
   const [showLeaveConfirmation, setShowLeaveConfirmation] = useState(false)
   const [lobby, setLobby] = useState<Lobby | null>(null)
   const [roundView, setRoundView] = useState<RoundView | null>(null)
+  const [competitionRoundView, setCompetitionRoundView] = useState<CompetitionRoundView | null>(null)
   const [isRoundCanvasImmersive, setIsRoundCanvasImmersive] = useState(false)
   const [drawEvents, setDrawEvents] = useState<DrawEvent[]>([])
+  const [competitionDrawEvents, setCompetitionDrawEvents] = useState<CompetitionDrawEvent[]>([])
+  const [competitionResults, setCompetitionResults] = useState<CompetitionResult[]>([])
+  const [isCompetitionVotePending, setIsCompetitionVotePending] = useState(false)
   const [roundMessages, setRoundMessages] = useState<RoundMessage[]>([])
   const [roomMessages, setRoomMessages] = useState<RoomMessage[]>([])
   const drawEventCursorRef = useRef<number | null>(null)
+  const competitionDrawEventCursorRef = useRef<number | null>(null)
   const roundMessageCursorRef = useRef<number | null>(null)
   const roomMessageCursorRef = useRef<number | null>(null)
   const activeRoundIdRef = useRef<number | null>(null)
+  const activeCompetitionRoundIdRef = useRef<number | null>(null)
+  const competitionRoundStatusRef = useRef<CompetitionRoundView['round_status'] | null>(null)
   const activeRoomIdRef = useRef<number | null>(null)
   const isLeavingRoomRef = useRef(false)
 
@@ -269,13 +310,20 @@ function App() {
   const hydrateLobby = useCallback(
     async (entry: Parameters<typeof loadLobby>[0]) => {
       const nextLobby = await loadLobby(entry)
-      const nextRoundView =
-        nextLobby.room.status === 'playing'
-          ? await loadRoundView(nextLobby.room.id)
-          : null
-      const [nextDrawEvents, nextRoundMessages, nextRoomMessages] =
+      const isCompetition = nextLobby.room.game_mode === 'competition'
+      const nextRoundView = nextLobby.room.status === 'playing' && !isCompetition
+        ? await loadRoundView(nextLobby.room.id)
+        : null
+      const nextCompetitionRoundView = nextLobby.room.status === 'playing' && isCompetition
+        ? await loadCompetitionRoundView(nextLobby.room.id)
+        : null
+      const [nextDrawEvents, nextCompetitionEvents, nextCompetitionResults, nextRoundMessages, nextRoomMessages] =
         await Promise.all([
           nextRoundView ? loadDrawEvents(nextRoundView.round_id) : [],
+          nextCompetitionRoundView ? loadCompetitionDrawEvents(nextCompetitionRoundView.round_id) : [],
+          nextCompetitionRoundView && nextCompetitionRoundView.round_status !== 'drawing'
+            ? loadCompetitionResults(nextCompetitionRoundView.round_id)
+            : [],
           nextRoundView ? loadRoundMessages(nextRoundView.round_id) : [],
           loadRoomMessages(nextLobby.room.id),
         ])
@@ -283,12 +331,18 @@ function App() {
       if (!isLeavingRoomRef.current) {
         activeRoomIdRef.current = nextLobby.room.id
         activeRoundIdRef.current = nextRoundView?.round_id ?? null
+        activeCompetitionRoundIdRef.current = nextCompetitionRoundView?.round_id ?? null
+        competitionRoundStatusRef.current = nextCompetitionRoundView?.round_status ?? null
         drawEventCursorRef.current = latestId(nextDrawEvents)
+        competitionDrawEventCursorRef.current = latestId(nextCompetitionEvents)
         roundMessageCursorRef.current = latestId(nextRoundMessages)
         roomMessageCursorRef.current = latestId(nextRoomMessages)
         setLobby(nextLobby)
         setRoundView(nextRoundView)
+        setCompetitionRoundView(nextCompetitionRoundView)
         setDrawEvents(nextDrawEvents)
+        setCompetitionDrawEvents(nextCompetitionEvents)
+        setCompetitionResults(nextCompetitionResults)
         setRoundMessages(nextRoundMessages)
         setRoomMessages(nextRoomMessages)
       }
@@ -376,21 +430,38 @@ function App() {
         roomCode: lobby?.room.code ?? '',
         roomId: activeRoomId,
       })
-      const nextRoundView = nextLobby.room.status === 'playing'
+      const isCompetition = nextLobby.room.game_mode === 'competition'
+      const nextRoundView = nextLobby.room.status === 'playing' && !isCompetition
         ? await loadRoundView(nextLobby.room.id)
         : null
+      const nextCompetitionRoundView = nextLobby.room.status === 'playing' && isCompetition
+        ? await loadCompetitionRoundView(nextLobby.room.id)
+        : null
       const roundChanged = nextRoundView?.round_id !== activeRoundIdRef.current
+      const competitionRoundChanged =
+        nextCompetitionRoundView?.round_id !== activeCompetitionRoundIdRef.current ||
+        nextCompetitionRoundView?.round_status !== competitionRoundStatusRef.current
       const [nextDrawEvents, nextRoundMessages] = roundChanged && nextRoundView
         ? await Promise.all([
             loadDrawEvents(nextRoundView.round_id),
             loadRoundMessages(nextRoundView.round_id),
           ])
         : [[], []]
+      const [nextCompetitionEvents, nextCompetitionResults] =
+        competitionRoundChanged && nextCompetitionRoundView
+          ? await Promise.all([
+              loadCompetitionDrawEvents(nextCompetitionRoundView.round_id),
+              nextCompetitionRoundView.round_status !== 'drawing'
+                ? loadCompetitionResults(nextCompetitionRoundView.round_id)
+                : [],
+            ])
+          : [[], []]
 
       if (isLeavingRoomRef.current) return
       activeRoomIdRef.current = nextLobby.room.id
       setLobby(nextLobby)
       setRoundView(nextRoundView)
+      setCompetitionRoundView(nextCompetitionRoundView)
 
       if (roundChanged) {
         activeRoundIdRef.current = nextRoundView?.round_id ?? null
@@ -398,6 +469,13 @@ function App() {
         roundMessageCursorRef.current = latestId(nextRoundMessages)
         setDrawEvents(nextDrawEvents)
         setRoundMessages(nextRoundMessages)
+      }
+      if (competitionRoundChanged) {
+        activeCompetitionRoundIdRef.current = nextCompetitionRoundView?.round_id ?? null
+        competitionRoundStatusRef.current = nextCompetitionRoundView?.round_status ?? null
+        competitionDrawEventCursorRef.current = latestId(nextCompetitionEvents)
+        setCompetitionDrawEvents(nextCompetitionEvents)
+        setCompetitionResults(nextCompetitionResults)
       }
     } catch (error) {
       if (isLeavingRoomRef.current) return
@@ -411,6 +489,7 @@ function App() {
   ])
 
   const activeRoundId = roundView?.round_id
+  const activeCompetitionRoundId = competitionRoundView?.round_id
   const refreshDrawEvents = useCallback(async () => {
     if (!activeRoundId) return
 
@@ -429,6 +508,26 @@ function App() {
       )
     }
   }, [activeRoundId])
+
+  const refreshCompetitionDrawEvents = useCallback(async () => {
+    if (!activeCompetitionRoundId) return
+    try {
+      const requestedRoundId = activeCompetitionRoundId
+      const updates = await loadCompetitionDrawEvents(
+        requestedRoundId,
+        competitionDrawEventCursorRef.current,
+      )
+      if (activeCompetitionRoundIdRef.current !== requestedRoundId || updates.length === 0) return
+      const nextCursor = latestId(updates)
+      if (nextCursor === null ||
+          (competitionDrawEventCursorRef.current !== null &&
+            nextCursor <= competitionDrawEventCursorRef.current)) return
+      competitionDrawEventCursorRef.current = nextCursor
+      setCompetitionDrawEvents(current => mergeRecentById(current, updates, 500))
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Nem frissült a versenyrajz.')
+    }
+  }, [activeCompetitionRoundId])
 
   const refreshRoundMessages = useCallback(async () => {
     if (!activeRoundId) return
@@ -473,7 +572,9 @@ function App() {
     return subscribeToLobby(
       activeRoomId,
       () => void refreshLobby(),
-      () => void refreshDrawEvents(),
+      () => void (lobby?.room.game_mode === 'competition'
+        ? refreshCompetitionDrawEvents()
+        : refreshDrawEvents()),
       () => void refreshRoundMessages(),
       () => void refreshRoomMessages(),
       (status) => {
@@ -488,6 +589,8 @@ function App() {
     )
   }, [
     activeRoomId,
+    lobby?.room.game_mode,
+    refreshCompetitionDrawEvents,
     refreshDrawEvents,
     refreshLobby,
     refreshRoomMessages,
@@ -584,7 +687,11 @@ function App() {
     try {
       const entry =
         action === 'create'
-          ? await createRoom(effectivePlayerName, newRoomDuration)
+          ? await createRoom(effectivePlayerName, newRoomDuration, {
+              competitionDrawDuration,
+              competitionRoundCount,
+              gameMode: newRoomGameMode,
+            })
           : await joinRoom(effectivePlayerName, code ?? '')
       await hydrateLobby(entry)
 
@@ -633,9 +740,15 @@ function App() {
     setMessage('A játék indítása…')
 
     try {
-      await startGame(lobby.room.id)
+      if (lobby.room.game_mode === 'competition') {
+        await startCompetitionGame(lobby.room.id)
+      } else {
+        await startGame(lobby.room.id)
+      }
       await refreshLobby()
-      setMessage('A meccs elindult!')
+      setMessage(lobby.room.game_mode === 'competition'
+        ? 'A rajzverseny elindult! Mindenki ugyanazt a szót rajzolja.'
+        : 'A meccs elindult!')
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -730,14 +843,63 @@ function App() {
     }
   }
 
+  const handleExpireCompetitionDrawing = async () => {
+    if (!competitionRoundView || isFinishingRound) return
+    setIsFinishingRound(true)
+    setMessage('Lejárt a rajzolási idő, indul a szavazás…')
+    try {
+      await finishCompetitionDrawing(competitionRoundView.round_id)
+      await refreshLobby()
+      setMessage('Rajzok kész! Válaszd ki a kedvencedet.')
+    } catch (error) {
+      await refreshLobby()
+      setMessage(error instanceof Error ? error.message : 'Nem sikerült elindítani a szavazást.')
+    } finally {
+      setIsFinishingRound(false)
+    }
+  }
+
+  const handleCompetitionVote = async (drawingUserId: string) => {
+    if (!competitionRoundView || isCompetitionVotePending) return
+    setIsCompetitionVotePending(true)
+    try {
+      await setCompetitionVote(competitionRoundView.round_id, drawingUserId)
+      await refreshLobby()
+      setMessage('A szavazatodat elmentettük. A határidőig még módosíthatod.')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Nem sikerült elmenteni a szavazatot.')
+    } finally {
+      setIsCompetitionVotePending(false)
+    }
+  }
+
+  const handleExpireCompetitionVoting = async () => {
+    if (!competitionRoundView || isFinishingRound) return
+    setIsFinishingRound(true)
+    setMessage('Lejárt a szavazás, számoljuk az eredményt…')
+    try {
+      await finishCompetitionVoting(competitionRoundView.round_id)
+      await refreshLobby()
+      setMessage('Megvan a forduló eredménye!')
+    } catch (error) {
+      await refreshLobby()
+      setMessage(error instanceof Error ? error.message : 'Nem sikerült lezárni a szavazást.')
+    } finally {
+      setIsFinishingRound(false)
+    }
+  }
+
   const handleAdvanceGame = async () => {
-    if (!roundView || isAdvancingRound) return
+    const activeView = competitionRoundView ?? roundView
+    if (!activeView || isAdvancingRound) return
 
     setIsAdvancingRound(true)
     setMessage('A következő kör előkészítése…')
 
     try {
-      const result = await advanceGame(roundView.round_id)
+      const result = competitionRoundView
+        ? await advanceCompetitionGame(competitionRoundView.round_id)
+        : await advanceGame(roundView!.round_id)
       await refreshLobby()
       setMessage(
         result.room_status === 'finished'
@@ -763,7 +925,11 @@ function App() {
     setMessage('Az új meccs előkészítése…')
 
     try {
-      await restartGame(lobby.room.id)
+      if (lobby.room.game_mode === 'competition') {
+        await restartCompetitionGame(lobby.room.id)
+      } else {
+        await restartGame(lobby.room.id)
+      }
       await refreshLobby()
       setMessage('Elindult az új meccs!')
     } catch (error) {
@@ -794,12 +960,18 @@ function App() {
       await leaveRoom(lobby.room.id)
       activeRoomIdRef.current = null
       activeRoundIdRef.current = null
+      activeCompetitionRoundIdRef.current = null
+      competitionRoundStatusRef.current = null
       drawEventCursorRef.current = null
+      competitionDrawEventCursorRef.current = null
       roundMessageCursorRef.current = null
       roomMessageCursorRef.current = null
       setLobby(null)
       setRoundView(null)
+      setCompetitionRoundView(null)
       setDrawEvents([])
+      setCompetitionDrawEvents([])
+      setCompetitionResults([])
       setRoundMessages([])
       setRoomMessages([])
       setRoomCode('')
@@ -823,7 +995,8 @@ function App() {
   const gameIsPlaying = lobby?.room.status === 'playing'
   const gameIsFinished = lobby?.room.status === 'finished'
   const roomIsLocked = gameIsPlaying || gameIsFinished
-  const minimumPlayers = lobby?.room.test_mode ? 1 : 2
+  const roomIsCompetition = lobby?.room.game_mode === 'competition'
+  const minimumPlayers = roomIsCompetition ? 3 : lobby?.room.test_mode ? 1 : 2
   const drawer = lobby?.players.find(
     (player) => player.user_id === roundView?.drawer_user_id,
   )
@@ -833,6 +1006,8 @@ function App() {
       first.joined_at.localeCompare(second.joined_at) ||
       first.id - second.id,
   )
+  const winningScore = rankedPlayers[0]?.score ?? 0
+  const winningPlayers = rankedPlayers.filter(player => player.score === winningScore)
   const playerIsOnline = (lastSeenAt: string) =>
     Date.now() - new Date(lastSeenAt).getTime() < 45_000
 
@@ -882,8 +1057,17 @@ function App() {
             <h1 id="room-title">Szobakód</h1>
             <strong className="room-code">{lobby.room.code}</strong>
             <p className="room-note">
-              {roundDurationText.label}: {lobby.room.round_duration_seconds ?? DEFAULT_ROUND_DURATION} {roundDurationText.seconds}
-              {lobby.room.test_mode ? <><br />{roundDurationText.testOverride}</> : null}
+              {roomIsCompetition ? (
+                <>
+                  {gameModeText.competition}<br />
+                  {lobby.room.competition_round_count} forduló · {lobby.room.competition_draw_seconds} másodperc rajzolás
+                </>
+              ) : (
+                <>
+                  {roundDurationText.label}: {lobby.room.round_duration_seconds ?? DEFAULT_ROUND_DURATION} {roundDurationText.seconds}
+                  {lobby.room.test_mode ? <><br />{roundDurationText.testOverride}</> : null}
+                </>
+              )}
             </p>
             <button
               className="secondary-button copy-button"
@@ -960,6 +1144,49 @@ function App() {
             </ol>
 
             {gameIsPlaying ? (
+              roomIsCompetition ? (
+                <div className="round-panel competition-round-panel">
+                  <p className="round-label">
+                    {competitionRoundView
+                      ? `${competitionRoundView.round_number}/${competitionRoundView.total_rounds}. forduló`
+                      : 'Versenyforduló betöltése…'}
+                  </p>
+                  <strong>
+                    Közös szó: {competitionRoundView?.chosen_word ?? 'betöltés…'}
+                  </strong>
+                  <span>
+                    {competitionRoundView?.round_status === 'drawing'
+                      ? 'Mindenki rajzol. A többiek képét csak az idő lejárta után látod.'
+                      : competitionRoundView?.round_status === 'voting'
+                        ? 'A rajzok névtelenek. Szavazz a kedvencedre!'
+                        : 'Megvan a forduló eredménye.'}
+                  </span>
+                  {competitionRoundView?.round_status === 'drawing' ? (
+                    <RoundTimer
+                      drawingEndsAt={competitionRoundView.drawing_ends_at}
+                      onExpire={() => void handleExpireCompetitionDrawing()}
+                      roundId={competitionRoundView.round_id}
+                      serverNow={competitionRoundView.server_now}
+                    />
+                  ) : competitionRoundView?.round_status === 'voting' &&
+                    competitionRoundView.voting_ends_at ? (
+                      <RoundTimer
+                        drawingEndsAt={competitionRoundView.voting_ends_at}
+                        onExpire={() => void handleExpireCompetitionVoting()}
+                        roundId={competitionRoundView.round_id}
+                        serverNow={competitionRoundView.server_now}
+                      />
+                    ) : competitionRoundView?.round_status === 'finished' &&
+                      competitionRoundView.next_round_at ? (
+                        <RoundTransitionTimer
+                          nextRoundAt={competitionRoundView.next_round_at}
+                          onReady={() => void handleAdvanceGame()}
+                          roundId={competitionRoundView.round_id}
+                          serverNow={competitionRoundView.server_now}
+                        />
+                      ) : null}
+                </div>
+              ) : (
               <div className="round-panel">
                 <p className="round-label">
                   {roundView
@@ -1039,11 +1266,12 @@ function App() {
                   />
                 ) : null}
               </div>
+              )
             ) : gameIsFinished ? (
               <div className="game-results">
-                <p className="winner-label">A győztes</p>
-                <strong>{rankedPlayers[0]?.display_name ?? 'Nincs játékos'}</strong>
-                <span>{rankedPlayers[0]?.score ?? 0} pont</span>
+                <p className="winner-label">{winningPlayers.length > 1 ? 'Közös győztesek' : 'A győztes'}</p>
+                <strong>{winningPlayers.map(player => player.display_name).join(', ') || 'Nincs játékos'}</strong>
+                <span>{winningScore} pont</span>
                 {isHost ? (
                   <button
                     className="primary-button start-game-button"
@@ -1059,14 +1287,14 @@ function App() {
               </div>
             ) : isHost ? (
               <div className="start-game-controls">
-                {isRoundDuration(lobby.room.round_duration_seconds) ? (
+                {!roomIsCompetition && isRoundDuration(lobby.room.round_duration_seconds) ? (
                   <RoundDurationControl
                     value={lobby.room.round_duration_seconds}
                     disabled={isChangingRoundDuration || isStartingGame || lobby.room.test_mode}
                     onChange={duration => void handleRoundDurationChange(duration)}
                   />
                 ) : null}
-                <button
+                {!roomIsCompetition ? <button
                   aria-pressed={lobby.room.test_mode}
                   className="test-mode-button"
                   disabled={isChangingTestMode || isStartingGame}
@@ -1074,9 +1302,11 @@ function App() {
                   type="button"
                 >
                   Teszt mód: {lobby.room.test_mode ? 'BE' : 'KI'}
-                </button>
+                </button> : null}
                 <span>
-                  {lobby.room.test_mode
+                  {roomIsCompetition
+                    ? 'A versenyhez legalább 3 játékos szükséges.'
+                    : lobby.room.test_mode
                     ? 'Egyedül korlátlan rajzidővel is elindíthatod a meccset.'
                     : 'Normál módban legalább 2 játékos szükséges.'}
                 </span>
@@ -1091,17 +1321,54 @@ function App() {
                   onClick={() => void handleStartGame()}
                   type="button"
                 >
-                  {isStartingGame ? 'Indítás…' : 'Játék indítása'}
+                  {isStartingGame ? 'Indítás…' : roomIsCompetition ? 'Rajzverseny indítása' : 'Játék indítása'}
                 </button>
                 {lobby.players.length < minimumPlayers ? (
-                  <span>Még legalább egy játékosra szükség van.</span>
+                  <span>
+                    {minimumPlayers - lobby.players.length} játékos hiányzik az indításhoz.
+                  </span>
                 ) : null}
               </div>
             ) : (
               <p className="host-wait-message">A host indítja el a játékot.</p>
             )}
 
-            {roundView?.round_status === 'drawing' && !isFinishingRound ? (
+            {competitionRoundView?.round_status === 'drawing' && !isFinishingRound ? (
+              <div className="round-play-area is-drawer competition-play-area">
+                <PixelCanvas
+                  canDraw
+                  chosenWord={competitionRoundView.chosen_word}
+                  drawingEndsAt={competitionRoundView.drawing_ends_at}
+                  events={competitionDrawEvents.map(event => ({
+                    changes: event.changes,
+                    id: event.id,
+                    round_id: event.round_id,
+                  }))}
+                  onError={(error) => setMessage(
+                    error instanceof Error ? error.message : 'Nem sikerült elküldeni a versenyrajzot.',
+                  )}
+                  onImmersiveChange={setIsRoundCanvasImmersive}
+                  onSubmit={(changes) => submitCompetitionPixelChanges(competitionRoundView.round_id, changes)}
+                  paletteSize={lobby.room.palette_size as RoomPaletteSize}
+                  roundId={competitionRoundView.round_id}
+                  serverNow={competitionRoundView.server_now}
+                />
+                <div className="play-side-column">
+                  <div className="competition-drawing-note">
+                    <strong>Most mindenki rajzol</strong>
+                    <span>A többiek munkája a szavazás kezdetéig rejtve marad.</span>
+                  </div>
+                  <RoomChat
+                    messages={roomMessages}
+                    onError={(error) => setMessage(
+                      error instanceof Error ? error.message : 'Nem sikerült elküldeni a chatüzenetet.',
+                    )}
+                    onSubmit={(content) => sendRoomMessage(lobby.room.id, content)}
+                    players={lobby.players}
+                  />
+                </div>
+              </div>
+            ) : roundView?.round_status === 'drawing' && !isFinishingRound ? (
               <div className={`round-play-area ${roundView.is_drawer ? 'is-drawer' : 'is-guesser'}`}>
                 <PixelCanvas
                   canDraw={roundView.is_drawer}
@@ -1159,7 +1426,20 @@ function App() {
               </div>
             ) : null}
 
-            {roundView?.round_status !== 'drawing' || isFinishingRound ? (
+            {competitionRoundView && competitionRoundView.round_status !== 'drawing' ? (
+              <CompetitionGallery
+                events={competitionDrawEvents}
+                isVoting={competitionRoundView.round_status === 'voting'}
+                onVote={(userId) => void handleCompetitionVote(userId)}
+                results={competitionResults}
+                votedForDrawingId={competitionRoundView.voted_for_drawing_id}
+                votePending={isCompetitionVotePending}
+              />
+            ) : null}
+
+            {(roomIsCompetition
+              ? competitionRoundView?.round_status !== 'drawing'
+              : roundView?.round_status !== 'drawing') || isFinishingRound ? (
               <RoomChat
                 messages={roomMessages}
                 onError={(error) =>
@@ -1322,12 +1602,19 @@ function App() {
                     <div className="room-settings-content">
                       <label className="field" htmlFor="room-game-mode">
                         <span>Játékmód</span>
-                        <select id="room-game-mode" defaultValue="classic" disabled={isBusy || isRestoringRoom}>
-                          <option value="classic">Classic</option>
-                          <option value="competition" disabled>Verseny · hamarosan</option>
+                        <select
+                          id="room-game-mode"
+                          disabled={isBusy || isRestoringRoom}
+                          onChange={(event) => {
+                            if (isGameMode(event.target.value)) setNewRoomGameMode(event.target.value)
+                          }}
+                          value={newRoomGameMode}
+                        >
+                          <option value="classic">Klasszikus</option>
+                          <option value="competition">Párhuzamos rajzverseny</option>
                         </select>
                       </label>
-                      <label className="field" htmlFor="create-round-duration">
+                      {newRoomGameMode === 'classic' ? <label className="field" htmlFor="create-round-duration">
                         <span>{roundDurationText.label}</span>
                         <select
                           id="create-round-duration"
@@ -1342,7 +1629,45 @@ function App() {
                             <option key={duration} value={duration}>{duration} másodperc</option>
                           ))}
                         </select>
-                      </label>
+                      </label> : (
+                        <>
+                          <label className="field" htmlFor="competition-draw-duration">
+                            <span>Rajzolási idő</span>
+                            <select
+                              id="competition-draw-duration"
+                              disabled={isBusy || isRestoringRoom}
+                              onChange={(event) => {
+                                const duration = Number(event.target.value)
+                                if (isCompetitionDrawDuration(duration)) setCompetitionDrawDuration(duration)
+                              }}
+                              value={competitionDrawDuration}
+                            >
+                              {competitionDrawDurations.map(duration => (
+                                <option key={duration} value={duration}>
+                                  {duration === 60 ? '1 perc' : duration === 90 ? '1 perc 30 másodperc' : '2 perc'}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className="field" htmlFor="competition-round-count">
+                            <span>Fordulók száma</span>
+                            <select
+                              id="competition-round-count"
+                              disabled={isBusy || isRestoringRoom}
+                              onChange={(event) => {
+                                const count = Number(event.target.value)
+                                if (isCompetitionRoundCount(count)) setCompetitionRoundCount(count)
+                              }}
+                              value={competitionRoundCount}
+                            >
+                              {competitionRoundCounts.map(count => (
+                                <option key={count} value={count}>{count} forduló</option>
+                              ))}
+                            </select>
+                          </label>
+                          <p className="room-settings-note">{gameModeText.competitionPreparing}</p>
+                        </>
+                      )}
                     </div>
                   </details>
                   <button

@@ -3,6 +3,13 @@ import assert from 'node:assert/strict'
 import { readFile, readdir } from 'node:fs/promises'
 import { before, after, test } from 'node:test'
 import { PGlite } from '@electric-sql/pglite'
+import {
+  competitionDrawDurations,
+  competitionRoundCounts,
+  isCompetitionDrawDuration,
+  isCompetitionRoundCount,
+  isGameMode,
+} from '../src/lib/gameMode.ts'
 import { isRoundDuration, roundDurations } from '../src/lib/roundDuration.ts'
 
 const db = new PGlite()
@@ -77,6 +84,170 @@ test('client duration validation only accepts the five supported numeric values'
   for (const value of [null, undefined, '30', 0, 29, 31, 91, 30.5, NaN, Infinity]) {
     assert.equal(isRoundDuration(value), false)
   }
+})
+
+test('competition settings accept 1–2 minute drawing times and 1–5 rounds', () => {
+  assert.deepEqual([...competitionDrawDurations], [60, 90, 120])
+  assert.deepEqual([...competitionRoundCounts], [1, 2, 3, 4, 5])
+  assert.equal(isGameMode('classic'), true)
+  assert.equal(isGameMode('competition'), true)
+  for (const value of competitionDrawDurations) assert.equal(isCompetitionDrawDuration(value), true)
+  for (const value of competitionRoundCounts) assert.equal(isCompetitionRoundCount(value), true)
+  for (const value of [null, 0, 30, 61, 180, '90']) assert.equal(isCompetitionDrawDuration(value), false)
+  for (const value of [null, 0, 6, 2.5, '2']) assert.equal(isCompetitionRoundCount(value), false)
+  assert.equal(isGameMode('race'), false)
+})
+
+test('existing rooms remain classic and competition room creation stores its settings atomically', async () => {
+  const [existing] = await asUser(host, `select game_mode, competition_draw_seconds,
+    competition_round_count from public.rooms where id = $1`, [legacyRoom.room_id])
+  assert.deepEqual(existing, {
+    competition_draw_seconds: 90,
+    competition_round_count: 2,
+    game_mode: 'classic',
+  })
+
+  const [room] = await asUser(host,
+    'select * from public.create_room_with_settings($1, $2, $3, $4, $5)',
+    ['VersenyHost', 90, 'competition', 120, 5],
+  )
+  const [stored] = await asUser(host, `select game_mode, competition_draw_seconds,
+    competition_round_count, round_duration_seconds from public.rooms where id = $1`, [room.room_id])
+  assert.deepEqual(stored, {
+    competition_draw_seconds: 120,
+    competition_round_count: 5,
+    game_mode: 'competition',
+    round_duration_seconds: 90,
+  })
+})
+
+test('only the member host may change competition settings while the room is waiting', async () => {
+  const room = await createRoom(90)
+  await assert.rejects(asUser(guest,
+    "select * from public.set_room_game_settings($1, 'competition', 60, 1)", [room.room_id]), /NOT_ROOM_HOST/)
+  await assert.rejects(asUser(outsider,
+    "select * from public.set_room_game_settings($1, 'competition', 60, 1)", [room.room_id]), /NOT_ROOM_HOST/)
+  await assert.rejects(asUser(null,
+    "select * from public.set_room_game_settings($1, 'competition', 60, 1)", [room.room_id]), /AUTH_REQUIRED/)
+  await assert.rejects(asUser(null,
+    "select * from public.set_room_game_settings($1, 'competition', 60, 1)", [room.room_id], 'anon'), /permission denied/)
+
+  await asUser(host, "select * from public.set_room_game_settings($1, 'competition', 60, 1)", [room.room_id])
+  const [visible] = await asUser(guest, `select game_mode, competition_draw_seconds,
+    competition_round_count from public.rooms where id = $1`, [room.room_id])
+  assert.deepEqual(visible, {
+    competition_draw_seconds: 60,
+    competition_round_count: 1,
+    game_mode: 'competition',
+  })
+
+  await db.query("update public.rooms set status = 'playing' where id = $1", [room.room_id])
+  await assert.rejects(asUser(host,
+    "select * from public.set_room_game_settings($1, 'classic', 90, 2)", [room.room_id]), /GAME_ALREADY_STARTED/)
+})
+
+test('invalid competition settings cannot leave partial rooms or bypass table constraints', async () => {
+  const countBefore = (await db.query('select count(*)::integer as count from public.rooms')).rows[0].count
+  for (const args of [
+    ['unknown', 90, 2],
+    ['competition', 30, 2],
+    ['competition', 90, 0],
+    ['competition', 90, 6],
+  ]) {
+    await assert.rejects(asUser(host,
+      'select * from public.create_room_with_settings($1, 90, $2, $3, $4)',
+      ['Hibás', ...args]), /(GAME_MODE|COMPETITION_).*_INVALID/)
+  }
+  assert.equal((await db.query('select count(*)::integer as count from public.rooms')).rows[0].count, countBefore)
+
+  const room = await createRoom(90)
+  await assert.rejects(db.query("update public.rooms set game_mode = 'unknown' where id = $1", [room.room_id]), /rooms_game_mode_values/)
+  await assert.rejects(db.query('update public.rooms set competition_draw_seconds = 75 where id = $1', [room.room_id]), /rooms_competition_draw_seconds_values/)
+  await assert.rejects(db.query('update public.rooms set competition_round_count = 6 where id = $1', [room.room_id]), /rooms_competition_round_count_values/)
+})
+
+test('parallel competition runs drawing, anonymous mutable voting and configured rounds', async () => {
+  const [room] = await asUser(host,
+    "select * from public.create_room_with_settings('VersenyHost', 90, 'competition', 60, 2)")
+  await asUser(guest, 'select * from public.join_room($1, $2)', [room.room_code, 'VersenyGuest'])
+  await asUser(outsider, 'select * from public.join_room($1, $2)', [room.room_code, 'VersenyThird'])
+  await asUser(host, 'select * from public.start_competition_game($1)', [room.room_id])
+
+  const [hostView] = await asUser(host, 'select * from public.get_competition_round_view($1)', [room.room_id])
+  const [guestView] = await asUser(guest, 'select * from public.get_competition_round_view($1)', [room.room_id])
+  assert.equal(hostView.round_status, 'drawing')
+  assert.equal(hostView.round_number, 1)
+  assert.equal(hostView.total_rounds, 2)
+  assert.equal(hostView.chosen_word, guestView.chosen_word)
+  assert.equal(
+    Math.round((new Date(hostView.drawing_ends_at) - new Date(hostView.server_now)) / 1000),
+    60,
+  )
+
+  const redPixel = JSON.stringify([{ x: 0, y: 0, color: '#d3493b' }])
+  const bluePixel = JSON.stringify([{ x: 1, y: 0, color: '#33567e' }])
+  const clearPixel = JSON.stringify([{ x: 2, y: 0, color: 'transparent' }])
+  await asUser(host, 'select public.submit_competition_pixel_changes($1, $2::jsonb)', [hostView.round_id, redPixel])
+  await asUser(guest, 'select public.submit_competition_pixel_changes($1, $2::jsonb)', [hostView.round_id, bluePixel])
+  await asUser(outsider, 'select public.submit_competition_pixel_changes($1, $2::jsonb)', [hostView.round_id, clearPixel])
+  const entries = (await db.query(
+    'select drawing_id, user_id from private.competition_entries where round_id = $1', [hostView.round_id],
+  )).rows
+  const drawingIdFor = userId => entries.find(entry => entry.user_id === userId).drawing_id
+  const drawingGuestEvents = await asUser(guest,
+    'select * from public.get_competition_draw_updates($1, null, 500)', [hostView.round_id])
+  assert.deepEqual([...new Set(drawingGuestEvents.map(event => event.drawing_id))], [drawingIdFor(guest)])
+  assert.ok(drawingGuestEvents.every(event => !('user_id' in event)))
+  await assert.rejects(asUser(host,
+    'select * from public.set_competition_vote($1, $2)', [hostView.round_id, drawingIdFor(guest)]), /VOTING_NOT_OPEN/)
+
+  await db.query("update public.competition_rounds set drawing_started_at = clock_timestamp() - interval '61 seconds', drawing_ends_at = clock_timestamp() - interval '1 second' where id = $1", [hostView.round_id])
+  await asUser(guest, 'select * from public.finish_competition_drawing($1)', [hostView.round_id])
+  const votingEvents = await asUser(guest,
+    'select * from public.get_competition_draw_updates($1, null, 500)', [hostView.round_id])
+  assert.deepEqual(new Set(votingEvents.map(event => event.drawing_id)), new Set(entries.map(entry => entry.drawing_id)))
+  assert.ok(votingEvents.every(event => !('user_id' in event)))
+  const anonymousResults = await asUser(host, 'select * from public.get_competition_results($1)', [hostView.round_id])
+  assert.ok(anonymousResults.every(result => result.display_name === null && result.vote_count === null))
+  assert.ok(anonymousResults.every(result => !('drawing_user_id' in result)))
+  await assert.rejects(asUser(host,
+    'select * from public.set_competition_vote($1, $2)', [hostView.round_id, drawingIdFor(host)]), /SELF_VOTE_FORBIDDEN/)
+
+  await asUser(host, 'select * from public.set_competition_vote($1, $2)', [hostView.round_id, drawingIdFor(guest)])
+  await asUser(host, 'select * from public.set_competition_vote($1, $2)', [hostView.round_id, drawingIdFor(outsider)])
+  await asUser(guest, 'select * from public.set_competition_vote($1, $2)', [hostView.round_id, drawingIdFor(outsider)])
+  await asUser(outsider, 'select * from public.set_competition_vote($1, $2)', [hostView.round_id, drawingIdFor(guest)])
+  assert.equal((await db.query('select count(*)::integer as count from private.competition_votes where round_id = $1', [hostView.round_id])).rows[0].count, 3)
+
+  await db.query("update public.competition_rounds set voting_ends_at = clock_timestamp() - interval '1 second' where id = $1", [hostView.round_id])
+  await asUser(outsider, 'select * from public.finish_competition_voting($1)', [hostView.round_id])
+  const namedResults = await asUser(host, 'select * from public.get_competition_results($1)', [hostView.round_id])
+  assert.deepEqual(namedResults.map(result => [result.display_name, result.vote_count]), [
+    ['VersenyThird', 2],
+    ['VersenyGuest', 1],
+    ['VersenyHost', 0],
+  ])
+
+  await db.query("update public.competition_rounds set finished_at = clock_timestamp() - interval '6 seconds' where id = $1", [hostView.round_id])
+  const [advanced] = await asUser(guest, 'select * from public.advance_competition_game($1)', [hostView.round_id])
+  assert.equal(advanced.next_round_number, 2)
+  assert.equal(advanced.room_status, 'playing')
+
+  const [secondView] = await asUser(host, 'select * from public.get_competition_round_view($1)', [room.room_id])
+  await db.query("update public.competition_rounds set drawing_started_at = clock_timestamp() - interval '61 seconds', drawing_ends_at = clock_timestamp() - interval '1 second' where id = $1", [secondView.round_id])
+  await asUser(host, 'select * from public.finish_competition_drawing($1)', [secondView.round_id])
+  await db.query("update public.competition_rounds set voting_ends_at = clock_timestamp() - interval '1 second' where id = $1", [secondView.round_id])
+  await asUser(host, 'select * from public.finish_competition_voting($1)', [secondView.round_id])
+  await db.query("update public.competition_rounds set finished_at = clock_timestamp() - interval '6 seconds' where id = $1", [secondView.round_id])
+  const [completed] = await asUser(host, 'select * from public.advance_competition_game($1)', [secondView.round_id])
+  assert.equal(completed.room_status, 'finished')
+  assert.equal((await db.query('select status from public.rooms where id = $1', [room.room_id])).rows[0].status, 'finished')
+
+  await asUser(host, 'select * from public.restart_competition_game($1)', [room.room_id])
+  const restartedRounds = (await db.query(
+    'select round_number, status from public.competition_rounds where room_id = $1', [room.room_id],
+  )).rows
+  assert.deepEqual(restartedRounds, [{ round_number: 1, status: 'drawing' }])
 })
 
 test('existing rooms and legacy creation retain a 90 second default', async () => {
@@ -179,7 +350,22 @@ test('server deadlines reject late drawing/guesses and allow expiry only after t
 })
 
 test('new exposed RPCs are invoker-only and anonymous execution is forbidden', async () => {
-  for (const signature of ['public.create_room_with_duration(text,integer)', 'public.set_room_round_duration(bigint,integer)']) {
+  for (const signature of [
+    'public.create_room_with_duration(text,integer)',
+    'public.set_room_round_duration(bigint,integer)',
+    'public.create_room_with_settings(text,integer,text,integer,integer)',
+    'public.set_room_game_settings(bigint,text,integer,integer)',
+    'public.start_competition_game(bigint)',
+    'public.get_competition_round_view(bigint)',
+    'public.submit_competition_pixel_changes(bigint,jsonb)',
+    'public.get_competition_draw_updates(bigint,bigint,integer)',
+    'public.finish_competition_drawing(bigint)',
+    'public.set_competition_vote(bigint,text)',
+    'public.get_competition_results(bigint)',
+    'public.finish_competition_voting(bigint)',
+    'public.advance_competition_game(bigint)',
+    'public.restart_competition_game(bigint)',
+  ]) {
     const [acl] = (await db.query(`select prosecdef,
       has_function_privilege('anon', oid, 'EXECUTE') as anon_execute,
       has_function_privilege('authenticated', oid, 'EXECUTE') as member_execute
@@ -190,6 +376,44 @@ test('new exposed RPCs are invoker-only and anonymous execution is forbidden', a
     has_function_privilege('anon', oid, 'EXECUTE') as anon_execute
     from pg_proc where oid = 'private.set_room_round_duration(bigint,integer)'::regprocedure`)).rows
   assert.deepEqual(privateAcl, { prosecdef: true, anon_execute: false })
+  const [privateGameAcl] = (await db.query(`select prosecdef,
+    has_function_privilege('anon', oid, 'EXECUTE') as anon_execute
+    from pg_proc where oid = 'private.set_room_game_settings(bigint,text,integer,integer)'::regprocedure`)).rows
+  assert.deepEqual(privateGameAcl, { prosecdef: true, anon_execute: false })
+  for (const signature of [
+    'private.start_competition_game(bigint)',
+    'private.get_competition_round_view(bigint)',
+    'private.submit_competition_pixel_changes(bigint,jsonb)',
+    'private.get_competition_draw_updates(bigint,bigint,integer)',
+    'private.finish_competition_drawing(bigint)',
+    'private.set_competition_vote(bigint,text)',
+    'private.get_competition_results(bigint)',
+    'private.finish_competition_voting(bigint)',
+    'private.advance_competition_game(bigint)',
+    'private.restart_competition_game(bigint)',
+  ]) {
+    const [acl] = (await db.query(`select prosecdef,
+      has_function_privilege('anon', oid, 'EXECUTE') as anon_execute
+      from pg_proc where oid = $1::regprocedure`, [signature])).rows
+    assert.deepEqual(acl, { prosecdef: true, anon_execute: false })
+  }
+  for (const table of ['competition_rounds', 'competition_draw_events']) {
+    const [security] = (await db.query(`select relrowsecurity,
+      has_table_privilege('anon', oid, 'SELECT') as anon_select,
+      has_table_privilege('authenticated', oid, 'SELECT') as member_select,
+      has_table_privilege('authenticated', oid, 'INSERT,UPDATE,DELETE') as member_write
+      from pg_class where oid = $1::regclass`, [`public.${table}`])).rows
+    assert.deepEqual(security, {
+      relrowsecurity: true,
+      anon_select: false,
+      member_select: table === 'competition_rounds',
+      member_write: false,
+    })
+  }
+  await assert.rejects(
+    asUser(host, 'select * from public.competition_draw_events limit 1'),
+    /permission denied/,
+  )
 })
 
 test('room chat, correct guesses and drawing history use bounded cursor updates', async () => {
