@@ -54,6 +54,21 @@ Jelölések:
   megnyitásakor érkeznek, húszasával lapozva. Az adatbázis-integrációs teszt, lint,
   rajzbiztonsági regresszió és production build sikeres; az adatbázis-migráció és az
   éles kiadás 2026-09-21-én elkészült.
+- [x] A szobachat, a helyes megfejtések és a rajzesemények korlátozott, azonosító-alapú
+  visszatöltése helyben elkészült. A szobachat egyszerre az 50, a megfejtéslista a 10
+  legutóbbi sort tartja meg. A rajz első betöltése legfeljebb 32×32 pixeles tömör
+  állapotot kap; az új események kurzorral érkeznek, 100-nál nagyobb lemaradásnál a
+  szerver ismét tömör állapotot küld. Újracsatlakozáskor mindhárom adatfolyam pótolja
+  a kimaradt frissítéseket. A helyi adatbázis-integrációs teszt, lint és production
+  build sikeres; az adatbázis-migráció és az éles kiadás elkészült.
+- [x] A Hírfolyam megkapta a `Legújabb`, `Legkedveltebb` és `Felfedezés`
+  rendezést. A sorrend a teljes adathalmazon, szerveroldalon készül, a Felfedezés
+  lapozás közben stabil és újbóli kiválasztáskor újrakeveredik. A heti, havi és
+  hírfolyam-galéria képei kattintásra nagy, külön ablakban nyílnak meg; az ablak
+  jobb felső X-szel, háttérkattintással vagy Escape-pel zárható. A production build,
+  a helyi adatbázis-integrációs próba, a kódellenőrzés, valamint az asztali és
+  390×844-es mobilos vizuális ellenőrzés sikeres; az adatbázis-migráció és az éles
+  kiadás elkészült.
 
 2026-09-20-i teljes kódaudit javítási állapot:
 - [x] A heti és havi rajz automatikus mentése sorosított; a régi kérés nem írhatja
@@ -74,15 +89,15 @@ Jelölések:
 - [x] Hálózatkimaradás után a multiplayer pixelcsomagok és a heti/havi rajzmentés
   automatikusan újraindul; a be nem küldött kihívásrajz felhasználónként és
   kihívásonként helyi vázlatban is megmarad, majd sikeres szervermentéskor törlődik.
-- [>] Következő auditcsomag: a szobachat, a körüzenetek és a rajzesemények
-  korlátozott, kurzoros visszatöltése. A Hírfolyam, a heti és a havi galéria már
+- [x] A szobachat, a körüzenetek és a rajzesemények korlátozott, kurzoros
+  visszatöltése helyben elkészült. A Hírfolyam, a heti és a havi galéria már
   szerveroldali, hatképes lapozást használ; a heti/havi kommentek képenként,
   húszasával töltődnek. A kliens által állított online jelenléti azonosító szerveres
   hitelesítése 2026-09-21-én elkészült.
 
 2026-09-19-i történeti záró állapot:
 - Az akkori kiadott commit `2be5512` volt az `agent/12-color-palette-logo` ágon.
-  A korábbi kiadott commit `c9145ff` volt; az éles oldal: https://bitscrawl.pages.dev/
+  A jelenlegi kiadott commit `24648b8`; az éles oldal: https://bitscrawl.pages.dev/
 - A 13/D és a 20. pont megvalósítása, ellenőrzése és élesítése elkészült. A Supabase
   helyi és távoli migrációs sora 20260919182613-ig egyezik.
 - A főmenü jelenleg öt belépési pontból áll: Játék, Kihívás, Szerkesztő, Galéria,
@@ -99,7 +114,8 @@ Jelölések:
   lefutott; az éles főmenü és a Gomba kihívás külön böngészős ellenőrzést kapott.
 
 Következő javasolt munkasorrend:
-1. A szobachat, a körüzenetek és a rajzesemények korlátozott, kurzoros visszatöltése.
+1. A most elkészült korlátozott szoba-adatfolyamok adatbázis-migrációjának és
+   frontendjének élesítése, majd rövid, többklienses visszacsatlakozási próba.
 2. A 14-es teljes regresszió: többkörös multiplayer, 270/360/390 pixeles mobilnézet,
    fizikai telefon, megnyíló billentyűzet, teljes nézet, PNG-export és hálózatkimaradás.
 3. A PWA tényleges telepíthetőségi próbája, majd a 16-os MVP-kiadási ellenőrzés és

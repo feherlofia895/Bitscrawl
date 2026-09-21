@@ -33,6 +33,8 @@ export type LobbyConnectionStatus =
   | 'reconnecting'
   | 'disconnected'
 
+export const ROOM_MESSAGE_LIMIT = 50
+
 const lobbyErrorMessages: Record<string, string> = {
   ROUND_DURATION_INVALID: roundDurationText.invalid,
   ROUND_DURATION_UNAVAILABLE: roundDurationText.unavailable,
@@ -303,15 +305,39 @@ export async function loadLobby(entry: RoomEntry): Promise<Lobby> {
   }
 }
 
-export async function loadRoomMessages(roomId: number): Promise<RoomMessage[]> {
-  const { data, error } = await supabase
-    .from('room_messages')
-    .select('id, room_id, sender_user_id, content, created_at')
-    .eq('room_id', roomId)
-    .order('id')
+export async function loadRoomMessages(
+  roomId: number,
+  afterMessageId: number | null = null,
+): Promise<RoomMessage[]> {
+  const { data, error } = await supabase.rpc('get_room_message_updates', {
+    after_message_id: afterMessageId,
+    requested_limit: ROOM_MESSAGE_LIMIT,
+    target_room_id: roomId,
+  })
 
-  if (error) throw readableLobbyError(error)
+  if (error && !isMissingRpc(error, 'get_room_message_updates')) {
+    throw readableLobbyError(error)
+  }
+
+  if (error) {
+    let fallback = supabase
+      .from('room_messages')
+      .select('id, room_id, sender_user_id, content, created_at')
+      .eq('room_id', roomId)
+    if (afterMessageId !== null) fallback = fallback.gt('id', afterMessageId)
+    const result = await fallback.order('id', { ascending: false }).limit(ROOM_MESSAGE_LIMIT)
+    if (result.error) throw readableLobbyError(result.error)
+    return result.data.reverse()
+  }
+
   return data
+}
+
+function isMissingRpc(error: unknown, functionName: string) {
+  if (typeof error !== 'object' || error === null) return false
+  const code = 'code' in error ? String(error.code) : ''
+  const message = 'message' in error ? String(error.message) : ''
+  return code === 'PGRST202' && message.includes(functionName)
 }
 
 export async function sendRoomMessage(roomId: number, content: string) {
@@ -419,7 +445,15 @@ export function subscribeToLobby(
 
       onConnectionChange?.('connected')
       onChange()
-      reconciliationTimeout = setTimeout(onChange, 1_000)
+      onDrawChange()
+      onMessageChange()
+      onRoomMessageChange()
+      reconciliationTimeout = setTimeout(() => {
+        onChange()
+        onDrawChange()
+        onMessageChange()
+        onRoomMessageChange()
+      }, 1_000)
     })
 
   return () => {

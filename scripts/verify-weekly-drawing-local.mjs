@@ -195,6 +195,21 @@ test('daily feed limits posts by Budapest day and protects likes, comments and p
   )
   await asUser(users[2], 'select * from public.set_daily_feed_like($1, true)', [firstPostId])
   await asUser(users[2], 'select * from public.set_daily_feed_like($1, true)', [firstPostId])
+  const likedFeed = await asUser(null, "select * from public.get_daily_feed_page(6, 0, 'likes', 0)", [], { role: 'anon' })
+  assert.equal(likedFeed[0].post_id, firstPostId)
+  const newestFeed = await asUser(null, "select * from public.get_daily_feed_page(6, 0, 'newest', 0)", [], { role: 'anon' })
+  assert.deepEqual(newestFeed.map(post => post.post_id), [otherUserPostId, secondOwnPostId, firstPostId])
+  const discoveryFeed = await asUser(null, "select * from public.get_daily_feed_page(6, 0, 'discovery', 418)", [], { role: 'anon' })
+  const repeatedDiscoveryFeed = await asUser(null, "select * from public.get_daily_feed_page(6, 0, 'discovery', 418)", [], { role: 'anon' })
+  assert.deepEqual(repeatedDiscoveryFeed.map(post => post.post_id), discoveryFeed.map(post => post.post_id))
+  assert(discoveryFeed.every(post => Number(post.total_count) === 3))
+  const discoveryPageOne = await asUser(null, "select * from public.get_daily_feed_page(2, 0, 'discovery', 418)", [], { role: 'anon' })
+  const discoveryPageTwo = await asUser(null, "select * from public.get_daily_feed_page(2, 2, 'discovery', 418)", [], { role: 'anon' })
+  assert.equal(new Set([...discoveryPageOne, ...discoveryPageTwo].map(post => post.post_id)).size, 3)
+  await assert.rejects(
+    asUser(null, "select * from public.get_daily_feed_page(6, 0, 'unknown', 0)", [], { role: 'anon' }),
+    /FEED_SORT_INVALID/,
+  )
   const [account] = await asUser(users[0], 'select * from public.get_daily_feed_account_state()')
   assert.equal(account.received_like_count, 1)
   assert.equal(account.today_post_count, 2)

@@ -1,7 +1,7 @@
 import type { Json } from '../types/database'
 import { editorPalette32 } from './palette'
 import { supabase } from './supabase'
-import type { GalleryComment } from './galleryComments'
+import type { GalleryComment, GallerySort } from './galleryComments'
 
 export const FEED_PAGE_SIZE = 6
 export const FEED_DESCRIPTION_MAX_LENGTH = 160
@@ -50,6 +50,7 @@ const messages: Record<string, string> = {
   FEED_DESCRIPTION_INVALID: 'A képleírás legfeljebb 160 karakter és maximum 3 sor lehet.',
   FEED_OWN_LIKE_FORBIDDEN: 'A saját rajzodat nem kedvelheted.',
   FEED_PAGE_INVALID: 'Ez a hírfolyamoldal nem érhető el.',
+  FEED_SORT_INVALID: 'Ez a hírfolyam-rendezés nem érhető el.',
   FEED_POST_NOT_OWN: 'Csak a saját mai hírfolyamképedet módosíthatod vagy törölheted.',
   FEED_POST_NOT_FOUND: 'Ez a hírfolyam-bejegyzés már nem érhető el.',
   GALLERY_COMMENT_INVALID: 'A komment 1–280 karakter hosszú lehet.',
@@ -84,13 +85,24 @@ function parseAvatar(value: Json | null): string[] | null {
     : null
 }
 
-export async function loadDailyFeed(page: number): Promise<DailyFeedPage> {
+export async function loadDailyFeed(page: number, sort: GallerySort = 'newest', discoverySeed = 0): Promise<DailyFeedPage> {
   const offset = Math.max(0, page - 1) * FEED_PAGE_SIZE
-  const { data, error } = await supabase.rpc('get_daily_feed', {
+  let { data, error } = await supabase.rpc('get_daily_feed_page', {
+    discovery_seed: discoverySeed,
     requested_limit: FEED_PAGE_SIZE,
     requested_offset: offset,
+    requested_sort: sort,
   })
+  if (error && /get_daily_feed_page|schema cache/i.test(error.message)) {
+    const fallback = await supabase.rpc('get_daily_feed', {
+      requested_limit: FEED_PAGE_SIZE,
+      requested_offset: offset,
+    })
+    data = fallback.data
+    error = fallback.error
+  }
   if (error) throw feedError(error)
+  if (!data) throw new Error('A hírfolyam most nem érhető el.')
 
   const postIds = data.map(post => post.post_id)
   const comments = postIds.length ? await loadDailyFeedComments(postIds) : []

@@ -38,6 +38,9 @@ export type RoundView = {
   word_options: string[] | null
 }
 
+export const ROUND_MESSAGE_LIMIT = 10
+export const ROUND_DRAW_EVENT_LIMIT = 100
+
 const gameErrorMessages: Record<string, string> = {
   ALREADY_GUESSED: 'Ezt a szót már megfejtetted.',
   AUTH_REQUIRED: 'Nem sikerült létrehozni a játékos-munkamenetet.',
@@ -89,14 +92,31 @@ export async function finishExpiredRound(roundId: number) {
 
 export async function loadRoundMessages(
   roundId: number,
+  afterMessageId: number | null = null,
 ): Promise<RoundMessage[]> {
-  const { data, error } = await supabase
-    .from('round_messages')
-    .select('id, round_id, sender_user_id, kind, content, created_at')
-    .eq('round_id', roundId)
-    .order('id')
+  const { data, error } = await supabase.rpc('get_round_message_updates', {
+    after_message_id: afterMessageId,
+    requested_limit: ROUND_MESSAGE_LIMIT,
+    target_round_id: roundId,
+  })
 
-  if (error) throw readableGameError(error)
+  if (error && !isMissingRpc(error, 'get_round_message_updates')) {
+    throw readableGameError(error)
+  }
+
+  if (error) {
+    let fallback = supabase
+      .from('round_messages')
+      .select('id, round_id, sender_user_id, kind, content, created_at')
+      .eq('round_id', roundId)
+    if (afterMessageId !== null) fallback = fallback.gt('id', afterMessageId)
+    const result = await fallback.order('id', { ascending: false }).limit(ROUND_MESSAGE_LIMIT)
+    if (result.error) throw readableGameError(result.error)
+    return result.data.reverse().map((message) => ({
+      ...message,
+      kind: message.kind as RoundMessage['kind'],
+    }))
+  }
 
   return data.map((message) => ({
     ...message,
@@ -122,14 +142,33 @@ export async function submitGuess(roundId: number, guess: string) {
   }
 }
 
-export async function loadDrawEvents(roundId: number): Promise<DrawEvent[]> {
-  const { data, error } = await supabase
-    .from('round_draw_events')
-    .select('id, round_id, changes')
-    .eq('round_id', roundId)
-    .order('id')
+export async function loadDrawEvents(
+  roundId: number,
+  afterEventId: number | null = null,
+): Promise<DrawEvent[]> {
+  const { data, error } = await supabase.rpc('get_round_draw_updates', {
+    after_event_id: afterEventId,
+    requested_limit: ROUND_DRAW_EVENT_LIMIT,
+    target_round_id: roundId,
+  })
 
-  if (error) throw readableGameError(error)
+  if (error && !isMissingRpc(error, 'get_round_draw_updates')) {
+    throw readableGameError(error)
+  }
+
+  if (error) {
+    let fallback = supabase
+      .from('round_draw_events')
+      .select('id, round_id, changes')
+      .eq('round_id', roundId)
+    if (afterEventId !== null) fallback = fallback.gt('id', afterEventId)
+    const result = await fallback.order('id', { ascending: false }).limit(ROUND_DRAW_EVENT_LIMIT)
+    if (result.error) throw readableGameError(result.error)
+    return result.data.reverse().map((event) => ({
+      ...event,
+      changes: event.changes as PixelChange[],
+    }))
+  }
 
   return data.map((event) => ({
     ...event,
@@ -170,6 +209,13 @@ function readableGameError(error: unknown) {
       ? gameErrorMessages[knownCode]
       : 'Váratlan hiba történt a kör betöltésekor. Próbáld újra.',
   )
+}
+
+function isMissingRpc(error: unknown, functionName: string) {
+  if (typeof error !== 'object' || error === null) return false
+  const code = 'code' in error ? String(error.code) : ''
+  const message = 'message' in error ? String(error.message) : ''
+  return code === 'PGRST202' && message.includes(functionName)
 }
 
 export async function loadRoundView(roomId: number): Promise<RoundView> {

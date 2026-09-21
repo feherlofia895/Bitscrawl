@@ -137,6 +137,29 @@ test('gallery defaults to most-liked while discovery receives a fresh random ord
   assert.match(migration, /safe_sort = 'discovery'[\s\S]*md5\(entry\.id::text \|\| ':' \|\| safe_seed::text\)/)
 })
 
+test('daily feed offers server-side sorting and gallery artwork opens in a closable lightbox', async () => {
+  const [feed, feedLib, weekly, monthly, preview, migration] = await Promise.all([
+    readFile(new URL('../src/components/DailyFeed.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/lib/feed.ts', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/WeeklyDraw.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/MonthlyDraw.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/ArtworkPreview.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../supabase/migrations/20260921155713_sortable_daily_feed.sql', import.meta.url), 'utf8'),
+  ])
+
+  assert.match(feed, /useState<GallerySort>\('newest'\)/)
+  assert.match(feed, /<option value="newest">Legújabb<\/option><option value="likes">Legkedveltebb<\/option><option value="discovery">Felfedezés<\/option>/)
+  assert.match(feedLib, /get_daily_feed_page/)
+  assert.match(migration, /safe_sort = 'likes'[\s\S]*row_like_count/)
+  assert.match(migration, /safe_sort = 'discovery'[\s\S]*md5\(row_post_id::text \|\| ':' \|\| safe_seed::text\)/)
+  assert.match(feed, /<ArtworkPreview label=/)
+  assert.match(weekly, /<ArtworkPreview label=/)
+  assert.match(monthly, /<ArtworkPreview label=/)
+  assert.match(preview, /aria-modal="true"/)
+  assert.match(preview, /aria-label="Teljes kép bezárása"/)
+  assert.match(preview, /event\.stopImmediatePropagation\(\)/)
+})
+
 test('mobile guessers keep a compact guess dock visible below the live drawing and room chat', async () => {
   const [app, chat, roomChat, css] = await Promise.all([
     readFile(new URL('../src/App.tsx', import.meta.url), 'utf8'),
@@ -186,6 +209,26 @@ test('failed multiplayer pixel chunks stay queued for a later retry', async () =
   assert.match(source, /if \(!pendingChangesRef\.current\.has\(key\)\) pendingChangesRef\.current\.set\(key, change\)/)
   assert.match(source, /if \(pendingChangesRef\.current\.size\) flushPendingChangesRef\.current\(\)/)
   assert.match(source, /addEventListener\('online', retryPendingChanges\)/)
+})
+
+test('multiplayer streams reconcile with bounded id cursors instead of full reloads', async () => {
+  const [app, game, lobby, migration] = await Promise.all([
+    readFile(new URL('../src/App.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/lib/game.ts', import.meta.url), 'utf8'),
+    readFile(new URL('../src/lib/lobby.ts', import.meta.url), 'utf8'),
+    readFile(new URL('../supabase/migrations/20260921154445_bounded_room_streams.sql', import.meta.url), 'utf8'),
+  ])
+
+  assert.match(app, /loadDrawEvents\(requestedRoundId, drawEventCursorRef\.current\)/)
+  assert.match(app, /loadRoundMessages\(requestedRoundId, roundMessageCursorRef\.current\)/)
+  assert.match(app, /loadRoomMessages\(requestedRoomId, roomMessageCursorRef\.current\)/)
+  assert.match(app, /mergeRecentById\(current, updates, 50\)/)
+  assert.match(game, /ROUND_DRAW_EVENT_LIMIT = 100/)
+  assert.match(game, /get_round_draw_updates/)
+  assert.match(lobby, /ROOM_MESSAGE_LIMIT = 50/)
+  assert.match(lobby, /onConnectionChange\?\.\('connected'\)[\s\S]*onDrawChange\(\)[\s\S]*onRoomMessageChange\(\)/)
+  assert.match(migration, /security invoker/g)
+  assert.match(migration, /count\(\*\) > safe_limit[\s\S]*snapshot_required/)
 })
 
 function hookRuntime() {

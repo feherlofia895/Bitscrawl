@@ -116,6 +116,20 @@ function getInitialRoomCode() {
   )
 }
 
+function latestId(items: Array<{ id: number }>) {
+  return items.length ? items[items.length - 1].id : null
+}
+
+function mergeRecentById<T extends { id: number }>(
+  current: T[],
+  updates: T[],
+  limit: number,
+) {
+  const merged = new Map(current.map((item) => [item.id, item]))
+  updates.forEach((item) => merged.set(item.id, item))
+  return [...merged.values()].sort((first, second) => first.id - second.id).slice(-limit)
+}
+
 function App() {
   const [playerName, setPlayerName] = useState('')
   const [newRoomDuration, setNewRoomDuration] = useState<RoundDuration>(DEFAULT_ROUND_DURATION)
@@ -155,6 +169,11 @@ function App() {
   const [drawEvents, setDrawEvents] = useState<DrawEvent[]>([])
   const [roundMessages, setRoundMessages] = useState<RoundMessage[]>([])
   const [roomMessages, setRoomMessages] = useState<RoomMessage[]>([])
+  const drawEventCursorRef = useRef<number | null>(null)
+  const roundMessageCursorRef = useRef<number | null>(null)
+  const roomMessageCursorRef = useRef<number | null>(null)
+  const activeRoundIdRef = useRef<number | null>(null)
+  const activeRoomIdRef = useRef<number | null>(null)
   const isLeavingRoomRef = useRef(false)
 
   const openHomeView = useCallback((view: Exclude<HomeView, 'main'>) => {
@@ -261,6 +280,11 @@ function App() {
         ])
 
       if (!isLeavingRoomRef.current) {
+        activeRoomIdRef.current = nextLobby.room.id
+        activeRoundIdRef.current = nextRoundView?.round_id ?? null
+        drawEventCursorRef.current = latestId(nextDrawEvents)
+        roundMessageCursorRef.current = latestId(nextRoundMessages)
+        roomMessageCursorRef.current = latestId(nextRoomMessages)
         setLobby(nextLobby)
         setRoundView(nextRoundView)
         setDrawEvents(nextDrawEvents)
@@ -345,12 +369,35 @@ function App() {
     if (!activeRoomId || !activePlayerId || !activeUserId) return
 
     try {
-      await hydrateLobby({
+      const nextLobby = await loadLobby({
         currentUserId: activeUserId,
         playerId: activePlayerId,
         roomCode: lobby?.room.code ?? '',
         roomId: activeRoomId,
       })
+      const nextRoundView = nextLobby.room.status === 'playing'
+        ? await loadRoundView(nextLobby.room.id)
+        : null
+      const roundChanged = nextRoundView?.round_id !== activeRoundIdRef.current
+      const [nextDrawEvents, nextRoundMessages] = roundChanged && nextRoundView
+        ? await Promise.all([
+            loadDrawEvents(nextRoundView.round_id),
+            loadRoundMessages(nextRoundView.round_id),
+          ])
+        : [[], []]
+
+      if (isLeavingRoomRef.current) return
+      activeRoomIdRef.current = nextLobby.room.id
+      setLobby(nextLobby)
+      setRoundView(nextRoundView)
+
+      if (roundChanged) {
+        activeRoundIdRef.current = nextRoundView?.round_id ?? null
+        drawEventCursorRef.current = latestId(nextDrawEvents)
+        roundMessageCursorRef.current = latestId(nextRoundMessages)
+        setDrawEvents(nextDrawEvents)
+        setRoundMessages(nextRoundMessages)
+      }
     } catch (error) {
       if (isLeavingRoomRef.current) return
       setMessage(error instanceof Error ? error.message : 'Nem frissült a szoba.')
@@ -359,7 +406,6 @@ function App() {
     activePlayerId,
     activeRoomId,
     activeUserId,
-    hydrateLobby,
     lobby?.room.code,
   ])
 
@@ -368,7 +414,14 @@ function App() {
     if (!activeRoundId) return
 
     try {
-      setDrawEvents(await loadDrawEvents(activeRoundId))
+      const requestedRoundId = activeRoundId
+      const updates = await loadDrawEvents(requestedRoundId, drawEventCursorRef.current)
+      if (activeRoundIdRef.current !== requestedRoundId || updates.length === 0) return
+      const nextCursor = latestId(updates)
+      if (nextCursor === null ||
+          (drawEventCursorRef.current !== null && nextCursor <= drawEventCursorRef.current)) return
+      drawEventCursorRef.current = nextCursor
+      setDrawEvents(updates)
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : 'Nem frissült a pixelrajz.',
@@ -380,7 +433,14 @@ function App() {
     if (!activeRoundId) return
 
     try {
-      setRoundMessages(await loadRoundMessages(activeRoundId))
+      const requestedRoundId = activeRoundId
+      const updates = await loadRoundMessages(requestedRoundId, roundMessageCursorRef.current)
+      if (activeRoundIdRef.current !== requestedRoundId || updates.length === 0) return
+      const nextCursor = latestId(updates)
+      if (nextCursor === null ||
+          (roundMessageCursorRef.current !== null && nextCursor <= roundMessageCursorRef.current)) return
+      roundMessageCursorRef.current = nextCursor
+      setRoundMessages((current) => mergeRecentById(current, updates, 10))
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : 'Nem frissült a chat.',
@@ -392,7 +452,14 @@ function App() {
     if (!activeRoomId) return
 
     try {
-      setRoomMessages(await loadRoomMessages(activeRoomId))
+      const requestedRoomId = activeRoomId
+      const updates = await loadRoomMessages(requestedRoomId, roomMessageCursorRef.current)
+      if (activeRoomIdRef.current !== requestedRoomId || updates.length === 0) return
+      const nextCursor = latestId(updates)
+      if (nextCursor === null ||
+          (roomMessageCursorRef.current !== null && nextCursor <= roomMessageCursorRef.current)) return
+      roomMessageCursorRef.current = nextCursor
+      setRoomMessages((current) => mergeRecentById(current, updates, 50))
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : 'Nem frissült a szobachat.',
@@ -720,6 +787,11 @@ function App() {
 
     try {
       await leaveRoom(lobby.room.id)
+      activeRoomIdRef.current = null
+      activeRoundIdRef.current = null
+      drawEventCursorRef.current = null
+      roundMessageCursorRef.current = null
+      roomMessageCursorRef.current = null
       setLobby(null)
       setRoundView(null)
       setDrawEvents([])

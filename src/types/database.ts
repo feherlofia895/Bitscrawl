@@ -412,6 +412,47 @@ export type Database = {
           word_options: string[]
         }[]
       }
+      get_room_message_updates: {
+        Args: {
+          after_message_id?: number | null
+          requested_limit?: number
+          target_room_id: number
+        }
+        Returns: {
+          content: string
+          created_at: string
+          id: number
+          room_id: number
+          sender_user_id: string
+        }[]
+      }
+      get_round_message_updates: {
+        Args: {
+          after_message_id?: number | null
+          requested_limit?: number
+          target_round_id: number
+        }
+        Returns: {
+          content: string | null
+          created_at: string
+          id: number
+          kind: string
+          round_id: number
+          sender_user_id: string
+        }[]
+      }
+      get_round_draw_updates: {
+        Args: {
+          after_event_id?: number | null
+          requested_limit?: number
+          target_round_id: number
+        }
+        Returns: {
+          changes: Json
+          id: number
+          round_id: number
+        }[]
+      }
       get_weekly_challenges: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -452,6 +493,30 @@ export type Database = {
       }
       get_daily_feed: {
         Args: { requested_limit?: number; requested_offset?: number }
+        Returns: {
+          author_avatar: Json | null
+          author_name: string
+          author_received_likes: number
+          comment_count: number
+          created_at: string
+          description: string
+          has_liked: boolean
+          is_own: boolean
+          like_count: number
+          pixels: Json
+          post_date: string
+          post_id: number
+          total_count: number
+          updated_at: string
+        }[]
+      }
+      get_daily_feed_page: {
+        Args: {
+          discovery_seed?: number
+          requested_limit?: number
+          requested_offset?: number
+          requested_sort?: string
+        }
         Returns: {
           author_avatar: Json | null
           author_name: string

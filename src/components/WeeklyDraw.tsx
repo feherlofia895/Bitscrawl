@@ -22,6 +22,7 @@ import { PixelCanvas } from './PixelCanvas'
 import { ProfileAvatar } from './ProfileAvatar'
 import { ProfilePreviewButton } from './ProfilePreviewButton'
 import { WeeklyArtwork } from './WeeklyArtwork'
+import { ArtworkPreview } from './ArtworkPreview'
 import { MonthlyDraw } from './MonthlyDraw'
 import { DailyFeed } from './DailyFeed'
 import { GalleryComments } from './GalleryComments'
@@ -502,7 +503,7 @@ function WeeklyDrawContent({ mode, onBack, onSelectFeed, onSelectMonthly }: { mo
           <div className="weekly-gallery-grid">{gallery.map(entry => (
             <article className={`weekly-entry${entry.is_winner ? ' is-winner' : ''}`} key={entry.entry_id}>
               {entry.is_winner ? <span className="weekly-winner">Heti győztes</span> : null}
-              <WeeklyArtwork label={`${entry.author_name} heti rajza`} pixels={entry.pixels} />
+              <ArtworkPreview label={`${entry.author_name} heti rajza`} pixels={entry.pixels} />
               <div className="weekly-entry-meta">
                 <ProfilePreviewButton className="weekly-entry-author" name={entry.author_name} pixels={entry.authorAvatar}>
                   <ProfileAvatar label={`${entry.author_name} profilképe`} pixels={entry.authorAvatar} />

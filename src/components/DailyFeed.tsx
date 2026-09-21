@@ -23,11 +23,16 @@ import { ConfirmModal } from './ConfirmModal'
 import { PixelCanvas } from './PixelCanvas'
 import { ProfileAvatar } from './ProfileAvatar'
 import { ProfilePreviewButton } from './ProfilePreviewButton'
-import { WeeklyArtwork } from './WeeklyArtwork'
+import { ArtworkPreview } from './ArtworkPreview'
+import type { GallerySort } from '../lib/galleryComments'
 
 const draftPrefix = 'bitscrawl-feed-draft:'
 
 type LocalFeedDraft = { description: string; pixels: string[] }
+
+function createDiscoverySeed() {
+  return Math.floor(Math.random() * 2_147_483_647)
+}
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'A hírfolyam művelete nem sikerült.'
@@ -73,6 +78,8 @@ export function DailyFeed({
   const [posts, setPosts] = useState<DailyFeedPost[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [page, setPage] = useState(1)
+  const [sort, setSort] = useState<GallerySort>('newest')
+  const [discoverySeed, setDiscoverySeed] = useState(createDiscoverySeed)
   const [user, setUser] = useState<User | null>(null)
   const [account, setAccount] = useState<DailyFeedAccountState | null>(null)
   const [loading, setLoading] = useState(true)
@@ -84,11 +91,13 @@ export function DailyFeed({
   const [revision, setRevision] = useState(0)
   const [status, setStatus] = useState('A hírfolyam betöltése…')
   const pixelsRef = useRef(emptyDrawing())
+  const sortRef = useRef<GallerySort>('newest')
+  const discoverySeedRef = useRef(discoverySeed)
 
   const refresh = useCallback(async (requestedPage: number, knownUser?: User | null) => {
     const currentUser = knownUser === undefined ? await getWeeklyUser() : knownUser
     const [feedPage, nextAccount] = await Promise.all([
-      loadDailyFeed(requestedPage),
+      loadDailyFeed(requestedPage, sortRef.current, discoverySeedRef.current),
       currentUser ? loadDailyFeedAccountState() : Promise.resolve(null),
     ])
     setUser(currentUser)
@@ -115,6 +124,24 @@ export function DailyFeed({
     try {
       await refresh(nextPage, user)
       setStatus('A hírfolyamoldal betöltve.')
+    } catch (error) {
+      setStatus(errorMessage(error))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSort = async (nextSort: GallerySort) => {
+    const nextSeed = nextSort === 'discovery' ? createDiscoverySeed() : discoverySeedRef.current
+    sortRef.current = nextSort
+    discoverySeedRef.current = nextSeed
+    setSort(nextSort)
+    setDiscoverySeed(nextSeed)
+    setPage(1)
+    setLoading(true)
+    try {
+      await refresh(1, user)
+      setStatus('A hírfolyam rendezése frissült.')
     } catch (error) {
       setStatus(errorMessage(error))
     } finally {
@@ -308,11 +335,12 @@ export function DailyFeed({
 
     <section className="weekly-gallery" aria-labelledby="feed-gallery-title">
       <div className="weekly-section-heading">
-        <div><p className="step-label">Legújabb rajzok</p><h2 id="feed-gallery-title">Hírfolyam</h2></div>
+        <div><p className="step-label">Közösségi rajzok</p><h2 id="feed-gallery-title">Hírfolyam</h2></div>
+        <label className="field weekly-sort"><span>Sorrend</span><select disabled={loading} onChange={event => void handleSort(event.target.value as GallerySort)} value={sort}><option value="newest">Legújabb</option><option value="likes">Legkedveltebb</option><option value="discovery">Felfedezés</option></select></label>
       </div>
       {posts.length ? <>
         <div className="weekly-gallery-grid">{posts.map(post => <article className="weekly-entry feed-entry" key={post.post_id}>
-          <WeeklyArtwork label={`${post.author_name} hírfolyamképe`} pixels={post.pixels} />
+          <ArtworkPreview label={`${post.author_name} hírfolyamképe`} pixels={post.pixels} />
           <div className="weekly-entry-meta">
             <ProfilePreviewButton className="weekly-entry-author" name={post.author_name} pixels={post.authorAvatar} receivedLikes={post.author_received_likes}>
               <ProfileAvatar label={`${post.author_name} profilképe`} pixels={post.authorAvatar} />

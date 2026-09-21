@@ -191,3 +191,121 @@ test('new exposed RPCs are invoker-only and anonymous execution is forbidden', a
     from pg_proc where oid = 'private.set_room_round_duration(bigint,integer)'::regprocedure`)).rows
   assert.deepEqual(privateAcl, { prosecdef: true, anon_execute: false })
 })
+
+test('room chat, correct guesses and drawing history use bounded cursor updates', async () => {
+  const room = await createRoom(90)
+  const round = await beginDrawing(room)
+
+  for (let index = 1; index <= 65; index += 1) {
+    await db.query(
+      'insert into public.room_messages (room_id, sender_user_id, content) values ($1, $2, $3)',
+      [room.room_id, host, `Üzenet ${index}`],
+    )
+  }
+  const initialRoomMessages = await asUser(
+    host,
+    'select * from public.get_room_message_updates($1, null, 50)',
+    [room.room_id],
+  )
+  assert.equal(initialRoomMessages.length, 50)
+  assert.equal(initialRoomMessages[0].content, 'Üzenet 16')
+  assert.equal(initialRoomMessages[49].content, 'Üzenet 65')
+  const roomMessageUpdates = await asUser(
+    guest,
+    'select * from public.get_room_message_updates($1, $2, 50)',
+    [room.room_id, initialRoomMessages[47].id],
+  )
+  assert.deepEqual(roomMessageUpdates.map(message => message.content), ['Üzenet 64', 'Üzenet 65'])
+
+  const extraUsers = []
+  for (let index = 10; index < 22; index += 1) {
+    const userId = `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`
+    extraUsers.push(userId)
+    await db.query('insert into auth.users values ($1)', [userId])
+    await db.query(
+      'insert into public.room_players (room_id, user_id, display_name) values ($1, $2, $3)',
+      [room.room_id, userId, `Teszt ${index}`],
+    )
+    await db.query(
+      "insert into public.round_messages (round_id, room_id, sender_user_id, kind, content) values ($1, $2, $3, 'correct', null)",
+      [round.id, room.room_id, userId],
+    )
+  }
+  const initialRoundMessages = await asUser(
+    host,
+    'select * from public.get_round_message_updates($1, null, 10)',
+    [round.id],
+  )
+  assert.equal(initialRoundMessages.length, 10)
+  assert.deepEqual(
+    initialRoundMessages.map(message => message.sender_user_id),
+    extraUsers.slice(-10),
+  )
+
+  for (let index = 0; index < 105; index += 1) {
+    await db.query(
+      'insert into public.round_draw_events (round_id, room_id, created_by, changes) values ($1, $2, $3, $4::jsonb)',
+      [round.id, room.room_id, host, JSON.stringify([{
+        x: index % 32,
+        y: Math.floor(index / 32),
+        color: index % 2 ? '#d3493b' : '#67ba62',
+      }])],
+    )
+  }
+  const [initialDrawing] = await asUser(
+    guest,
+    'select * from public.get_round_draw_updates($1, null, 100)',
+    [round.id],
+  )
+  assert.equal(initialDrawing.changes.length, 105)
+  const initialDrawingCursor = initialDrawing.id
+
+  for (let index = 0; index < 2; index += 1) {
+    await db.query(
+      'insert into public.round_draw_events (round_id, room_id, created_by, changes) values ($1, $2, $3, $4::jsonb)',
+      [round.id, room.room_id, host, JSON.stringify([{ x: index, y: 8, color: '#f4d35e' }])],
+    )
+  }
+  const incrementalDrawing = await asUser(
+    guest,
+    'select * from public.get_round_draw_updates($1, $2, 100)',
+    [round.id, initialDrawingCursor],
+  )
+  assert.equal(incrementalDrawing.length, 2)
+  assert(incrementalDrawing[0].id < incrementalDrawing[1].id)
+
+  const beforeBacklog = incrementalDrawing[1].id
+  for (let index = 0; index < 101; index += 1) {
+    await db.query(
+      'insert into public.round_draw_events (round_id, room_id, created_by, changes) values ($1, $2, $3, $4::jsonb)',
+      [round.id, room.room_id, host, JSON.stringify([{ x: 31, y: 31, color: index % 2 ? '#29293d' : '#f4d35e' }])],
+    )
+  }
+  const backlogDrawing = await asUser(
+    host,
+    'select * from public.get_round_draw_updates($1, $2, 100)',
+    [round.id, beforeBacklog],
+  )
+  assert.equal(backlogDrawing.length, 1)
+  assert(backlogDrawing[0].id > beforeBacklog)
+  assert.equal(
+    backlogDrawing[0].changes.find(change => change.x === 31 && change.y === 31).color,
+    '#f4d35e',
+  )
+
+  await assert.rejects(
+    asUser(outsider, 'select * from public.get_room_message_updates($1, null, 50)', [room.room_id]),
+    /ROOM_NOT_FOUND/,
+  )
+  for (const signature of [
+    'public.get_room_message_updates(bigint,bigint,integer)',
+    'public.get_round_message_updates(bigint,bigint,integer)',
+    'public.get_round_draw_updates(bigint,bigint,integer)',
+  ]) {
+    const [acl] = (await db.query(`select prosecdef,
+      has_function_privilege('anon', oid, 'EXECUTE') as anon_execute,
+      has_function_privilege('authenticated', oid, 'EXECUTE') as member_execute
+      from pg_proc where oid = $1::regprocedure`, [signature])).rows
+    assert.deepEqual(acl, { prosecdef: false, anon_execute: false, member_execute: true })
+  }
+})
