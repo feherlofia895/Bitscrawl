@@ -229,18 +229,21 @@ export type Database = {
       profiles: {
         Row: {
           avatar_pixels: Json | null
+          avatar_version: number
           created_at: string
           display_name: string
           user_id: string
         }
         Insert: {
           avatar_pixels?: Json | null
+          avatar_version?: number
           created_at?: string
           display_name: string
           user_id: string
         }
         Update: {
           avatar_pixels?: Json | null
+          avatar_version?: number
           created_at?: string
           display_name?: string
           user_id?: string
@@ -657,6 +660,22 @@ export type Database = {
           message_id: number
         }[]
       }
+      get_global_lobby_unread_count: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      mark_global_lobby_read: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      get_profile_avatar_like_state: {
+        Args: { target_profile_name: string }
+        Returns: {
+          can_like: boolean
+          like_count: number
+          liked: boolean
+        }[]
+      }
       get_daily_feed: {
         Args: { requested_limit?: number; requested_offset?: number }
         Returns: {
@@ -974,6 +993,10 @@ export type Database = {
       set_profile_avatar: {
         Args: { requested_pixels: Json }
         Returns: Json
+      }
+      set_profile_avatar_like: {
+        Args: { like_enabled: boolean; target_profile_name: string }
+        Returns: { like_count: number; liked: boolean }[]
       }
       save_own_editor_gallery_slot: {
         Args: { drawing_pixels: Json; requested_palette_size: number; target_slot: number }

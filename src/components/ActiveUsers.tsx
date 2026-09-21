@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
 import {
+  getGlobalLobbyUnreadCount,
   loadGlobalLobbyMessages,
+  markGlobalLobbyRead,
   sendGlobalLobbyMessage,
   subscribeToGlobalLobbyMessages,
   subscribeToOnlineProfiles,
@@ -43,10 +45,16 @@ export function ActiveUsers({
   const [messages, setMessages] = useState<GlobalLobbyMessage[]>([])
   const [connectionStatus, setConnectionStatus] = useState<GlobalLobbyConnectionStatus>('connecting')
   const [isOpen, setIsOpen] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
   const [isSending, setIsSending] = useState(false)
   const [message, setMessage] = useState('')
   const [feedback, setFeedback] = useState('')
   const messageListRef = useRef<HTMLDivElement>(null)
+  const isOpenRef = useRef(false)
+
+  useEffect(() => {
+    isOpenRef.current = isOpen
+  }, [isOpen])
 
   const refreshIdentity = useCallback(async () => {
     try {
@@ -71,6 +79,7 @@ export function ActiveUsers({
     if (!identityUserId) {
       setOnlineProfiles([])
       setMessages([])
+      setUnreadCount(0)
       setConnectionStatus('offline')
       return
     }
@@ -86,6 +95,12 @@ export function ActiveUsers({
     const refreshMessages = async () => {
       try {
         setMessages(await loadGlobalLobbyMessages())
+        if (isOpenRef.current) {
+          await markGlobalLobbyRead()
+          setUnreadCount(0)
+        } else {
+          setUnreadCount(await getGlobalLobbyUnreadCount())
+        }
       } catch (error) {
         handleError(error instanceof Error ? error : new Error('A chat most nem érhető el.'))
       }
@@ -98,6 +113,14 @@ export function ActiveUsers({
       unsubscribeMessages()
     }
   }, [identityUserId])
+
+  useEffect(() => {
+    if (!isOpen || !identityUserId) return
+    setUnreadCount(0)
+    void markGlobalLobbyRead().catch(error => {
+      setFeedback(error instanceof Error ? error.message : 'Az olvasottságot nem sikerült menteni.')
+    })
+  }, [identityUserId, isOpen])
 
   useEffect(() => {
     if (!isOpen) return
@@ -129,6 +152,8 @@ export function ActiveUsers({
       await sendGlobalLobbyMessage(clean)
       setMessage('')
       setMessages(await loadGlobalLobbyMessages())
+      await markGlobalLobbyRead()
+      setUnreadCount(0)
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : 'Az üzenetet nem sikerült elküldeni.')
     } finally {
@@ -143,8 +168,14 @@ export function ActiveUsers({
   }
 
   return <>
-    <button className="bug-report-trigger active-users-trigger" onClick={() => { setFeedback(''); setIsOpen(true) }} type="button">
+    <button
+      aria-label={`Aktív felhasználók${unreadCount ? `, ${unreadCount} új előszoba-chat üzenet` : ''}`}
+      className="bug-report-trigger active-users-trigger"
+      onClick={() => { setFeedback(''); setIsOpen(true) }}
+      type="button"
+    >
       Aktívak{identity ? ` · ${onlineProfiles.length}` : ''}
+      {unreadCount ? <span aria-hidden="true" className="active-users-unread">!</span> : null}
     </button>
     {isOpen ? createPortal(
       <div className="active-users-backdrop" onMouseDown={event => {

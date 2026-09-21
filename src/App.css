@@ -843,8 +843,26 @@ footer {
 }
 
 .active-users-trigger {
+  position: relative;
+  overflow: visible;
   color: var(--paper);
   background-image: url('/ui/nagy-gomb-piros.png') !important;
+}
+
+.active-users-unread {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  z-index: 2;
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  color: var(--ink);
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  font: 900 .72rem/1 var(--pixel-font);
 }
 
 .active-users-backdrop {
@@ -3379,6 +3397,49 @@ canvas.profile-avatar {
   height: min(224px, 55vw);
   border-width: 4px;
   box-shadow: 7px 7px 0 var(--ink);
+}
+
+.profile-avatar-like-button {
+  display: inline-flex;
+  width: auto;
+  min-width: 82px;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 7px 12px;
+  color: var(--ink);
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  font: 900 .72rem/1 var(--pixel-font);
+}
+
+.profile-avatar-like-button span {
+  color: var(--red);
+  font-size: 1.15rem;
+}
+
+.profile-avatar-like-button[aria-pressed='true'] {
+  color: var(--paper);
+  background: var(--red);
+}
+
+.profile-avatar-like-button[aria-pressed='true'] span {
+  color: var(--paper);
+}
+
+.profile-avatar-like-button:disabled {
+  cursor: not-allowed;
+  filter: grayscale(.55);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.profile-avatar-like-feedback {
+  margin: 12px 0 0;
+  color: var(--red-dark);
+  font-size: .85rem;
 }
 
 .profile-preview-modal .profile-avatar-empty img {

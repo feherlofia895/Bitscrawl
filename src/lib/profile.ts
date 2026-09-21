@@ -17,6 +17,12 @@ export type ProfileAvatarSaveResult = {
   storage: 'cloud' | 'local'
 }
 
+export type ProfileAvatarLikeState = {
+  canLike: boolean
+  likeCount: number
+  liked: boolean
+}
+
 const validAvatarColors = new Set(['transparent', ...editorPalette32.map(color => color.hex)])
 const avatarStoragePrefix = 'bitscrawl-profile-avatar:'
 
@@ -43,6 +49,12 @@ function avatarEndpointIsMissing(error: { code?: string; message?: string }) {
     Boolean(error.message?.includes('avatar_pixels'))
 }
 
+function avatarLikeEndpointIsMissing(error: { code?: string; message?: string }) {
+  return error.code === 'PGRST202' ||
+    Boolean(error.message?.includes('get_profile_avatar_like_state')) ||
+    Boolean(error.message?.includes('set_profile_avatar_like'))
+}
+
 export function parseAvatarPixels(value: Json | null): string[] | null {
   return Array.isArray(value) && value.length === 1024 &&
     value.every(color => typeof color === 'string' && validAvatarColors.has(color))
@@ -55,6 +67,10 @@ function profileError(error: unknown) {
     ? String(error.message)
     : 'A profilművelet nem sikerült.'
   if (raw.includes('PROFILE_AVATAR_INVALID')) return new Error('A profilkép adatai nem érvényesek.')
+  if (raw.includes('PROFILE_AVATAR_MISSING')) return new Error('Ezt a profilt még nem lehet kedvelni, mert nincs profilképe.')
+  if (raw.includes('PROFILE_AVATAR_SELF_LIKE')) return new Error('A saját profilképedet nem kedvelheted.')
+  if (raw.includes('PROFILE_NOT_FOUND')) return new Error('Ez a profil már nem található.')
+  if (raw.includes('WEEKLY_ACCOUNT_REQUIRED')) return new Error('A kedveléshez jelentkezz be.')
   if (raw.includes('WEEKLY_PROFILE_REQUIRED')) return new Error('Előbb mentsd el a megjelenített nevedet.')
   return new Error(raw)
 }
@@ -108,5 +124,35 @@ export async function saveProfileAvatar(pixels: string[]): Promise<ProfileAvatar
   return {
     pixels: parseAvatarPixels(data) ?? pixels,
     storage: 'cloud',
+  }
+}
+
+export async function loadProfileAvatarLikeState(name: string): Promise<ProfileAvatarLikeState> {
+  const { data, error } = await supabase.rpc('get_profile_avatar_like_state', {
+    target_profile_name: name,
+  })
+  if (error && avatarLikeEndpointIsMissing(error)) {
+    return { canLike: false, liked: false, likeCount: 0 }
+  }
+  if (error) throw profileError(error)
+  const state = data[0]
+  return {
+    canLike: state?.can_like ?? false,
+    liked: state?.liked ?? false,
+    likeCount: Math.max(0, state?.like_count ?? 0),
+  }
+}
+
+export async function setProfileAvatarLike(name: string, enabled: boolean): Promise<ProfileAvatarLikeState> {
+  const { data, error } = await supabase.rpc('set_profile_avatar_like', {
+    like_enabled: enabled,
+    target_profile_name: name,
+  })
+  if (error) throw profileError(error)
+  const state = data[0]
+  return {
+    canLike: true,
+    liked: state?.liked ?? false,
+    likeCount: Math.max(0, state?.like_count ?? 0),
   }
 }

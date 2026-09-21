@@ -179,6 +179,25 @@ test('the mobile lobby chat keeps its composer inside the panel', async () => {
   assert.match(css, /@media \(max-width: 760px\)[\s\S]*?\.global-lobby-chat\s*\{[\s\S]*?grid-template-rows:\s*auto minmax\(0, 1fr\) auto;[\s\S]*?overflow:\s*hidden;/)
 })
 
+test('the lobby button shows unread chat without moving and profile previews expose avatar likes', async () => {
+  const [css, activeUsersSource, previewSource, profileSource] = await Promise.all([
+    readFile(new URL('../src/App.css', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/ActiveUsers.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/ProfilePreviewButton.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/lib/profile.ts', import.meta.url), 'utf8'),
+  ])
+  assert.match(activeUsersSource, /getGlobalLobbyUnreadCount/)
+  assert.match(activeUsersSource, /markGlobalLobbyRead/)
+  assert.match(activeUsersSource, /className="active-users-unread">!<\/span>/)
+  assert.match(css, /\.active-users-trigger\s*\{[^}]*position:\s*relative;[^}]*overflow:\s*visible;/)
+  assert.match(css, /\.active-users-unread\s*\{[^}]*position:\s*absolute;/)
+  assert.match(previewSource, /className="profile-avatar-like-button"/)
+  assert.match(previewSource, /aria-pressed=\{likeState\?\.liked \?\? false\}/)
+  assert.match(previewSource, />♥<\/span>/)
+  assert.match(profileSource, /setProfileAvatarLike/)
+  assert.match(css, /\.profile-avatar-like-button\[aria-pressed='true'\]/)
+})
+
 test('local draft restores colors, transparency and export status', () => {
   const pixels = emptyDrawing()
   basePalette.forEach(({ hex }, index) => { pixels[index * 32 + index] = hex })

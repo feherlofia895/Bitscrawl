@@ -25,6 +25,12 @@ async function asUser(user, sql, params = [], role = 'authenticated') {
   finally { await db.exec('reset role') }
 }
 
+async function asRegisteredUser(user, sql, params = []) {
+  await db.query("select set_config('request.jwt.claims', $1, false)", [JSON.stringify({ is_anonymous: false })])
+  try { return await asUser(user, sql, params) }
+  finally { await db.query("select set_config('request.jwt.claims', '{}', false)") }
+}
+
 async function createRoom(duration = 90, withGuest = true, testMode = false) {
   const [room] = await asUser(host, 'select * from public.create_room_with_duration($1, $2)', ['Host', duration])
   if (withGuest) await asUser(guest, 'select * from public.join_room($1, $2)', [room.room_code, 'Guest'])
@@ -525,6 +531,80 @@ test('room chat, correct guesses and drawing history use bounded cursor updates'
     'public.get_room_message_updates(bigint,bigint,integer)',
     'public.get_round_message_updates(bigint,bigint,integer)',
     'public.get_round_draw_updates(bigint,bigint,integer)',
+  ]) {
+    const [acl] = (await db.query(`select prosecdef,
+      has_function_privilege('anon', oid, 'EXECUTE') as anon_execute,
+      has_function_privilege('authenticated', oid, 'EXECUTE') as member_execute
+      from pg_proc where oid = $1::regprocedure`, [signature])).rows
+    assert.deepEqual(acl, { prosecdef: false, anon_execute: false, member_execute: true })
+  }
+})
+
+test('global lobby unread state ignores own messages and clears when the chat is opened', async () => {
+  await db.query(`insert into public.profiles (user_id, display_name)
+    values ($1, 'UnreadHost'), ($2, 'UnreadGuest')
+    on conflict (user_id) do update set display_name = excluded.display_name`, [host, guest])
+  await db.query('delete from public.lobby_messages')
+  await db.query('delete from private.global_lobby_reads')
+  await db.query(`insert into public.lobby_messages (user_id, content)
+    values ($1, 'Saját üzenet'), ($2, 'Másik üzenete')`, [host, guest])
+
+  const [initial] = await asRegisteredUser(host, 'select public.get_global_lobby_unread_count() as count')
+  assert.equal(initial.count, 1)
+  await asRegisteredUser(host, 'select public.mark_global_lobby_read()')
+  const [cleared] = await asRegisteredUser(host, 'select public.get_global_lobby_unread_count() as count')
+  assert.equal(cleared.count, 0)
+
+  await db.query("insert into public.lobby_messages (user_id, content) values ($1, 'Új üzenet')", [guest])
+  const [afterNewMessage] = await asRegisteredUser(host, 'select public.get_global_lobby_unread_count() as count')
+  assert.equal(afterNewMessage.count, 1)
+
+  for (const signature of [
+    'public.get_global_lobby_unread_count()',
+    'public.mark_global_lobby_read()',
+  ]) {
+    const [acl] = (await db.query(`select prosecdef,
+      has_function_privilege('anon', oid, 'EXECUTE') as anon_execute,
+      has_function_privilege('authenticated', oid, 'EXECUTE') as member_execute
+      from pg_proc where oid = $1::regprocedure`, [signature])).rows
+    assert.deepEqual(acl, { prosecdef: false, anon_execute: false, member_execute: true })
+  }
+})
+
+test('profile avatar likes reject self-likes and reset only after a major redraw', async () => {
+  await db.query(`insert into public.profiles (user_id, display_name)
+    values ($1, 'LikeHost'), ($2, 'LikeGuest')
+    on conflict (user_id) do update set display_name = excluded.display_name`, [host, guest])
+  await db.query('delete from private.profile_avatar_likes')
+  const redAvatar = Array(1024).fill('#d3493b')
+  const minorEdit = redAvatar.map((color, index) => index < 511 ? 'transparent' : color)
+  const majorEdit = Array(1024).fill('transparent')
+
+  await asRegisteredUser(guest, 'select public.set_profile_avatar($1::jsonb)', [JSON.stringify(redAvatar)])
+  const [liked] = await asRegisteredUser(host,
+    'select * from public.set_profile_avatar_like($1, true)', ['LikeGuest'])
+  assert.deepEqual(liked, { like_count: 1, liked: true })
+
+  await assert.rejects(
+    asRegisteredUser(guest, 'select * from public.set_profile_avatar_like($1, true)', ['LikeGuest']),
+    /PROFILE_AVATAR_SELF_LIKE/,
+  )
+  await asRegisteredUser(guest, 'select public.set_profile_avatar($1::jsonb)', [JSON.stringify(minorEdit)])
+  const [afterMinorEdit] = await asRegisteredUser(host,
+    'select * from public.get_profile_avatar_like_state($1)', ['LikeGuest'])
+  assert.deepEqual(afterMinorEdit, { can_like: true, like_count: 1, liked: true })
+
+  await asRegisteredUser(guest, 'select public.set_profile_avatar($1::jsonb)', [JSON.stringify(majorEdit)])
+  const [afterMajorEdit] = await asRegisteredUser(host,
+    'select * from public.get_profile_avatar_like_state($1)', ['LikeGuest'])
+  assert.deepEqual(afterMajorEdit, { can_like: true, like_count: 0, liked: false })
+  const [ownState] = await asRegisteredUser(guest,
+    'select * from public.get_profile_avatar_like_state($1)', ['LikeGuest'])
+  assert.equal(ownState.can_like, false)
+
+  for (const signature of [
+    'public.get_profile_avatar_like_state(text)',
+    'public.set_profile_avatar_like(text,boolean)',
   ]) {
     const [acl] = (await db.query(`select prosecdef,
       has_function_privilege('anon', oid, 'EXECUTE') as anon_execute,

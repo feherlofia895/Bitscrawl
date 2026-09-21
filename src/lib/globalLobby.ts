@@ -35,6 +35,12 @@ function readableLobbyError(error: unknown) {
   return new Error(code ? lobbyErrors[code] : 'A közösségi előszoba most nem érhető el.')
 }
 
+function lobbyUnreadEndpointIsMissing(error: { code?: string; message?: string }) {
+  return error.code === 'PGRST202' ||
+    Boolean(error.message?.includes('get_global_lobby_unread_count')) ||
+    Boolean(error.message?.includes('mark_global_lobby_read'))
+}
+
 export async function loadOnlineProfiles(): Promise<OnlineProfile[]> {
   const { data, error } = await supabase.rpc('get_online_profiles')
   if (error) throw readableLobbyError(error)
@@ -69,6 +75,20 @@ export async function sendGlobalLobbyMessage(content: string) {
   const { data, error } = await supabase.rpc('send_global_lobby_message', {
     requested_content: content,
   })
+  if (error) throw readableLobbyError(error)
+  return data
+}
+
+export async function getGlobalLobbyUnreadCount() {
+  const { data, error } = await supabase.rpc('get_global_lobby_unread_count')
+  if (error && lobbyUnreadEndpointIsMissing(error)) return 0
+  if (error) throw readableLobbyError(error)
+  return Math.max(0, data)
+}
+
+export async function markGlobalLobbyRead() {
+  const { data, error } = await supabase.rpc('mark_global_lobby_read')
+  if (error && lobbyUnreadEndpointIsMissing(error)) return 0
   if (error) throw readableLobbyError(error)
   return data
 }
