@@ -5,7 +5,7 @@ import { emptyDrawing, parseDrawingDraft, rasterizeDrawing } from '../lib/drawin
 import { editorText as text } from '../lib/editorText'
 import type { EditorPaletteSize } from '../lib/palette'
 import { basePalette } from '../lib/palette'
-import { loadOwnProfile } from '../lib/profile'
+import { loadOwnProfile, saveProfileAvatar } from '../lib/profile'
 import {
   FEED_DESCRIPTION_MAX_LENGTH,
   FEED_DESCRIPTION_MAX_LINES,
@@ -206,6 +206,39 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
     }
   }
 
+  const setDrawingAsProfileAvatar = async () => {
+    const snapshot = [...pixelsRef.current]
+    if (!snapshot.some(color => color !== 'transparent')) {
+      setStatus('Előbb rajzolj valamit a profilképedhez.')
+      return
+    }
+    setSharing(true)
+    try {
+      const result = await saveProfileAvatar(snapshot)
+      setStatus(result.storage === 'cloud'
+        ? 'A rajzod lett az új profilképed.'
+        : 'A rajzod ezen az eszközön lett a profilképed. Az online mentés most nem érhető el.')
+      shareMenuRef.current?.removeAttribute('open')
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'A profilkép beállítása nem sikerült.')
+    } finally {
+      if (mountedRef.current) setSharing(false)
+    }
+  }
+
+  const requestProfileAvatar = () => {
+    if (!pixelsRef.current.some(color => color !== 'transparent')) {
+      setStatus('Előbb rajzolj valamit a profilképedhez.')
+      return
+    }
+    setConfirmation({
+      title: 'Beállítod profilképnek?',
+      message: 'Biztosan beállítod ezt a rajzot profilképnek? A mostani profilképed elveszik, és ez a rajz veszi át a helyét.',
+      label: 'Beállítás profilképnek',
+      action: () => { void setDrawingAsProfileAvatar() },
+    })
+  }
+
   const downloadPng = async () => {
     setExporting(true)
     const snapshot = [...pixelsRef.current]
@@ -283,6 +316,9 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
                 </button>
                 <button disabled={sharing || !shareState.monthly || shareState.monthly.submitted || !challengePaletteReady} onClick={() => void shareDrawing('monthly')} type="button">
                   {shareState.monthly ? shareState.monthly.submitted ? 'Havi nevezés már beküldve' : `Havi kihívás: ${shareState.monthly.prompt}` : 'Nincs aktív havi kihívás'}
+                </button>
+                <button disabled={sharing} onClick={requestProfileAvatar} type="button">
+                  Beállítás profilképnek
                 </button>
                 {shareState.feedUnavailableMessage ? <small>{shareState.feedUnavailableMessage}</small> : null}
                 {!challengePaletteReady ? <small>A kihívások a 12 színű palettát fogadják. A Hírfolyam a 32 színt is engedi.</small> : null}

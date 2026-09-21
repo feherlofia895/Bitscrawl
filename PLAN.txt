@@ -35,8 +35,17 @@ Jelölések:
   mező és a Küldés gomb a panelen belül marad.
 - [x] A paletta üres pixelei és a rácsvonalak asztali és 390×844-es mobilnézetben
   újraellenőrizve; a jelenlegi buildben igazodnak egymáshoz, a korábbi hiba nem
-  reprodukálható. Az audit következő kódcsomagja a szerveroldali galéria-, komment-,
-  rajzesemény- és chatlapozás.
+  reprodukálható.
+- [x] A klasszikus játék szóbankja bővült, a profilkép-szerkesztő megkapta a 32 színű
+  palettát, a 400 pixelnél keskenyebb mobilos tippelő pedig külön kompakt elrendezést
+  kapott. A Galéria alapértelmezett sorrendje `Legkedveltebb`; a `Felfedezés` minden
+  kiválasztásakor új, véletlenszerű sorrendet készít, amely lapozás közben stabil marad.
+- [x] A `fbf68f3` kiadásnál a GitHub és a Cloudflare Pages production környezet
+  egyezett; az éles oldal új buildje külön visszaellenőrzést kapott.
+- [x] A Szerkesztő `Megosztás / nevezés` menüjéből a rajz profilképként is
+  beállítható. A csere előtt megerősítő ablak figyelmeztet a korábbi profilkép
+  lecserélésére; a kliens és a szerver ugyanazt a 32 színű profilpalettát fogadja.
+  A production build és az automatizált ellenőrzések sikeresek.
 
 2026-09-20-i teljes kódaudit javítási állapot:
 - [x] A heti és havi rajz automatikus mentése sorosított; a régi kérés nem írhatja
@@ -58,12 +67,15 @@ Jelölések:
   automatikusan újraindul; a be nem küldött kihívásrajz felhasználónként és
   kihívásonként helyi vázlatban is megmarad, majd sikeres szervermentéskor törlődik.
 - [>] Következő auditcsomag: szerveroldali galéria-, komment-, rajzesemény- és
-  chatlapozás. A kliens által állított online jelenléti azonosító szerveres
-  hitelesítése 2026-09-21-én elkészült.
+  chatlapozás. A Hírfolyam már valódi, hatképes szerveroldali `limit`/`offset`
+  lapozást használ. A heti és havi galéria viszont még a teljes kép- és kommentlistát
+  letölti, majd a kliens szeleteli hatos oldalakra. A szobachat, a körüzenetek és a
+  rajzesemények visszatöltése szintén teljes listás. A kliens által állított online
+  jelenléti azonosító szerveres hitelesítése 2026-09-21-én elkészült.
 
-2026-09-19-i záró állapot:
-- Az aktuális kiadott commit 2be5512 az `agent/12-color-palette-logo` ágon; a helyi ág
-  és a GitHub azonos állapotban van. Az éles oldal: https://bitscrawl.pages.dev/
+2026-09-19-i történeti záró állapot:
+- Az akkori kiadott commit `2be5512` volt az `agent/12-color-palette-logo` ágon.
+  A jelenlegi kiadott commit `fbf68f3`; az éles oldal: https://bitscrawl.pages.dev/
 - A 13/D és a 20. pont megvalósítása, ellenőrzése és élesítése elkészült. A Supabase
   helyi és távoli migrációs sora 20260919182613-ig egyezik.
 - A főmenü jelenleg öt belépési pontból áll: Játék, Kihívás, Szerkesztő, Galéria,
@@ -80,12 +92,16 @@ Jelölések:
   lefutott; az éles főmenü és a Gomba kihívás külön böngészős ellenőrzést kapott.
 
 Következő javasolt munkasorrend:
-1. A 13-as UI utolsó mobilos és billentyűzetes vizuális ellenőrzése, majd a végleges
-   magyar ékezetes betűkészlet kiválasztása.
-2. A 13/B teljes többkörös Realtime regressziója és fizikai telefonos próbája.
-3. A 13/C fizikai telefonos PNG-fájl ellenőrzése, majd a 13/F szerinti visszavonás-,
-   kijelölés- és mozgatóeszköz, valamint a 32 színű bővített paletta elkészítése.
-4. A 14-es teljes visszaellenőrzés, utána a PWA és a 16-os MVP-kiadási ellenőrzés.
+1. A heti és havi galéria valódi, hatképes szerveroldali lapozása úgy, hogy a
+   `Legkedveltebb`, `Felfedezés` és `Legújabb` rendezés a teljes adathalmazon működjön.
+2. A kommentek igény szerinti, képenkénti betöltése és lapozása; ezután a szobachat,
+   a körüzenetek és a rajzesemények korlátozott, kurzoros visszatöltése.
+3. A 14-es teljes regresszió: többkörös multiplayer, 270/360/390 pixeles mobilnézet,
+   fizikai telefon, megnyíló billentyűzet, teljes nézet, PNG-export és hálózatkimaradás.
+4. A PWA tényleges telepíthetőségi próbája, majd a 16-os MVP-kiadási ellenőrzés és
+   rövid üzemeltetési/tesztelési README.
+5. A végleges magyar ékezetes betűkészlet és a 13/E fordítási alap csak a fenti
+   stabilizálás után következzen, hogy a mostani hibajavításokat ne keverjük nagy UI-cserével.
 
 
 [x] 1. A 9. MÉRFÖLDKŐ LEZÁRÁSA
@@ -546,7 +562,9 @@ Elkészült és élesítve:
 
 - A saját 12 színű alappaletta, a hozzá igazított felületszínek és feliratok bekerültek.
 - A saját kezdőképernyős logó és a villogó piros kurzor működik.
-- A bővített paletta változatlan maradt; a 32 színű változat külön későbbi feladat.
+- A játék szobái továbbra is a 12 színű alappalettát használják. A 32 színű változat
+  időközben elkészült a helyi Szerkesztőben és a profilkép-szerkesztőben; multiplayerbe
+  vitele továbbra is a 13/F külön szerveroldali feladata.
 
 
 [>] 13/B. VÁLASZTHATÓ KÖRIDŐ A SZOBÁBAN
@@ -732,7 +750,7 @@ Szerkesztői 32 színű paletta (2026-09-20):
   és multiplayer-ellenőrzése továbbra is külön következő lépés.
 
 
-[ ] 14. TELJES VISSZAELLENŐRZÉS
+[>] 14. TELJES VISSZAELLENŐRZÉS
 
 A célzott visszaellenőrzés minden változtatást kövessen; a 14. pont végső lezárása a 13,
 13/B, 13/C, 13/D, 13/F és a magyar szövegek 13/E szerinti leválasztása után történjen.
@@ -751,9 +769,14 @@ Részellenőrzés:
 - A paraméterezhető multiplayer teszt három külön játékosmunkamenettel, kilenc körön át
   sikeresen lefutott. Mindhárom játékos háromszor rajzolt, a titkos szavak védelme,
   a rajztovábbítás, a hibás és helyes tippek, a pontozás és a körváltás működött.
+- A 2026-09-20-i teljes kódaudit mentési, jogosultsági, hálózati és adatérvényességi
+  javításai elkészültek; a helyi adatbázis-integrációs próbák, lint és production build
+  többször sikeresen lefutottak.
+- A teljes lezáráshoz még egy összevont fizikai telefonos és többkörös kiadási próba,
+  valamint a nyitott szerveroldali lapozási csomag szükséges.
 
 
-[ ] 15. PWA – TELEPÍTHETŐ Bitscrawl
+[>] 15. PWA – TELEPÍTHETŐ Bitscrawl
 
 Csak a fenti kezelhetőségi változtatások stabil nyilvános próbája után.
 
@@ -773,7 +796,7 @@ Első PWA-alap (2026-09-20):
 - A multiplayerhez továbbra is internetkapcsolat szükséges; teljes offline játék nem cél.
 
 
-[ ] 16. MVP KIADÁSI ELLENŐRZÉS
+[>] 16. MVP KIADÁSI ELLENŐRZÉS
 
 - Legalább két játékossal többször végigjátszható teljes meccs.
 - Nincs ismert játékot megakasztó hiba.
@@ -787,10 +810,10 @@ MVP UTÁNI KÖVETKEZŐ LEHETŐSÉGEK
 
 Javasolt sorrend és függőségek:
 
-1. Az MVP előtt fejezzük be a 13-as UI-munka mobilos ellenőrzését, a köridő teljes
-   regresszióját és a szerkesztő telefonos exportpróbáját; a 16 szín elrejtése,
-   a szerkesztő alapváltozata és a választható köridő már elkészült.
-2. Ezután következzen a 14-es teljes visszaellenőrzés, a PWA és a 16-os MVP-kiadási ellenőrzés.
+1. Az MVP előtt zárjuk le a szerveroldali lapozást, majd a 14-es összevont mobilos,
+   többjátékos és hálózatkimaradási regressziót.
+2. Ezután következzen a PWA tényleges telepíthetőségi próbája és a 16-os MVP-kiadási
+   ellenőrzés; a manifest már elkészült, a service worker és a frissítési stratégia nyitott.
 3. Az Elérhető szobák csak alapvető név- és spamvédelemmel kerüljön ki.
 4. A Párhuzamos rajzverseny a meglévő vendégmunkamenetekkel is elkészülhet, de külön
    játékmód-állapotgépet igényel.
@@ -811,7 +834,7 @@ Javasolt sorrend és függőségek:
   szobalétrehozás alapvető védelmét.
 
 
-[ ] 18. FELHASZNÁLÓI FIÓKOK
+[>] 18. FELHASZNÁLÓI FIÓKOK
 
 - 2026-09-20: elkészült az első helyi profilváltozat. A felső profilsávból és a
   Beállítások > Profil pontból elérhető a belépés, regisztráció és a saját profil.
@@ -835,6 +858,9 @@ Javasolt sorrend és függőségek:
   regisztráció azonnali megerősítéssel működik, így nem fogyaszt megerősítő levelet.
   Emiatt az e-mail-cím valódisága egyelőre nincs ellenőrizve; nyilvános indulás előtt
   ingyenes vagy saját SMTP-szolgáltatást és ismét kötelező e-mail-megerősítést tervezünk.
+- 2026-09-21: a profilkép-szerkesztő a 12 és 32 színű palettát is támogatja; a mentett
+  profilkép a profilban, játékoslistában, galériában, kommenteknél és a közösségi
+  előszobában ugyanabból a szerveroldali profiladatból jelenik meg.
 - A vendégként, azonnali névvel történő játék továbbra is maradjon lehetséges.
 - Később opcionális Supabase-fiók kapcsolható a vendéghez, az egész játék újraírása nélkül.
 - Első fiókos változatként elég lehet a megjelenített név és az elmentett alapbeállítások.
@@ -919,7 +945,9 @@ szóra és ugyanazzal a palettával készülnek rajzok.
 - Elkészült az e-mailes fiók, a megjelenített név, a szerverre mentett vázlat,
   az egyszeri végleges beküldés, a három mozgatható szavazat és az önszavazás tiltása.
 - Elkészült a felfedezés / legkedveltebb / legújabb sorrend, a lezárt heti archívum
-  és a holtversenyben minden első helyezettet győztesként jelölő eredmény.
+  és a holtversenyben minden első helyezettet győztesként jelölő eredmény. A
+  `Legkedveltebb` az alapértelmezett; a `Felfedezés` kiválasztáskor új véletlen
+  sorrendet készít.
 - A főmenü öt területre oszlik: Játék, Kihívás, Szerkesztő, Galéria és Beállítások.
   A Kihívás és a Galéria külön nézetből nyitja meg a heti rajz megfelelő részét;
   a Szerkesztő közvetlenül a Kihívás alatt érhető el gyakorláshoz.
@@ -972,8 +1000,9 @@ MÉG MEGBESZÉLENDŐ AZ IMPLEMENTÁLÁS ELŐTT
 NEM RÉSZE AZ ELSŐ MVP-NEK
 
 - Android és iOS natív csomag Capacitorral.
-- Felhasználói fiókok, barátlista és ranglista.
-- Online galéria, felhőben tárolt rajzgyűjtemény és közösségi szavazás.
-  A 13/C helyi rajzmegőrzése és PNG-letöltése ettől függetlenül az MVP része.
+- Barátlista, globális ranglista és összetett játékosstatisztikák. Az alapfiók,
+  profilkép, heti/havi galéria és Hírfolyam időközben az MVP részévé vált.
+- Korlátlan felhőbeli rajzgyűjtemény. A jelenlegi közösségi felületek heti/havi
+  nevezéseket és felhasználónként napi két hírfolyamképet kezelnek.
 - Saját szócsomagok, tematikus módok és achievementek.
 - 16×16, 64×64 és különleges palettás játékmódok.

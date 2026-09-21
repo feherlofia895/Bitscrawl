@@ -107,6 +107,9 @@ test('the editor uses one share menu for the feed and both challenge entries', a
   assert.match(editorSource, /shareDrawing\('feed'\)/)
   assert.match(editorSource, /shareDrawing\('weekly'\)/)
   assert.match(editorSource, /shareDrawing\('monthly'\)/)
+  assert.match(editorSource, /saveProfileAvatar\(snapshot\)/)
+  assert.match(editorSource, />\s*Beállítás profilképnek\s*<\/button>/)
+  assert.match(editorSource, /Biztosan beállítod ezt a rajzot profilképnek\? A mostani profilképed elveszik/)
   assert.match(editorSource, /A kihívások a 12 színű palettát fogadják/)
   assert.match(editorSource, /A Hírfolyam adatbázis-frissítése még nincs telepítve/)
   assert.match(editorSource, /shareState\.feedPostCount >= 2/)
@@ -124,9 +127,14 @@ test('the editor uses one share menu for the feed and both challenge entries', a
 })
 
 test('the profile avatar editor uses the expanded 32-color palette', async () => {
-  const profileSource = await readFile(new URL('../src/components/ProfilePanel.tsx', import.meta.url), 'utf8')
-  assert.match(profileSource, /32 színű bővített palettával/)
-  assert.match(profileSource, /<PixelCanvas[\s\S]*?paletteSize=\{32\}/)
+  const [panelSource, profileSource] = await Promise.all([
+    readFile(new URL('../src/components/ProfilePanel.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/lib/profile.ts', import.meta.url), 'utf8'),
+  ])
+  assert.match(panelSource, /32 színű bővített palettával/)
+  assert.match(panelSource, /<PixelCanvas[\s\S]*?paletteSize=\{32\}/)
+  assert.match(profileSource, /editorPalette32/)
+  assert.doesNotMatch(profileSource, /validAvatarColors = new Set\(\['transparent', \.\.\.basePalette/)
 })
 
 test('the mobile lobby chat keeps its composer inside the panel', async () => {

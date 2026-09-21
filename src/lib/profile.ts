@@ -1,6 +1,6 @@
 import type { User } from '@supabase/supabase-js'
 import type { Json } from '../types/database'
-import { basePalette } from './palette'
+import { editorPalette32 } from './palette'
 import { loadOwnFeedStats } from './feed'
 import { supabase } from './supabase'
 import { getWeeklyUser } from './weekly'
@@ -17,7 +17,7 @@ export type ProfileAvatarSaveResult = {
   storage: 'cloud' | 'local'
 }
 
-const validAvatarColors = new Set(['transparent', ...basePalette.map(color => color.hex)])
+const validAvatarColors = new Set(['transparent', ...editorPalette32.map(color => color.hex)])
 const avatarStoragePrefix = 'bitscrawl-profile-avatar:'
 
 function localAvatarKey(userId: string) {
