@@ -123,6 +123,13 @@ test('the editor uses one share menu for the feed and both challenge entries', a
   assert.match(cssSource, /\.feed-entry-actions\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,/)
 })
 
+test('the mobile lobby chat keeps its composer inside the panel', async () => {
+  const css = await readFile(new URL('../src/App.css', import.meta.url), 'utf8')
+  assert.match(css, /\.global-lobby-chat-form label\s*\{\s*min-width:\s*0;/)
+  assert.match(css, /\.global-lobby-chat-form input\s*\{[\s\S]*?max-width:\s*100%;/)
+  assert.match(css, /@media \(max-width: 760px\)[\s\S]*?\.global-lobby-chat\s*\{[\s\S]*?grid-template-rows:\s*auto minmax\(0, 1fr\) auto;[\s\S]*?overflow:\s*hidden;/)
+})
+
 test('local draft restores colors, transparency and export status', () => {
   const pixels = emptyDrawing()
   basePalette.forEach(({ hex }, index) => { pixels[index * 32 + index] = hex })

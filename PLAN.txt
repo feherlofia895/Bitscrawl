@@ -7,7 +7,7 @@ Jelölések:
 [ ] még hátra van
 
 2026-09-21-i audit- és visszajelzési állapot:
-- [>] Elkészült helyben a Galéria harmadik, `Hírfolyam` almenüje. Egy végleges
+- [x] Elkészült és élesedett a Galéria harmadik, `Hírfolyam` almenüje. Egy végleges
   fiók naponta két 32×32-es képet tehet közzé, a saját képek szerkeszthetők és
   törölhetők; egy mai kép törlése azonnal visszaad egy napi helyet. Minden képhez
   legfeljebb 160 karakteres, maximum háromsoros leírás adható. A kártyákon a
@@ -16,8 +16,8 @@ Jelölések:
   hatosával lapozható, a képek kedvelhetők és
   kommentelhetők, a saját komment szerkeszthető, a kapott kedvelések összege pedig
   megjelenik a profilon. Az adatbázis-jogosultsági, integrációs, asztali és mobilos
-  vizuális ellenőrzés kész, az adatbázis-migráció pedig élesben is fent van;
-  még a commit és a Cloudflare-frontend élesítése van hátra.
+  vizuális ellenőrzés kész, az adatbázis-migráció és a Cloudflare-frontend pedig
+  élesben is fent van a `90c2ed2` commitból.
 - [x] A Szerkesztő egyetlen `Megosztás / nevezés` menüből tudja a rajzot a mai
   hírfolyamba, az aktív heti kihívásba vagy az aktív havi kihívásba küldeni. A már
   beküldött nevezés szerveroldalon is tiltott, a 32 színű rajz pedig csak a
@@ -30,9 +30,13 @@ Jelölések:
   Az új, közvetlenül nem olvasható jelenléti tábla és RPC az `auth.uid()` alapján
   küld szívverést; az online profilok csak friss, szerver által hitelesített
   szívverésből származhatnak.
-- [>] A paletta rácsához érkezett friss mobilos bejelentés külön vizuális
-  reprodukciót igényel. Az audit következő kódcsomagja a szerveroldali galéria-,
-  komment-, rajzesemény- és chatlapozás.
+- [x] Az előszobachat mobilos küldőmező-kilógása 360×640 és 390×844 méreten
+  reprodukálva és javítva: az üzenetlista zsugorodik és belül görgethető, a beviteli
+  mező és a Küldés gomb a panelen belül marad.
+- [x] A paletta üres pixelei és a rácsvonalak asztali és 390×844-es mobilnézetben
+  újraellenőrizve; a jelenlegi buildben igazodnak egymáshoz, a korábbi hiba nem
+  reprodukálható. Az audit következő kódcsomagja a szerveroldali galéria-, komment-,
+  rajzesemény- és chatlapozás.
 
 2026-09-20-i teljes kódaudit javítási állapot:
 - [x] A heti és havi rajz automatikus mentése sorosított; a régi kérés nem írhatja

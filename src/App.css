@@ -1054,8 +1054,13 @@ footer {
   border-top: 2px solid var(--ink);
 }
 
+.global-lobby-chat-form label {
+  min-width: 0;
+}
+
 .global-lobby-chat-form input {
   width: 100%;
+  max-width: 100%;
   min-height: 42px;
 }
 
@@ -1130,6 +1135,11 @@ footer {
   .online-profile-section,
   .global-lobby-chat {
     min-height: 0;
+  }
+
+  .global-lobby-chat {
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    overflow: hidden;
   }
 
   .active-users-login {
@@ -2802,11 +2812,15 @@ button,
 .feed-composer {
   display: grid;
   gap: 16px;
-  padding: clamp(34px, 5vw, 44px) clamp(18px, 4vw, 28px) clamp(18px, 4vw, 28px);
+  padding: clamp(50px, 7vw, 58px) clamp(18px, 4vw, 28px) clamp(18px, 4vw, 28px);
   background: transparent;
   border: 16px solid transparent;
   border-image: url('/ui/menu-window-mint.png') 16 fill stretch;
   image-rendering: pixelated;
+}
+
+.feed-composer.is-editor-open {
+  padding-top: clamp(126px, 12vw, 138px);
 }
 
 .feed-composer-heading {

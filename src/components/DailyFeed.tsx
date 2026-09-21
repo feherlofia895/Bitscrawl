@@ -261,7 +261,7 @@ export function DailyFeed({
       <div><p className="step-label">Saját kép</p><h2>Jelentkezz be a közzétételhez</h2><p>A képeket fiók nélkül is megnézheted. Megosztani, kedvelni és hozzászólni bejelentkezve lehet.</p></div>
     </section> : null}
 
-    {user && account ? <section className="feed-composer">
+    {user && account ? <section className={`feed-composer${editorOpen ? ' is-editor-open' : ''}`}>
       <div className="feed-composer-heading">
         <div>
           <p className="step-label">A mai képed</p>
