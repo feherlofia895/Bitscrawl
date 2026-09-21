@@ -89,6 +89,17 @@ test('empty drawings do not share mutable data', () => {
   assert.equal(first.length, 1024)
 })
 
+test('signed-in profiles supply the immutable multiplayer display name', async () => {
+  const appSource = await readFile(new URL('../src/App.tsx', import.meta.url), 'utf8')
+
+  assert.match(appSource, /const profilePlayerName = playerProfile\?\.displayName\.trim\(\) \?\? ''/)
+  assert.match(appSource, /const effectivePlayerName = profilePlayerName \|\| playerName\.trim\(\)/)
+  assert.match(appSource, /createRoom\(effectivePlayerName, newRoomDuration\)/)
+  assert.match(appSource, /joinRoom\(effectivePlayerName, code \?\? ''\)/)
+  assert.match(appSource, /profilePlayerName \? \([\s\S]*?className="profile-player-name"[\s\S]*?: \([\s\S]*?id="create-player-name"/)
+  assert.match(appSource, /profilePlayerName \? \([\s\S]*?className="profile-player-name"[\s\S]*?: \([\s\S]*?id="join-player-name"/)
+})
+
 test('the monthly canvas waits for the saved drawing before mounting', async () => {
   const source = await readFile(new URL('../src/components/MonthlyDraw.tsx', import.meta.url), 'utf8')
   assert.match(source, /const accountReady = loadedChallengeId === selectedId/)

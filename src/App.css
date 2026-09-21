@@ -227,6 +227,24 @@ footer {
   text-transform: uppercase;
 }
 
+.profile-player-name-field small {
+  color: var(--slate);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.profile-player-name {
+  display: flex;
+  min-height: 50px;
+  box-sizing: border-box;
+  align-items: center;
+  padding: 0 14px;
+  color: var(--ink);
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+  font-size: 16px;
+}
+
 input,
 button {
   min-height: 50px;

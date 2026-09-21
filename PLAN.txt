@@ -7,6 +7,11 @@ Jelölések:
 [ ] még hátra van
 
 2026-09-21-i audit- és visszajelzési állapot:
+- [x] Bejelentkezett, mentett profillal az Új szoba és a Csatlakozás már nem kér
+  külön szerkeszthető játékosnevet: a profil megjelenített neve látszik és kerül a
+  váróterembe. Vendégként továbbra is megadható külön név. A névkártya mindkét
+  útvonalon, valamint egy valóban létrehozott és utána törölt próbaszobában is
+  ellenőrizve lett.
 - [x] A 14-es teljes regresszió automatizálható része újra lefutott. A build, lint,
   diff-ellenőrzés, szerkesztő-, rajzbiztonsági-, PWA-, paletta-, köridő- és heti
   rajztesztek sikeresek. Az élő Supabase-környezetben a köridő, kilépés/hostátadás,

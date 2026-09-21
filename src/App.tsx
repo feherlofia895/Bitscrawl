@@ -120,6 +120,9 @@ function latestId(items: Array<{ id: number }>) {
   return items.length ? items[items.length - 1].id : null
 }
 
+const guestNamePrompt = 'Adj meg egy játékosnevet, majd hozz létre szobát vagy csatlakozz egy kóddal.'
+const profileNamePrompt = 'A szobában automatikusan a profilod megjelenített nevét használjuk.'
+
 function mergeRecentById<T extends { id: number }>(
   current: T[],
   updates: T[],
@@ -146,9 +149,7 @@ function App() {
     () => window.localStorage.getItem('bitscrawl-reduce-motion') === 'true',
   )
   const [roomCode, setRoomCode] = useState(getInitialRoomCode)
-  const [message, setMessage] = useState(
-    'Adj meg egy játékosnevet, majd hozz létre szobát vagy csatlakozz egy kóddal.',
-  )
+  const [message, setMessage] = useState(guestNamePrompt)
   const [backendStatus, setBackendStatus] =
     useState<BackendStatus>('checking')
   const [isBusy, setIsBusy] = useState(false)
@@ -547,14 +548,18 @@ function App() {
     }
   }, [activeRoomId, refreshLobby])
 
-  const trimmedName = playerName.trim()
+  const profilePlayerName = playerProfile?.displayName.trim() ?? ''
+  const effectivePlayerName = profilePlayerName || playerName.trim()
+  const roomEntryMessage = profilePlayerName && message === guestNamePrompt
+    ? profileNamePrompt
+    : message
   const normalizedRoomCode = useMemo(
     () => roomCode.trim().toUpperCase(),
     [roomCode],
   )
 
   const checkName = () => {
-    if (trimmedName.length < 2) {
+    if (effectivePlayerName.length < 2) {
       setMessage('Adj meg legalább 2 karakterből álló játékosnevet.')
       return false
     }
@@ -579,8 +584,8 @@ function App() {
     try {
       const entry =
         action === 'create'
-          ? await createRoom(trimmedName, newRoomDuration)
-          : await joinRoom(trimmedName, code ?? '')
+          ? await createRoom(effectivePlayerName, newRoomDuration)
+          : await joinRoom(effectivePlayerName, code ?? '')
       await hydrateLobby(entry)
 
       window.history.replaceState({}, '', `?room=${entry.roomCode}`)
@@ -1289,19 +1294,29 @@ function App() {
                   <h2 id="lobby-title">Új szoba</h2>
                 </div>
                 <div className="lobby-controls">
-                  <label className="field" htmlFor="create-player-name">
-                    <span>Játékosnév</span>
-                    <input
-                      autoComplete="nickname"
-                      disabled={isBusy || isRestoringRoom}
-                      id="create-player-name"
-                      maxLength={16}
-                      onChange={(event) => setPlayerName(event.target.value)}
-                      placeholder="Például: PixelPanni"
-                      type="text"
-                      value={playerName}
-                    />
-                  </label>
+                  {profilePlayerName ? (
+                    <div className="field profile-player-name-field">
+                      <span>Játékosnév</span>
+                      <strong aria-label={`Játékosnév: ${profilePlayerName}`} className="profile-player-name">
+                        {profilePlayerName}
+                      </strong>
+                      <small>A profilod megjelenített nevét használjuk.</small>
+                    </div>
+                  ) : (
+                    <label className="field" htmlFor="create-player-name">
+                      <span>Játékosnév</span>
+                      <input
+                        autoComplete="nickname"
+                        disabled={isBusy || isRestoringRoom}
+                        id="create-player-name"
+                        maxLength={16}
+                        onChange={(event) => setPlayerName(event.target.value)}
+                        placeholder="Például: PixelPanni"
+                        type="text"
+                        value={playerName}
+                      />
+                    </label>
+                  )}
                   <details className="room-settings">
                     <summary>Szoba beállításai</summary>
                     <div className="room-settings-content">
@@ -1345,7 +1360,7 @@ function App() {
                   <button className="home-back-button" onClick={closeHomeView} type="button">
                     {editorText.backPlay}
                   </button>
-                  <p className="status-message" aria-live="polite">{message}</p>
+                  <p className="status-message" aria-live="polite">{roomEntryMessage}</p>
                 </div>
               </>
             ) : homeView === 'join' ? (
@@ -1355,19 +1370,29 @@ function App() {
                   <h2 id="lobby-title">Csatlakozás</h2>
                 </div>
                 <div className="lobby-controls">
-                  <label className="field" htmlFor="join-player-name">
-                    <span>Játékosnév</span>
-                    <input
-                      autoComplete="nickname"
-                      disabled={isBusy || isRestoringRoom}
-                      id="join-player-name"
-                      maxLength={16}
-                      onChange={(event) => setPlayerName(event.target.value)}
-                      placeholder="Például: PixelPanni"
-                      type="text"
-                      value={playerName}
-                    />
-                  </label>
+                  {profilePlayerName ? (
+                    <div className="field profile-player-name-field">
+                      <span>Játékosnév</span>
+                      <strong aria-label={`Játékosnév: ${profilePlayerName}`} className="profile-player-name">
+                        {profilePlayerName}
+                      </strong>
+                      <small>A profilod megjelenített nevét használjuk.</small>
+                    </div>
+                  ) : (
+                    <label className="field" htmlFor="join-player-name">
+                      <span>Játékosnév</span>
+                      <input
+                        autoComplete="nickname"
+                        disabled={isBusy || isRestoringRoom}
+                        id="join-player-name"
+                        maxLength={16}
+                        onChange={(event) => setPlayerName(event.target.value)}
+                        placeholder="Például: PixelPanni"
+                        type="text"
+                        value={playerName}
+                      />
+                    </label>
+                  )}
                   <label className="field" htmlFor="room-code">
                     <span>Szobakód</span>
                     <input
@@ -1402,7 +1427,7 @@ function App() {
                   <button className="home-back-button" onClick={closeHomeView} type="button">
                     Vissza a főmenübe
                   </button>
-                  <p className="status-message" aria-live="polite">{message}</p>
+                  <p className="status-message" aria-live="polite">{roomEntryMessage}</p>
                 </div>
               </>
             ) : (
@@ -1460,7 +1485,7 @@ function App() {
           onOpenProfile={() => openHomeView('profile')}
           profileAccessDisabled={Boolean(lobby)}
         />}
-        playerName={playerName}
+        playerName={effectivePlayerName}
         roomCode={lobby?.room.code ?? null}
         roomId={lobby?.room.id ?? null}
         roundId={roundView?.round_id ?? null}
