@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { emptyDrawing } from '../lib/drawing'
 import {
@@ -25,12 +25,15 @@ import { WeeklyArtwork } from './WeeklyArtwork'
 import { MonthlyDraw } from './MonthlyDraw'
 import { DailyFeed } from './DailyFeed'
 import { GalleryComments } from './GalleryComments'
-import { GALLERY_PAGE_SIZE, GalleryPagination } from './GalleryPagination'
-import { addGalleryComment, updateGalleryComment } from '../lib/galleryComments'
+import { GalleryPagination } from './GalleryPagination'
+import {
+  addGalleryComment,
+  loadGalleryCommentsForEntry,
+  updateGalleryComment,
+  type GallerySort,
+} from '../lib/galleryComments'
 import { createDrawingSaveQueue } from '../lib/drawingSaveQueue'
 import { clearChallengeDraft, loadChallengeDraft, saveChallengeDraft } from '../lib/challengeDrafts'
-
-type GallerySort = 'discovery' | 'likes' | 'newest'
 
 const blankAccount: WeeklyAccountState = {
   draftPixels: null,
@@ -52,12 +55,6 @@ function createDiscoverySeed() {
   return Math.floor(Math.random() * 0x100000000) >>> 0
 }
 
-function discoveryScore(entry: WeeklyGalleryEntry, seed: number) {
-  let hash = (entry.entry_id * 2654435761) ^ seed
-  for (const char of entry.author_name) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619)
-  return hash >>> 0
-}
-
 function WeeklyDrawContent({ mode, onBack, onSelectFeed, onSelectMonthly }: { mode: 'challenge' | 'gallery'; onBack: () => void; onSelectFeed: () => void; onSelectMonthly: () => void }) {
   const [challenges, setChallenges] = useState<WeeklyChallenge[]>([])
   const [selectedId, setSelectedId] = useState<number | null>(null)
@@ -70,6 +67,7 @@ function WeeklyDrawContent({ mode, onBack, onSelectFeed, onSelectMonthly }: { mo
   const [sort, setSort] = useState<GallerySort>('likes')
   const [discoverySeed, setDiscoverySeed] = useState(createDiscoverySeed)
   const [galleryPage, setGalleryPage] = useState(1)
+  const [galleryTotal, setGalleryTotal] = useState(0)
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -82,8 +80,14 @@ function WeeklyDrawContent({ mode, onBack, onSelectFeed, onSelectMonthly }: { mo
   const userIdRef = useRef(user?.id ?? null)
   const localDraftStoredRef = useRef(false)
   const selectedIdRef = useRef(selectedId)
+  const galleryPageRef = useRef(galleryPage)
+  const gallerySortRef = useRef(sort)
+  const discoverySeedRef = useRef(discoverySeed)
   userIdRef.current = user?.id ?? null
   selectedIdRef.current = selectedId
+  galleryPageRef.current = galleryPage
+  gallerySortRef.current = sort
+  discoverySeedRef.current = discoverySeed
   const saveQueueRef = useRef<ReturnType<typeof createDrawingSaveQueue<number>> | null>(null)
   if (!saveQueueRef.current) {
     saveQueueRef.current = createDrawingSaveQueue({
@@ -118,8 +122,8 @@ function WeeklyDrawContent({ mode, onBack, onSelectFeed, onSelectMonthly }: { mo
   ) => {
     const loadVersion = ++loadVersionRef.current
     const currentUser = knownUser === undefined ? await getWeeklyUser() : knownUser
-    const [nextGallery, nextAccount] = await Promise.all([
-      loadWeeklyGallery(challengeId),
+    const [nextGalleryPage, nextAccount] = await Promise.all([
+      loadWeeklyGallery(challengeId, galleryPageRef.current, gallerySortRef.current, discoverySeedRef.current),
       currentUser ? loadWeeklyAccountState(challengeId) : Promise.resolve(blankAccount),
     ])
     if (loadVersion !== loadVersionRef.current) return false
@@ -131,7 +135,8 @@ function WeeklyDrawContent({ mode, onBack, onSelectFeed, onSelectMonthly }: { mo
       : nextAccount
     userIdRef.current = currentUser?.id ?? null
     setUser(currentUser)
-    setGallery(nextGallery)
+    setGallery(nextGalleryPage.entries)
+    setGalleryTotal(nextGalleryPage.totalCount)
     setAccount(mergedAccount)
     const drawing = mergedAccount.entryPixels ?? mergedAccount.draftPixels ?? emptyDrawing()
     pixelsRef.current = [...drawing]
@@ -218,6 +223,7 @@ function WeeklyDrawContent({ mode, onBack, onSelectFeed, onSelectMonthly }: { mo
     }
     setSelectedId(challengeId)
     setLoadedChallengeId(null)
+    galleryPageRef.current = 1
     setGalleryPage(1)
     try {
       const selectedChallenge = challenges.find(item => item.challenge_id === challengeId)
@@ -327,7 +333,6 @@ function WeeklyDrawContent({ mode, onBack, onSelectFeed, onSelectMonthly }: { mo
     setBusy(true)
     try {
       await addGalleryComment('weekly', entryId, content)
-      if (selectedId) await refresh(selectedId, isActive, user)
       setStatus('A kommented megmaradt a kép alatt.')
     } catch (error) {
       setStatus(errorMessage(error))
@@ -341,7 +346,6 @@ function WeeklyDrawContent({ mode, onBack, onSelectFeed, onSelectMonthly }: { mo
     setBusy(true)
     try {
       await updateGalleryComment(commentId, content)
-      if (selectedId) await refresh(selectedId, isActive, user)
       setStatus('A kommented módosításai elmentve.')
     } catch (error) {
       setStatus(errorMessage(error))
@@ -351,20 +355,40 @@ function WeeklyDrawContent({ mode, onBack, onSelectFeed, onSelectMonthly }: { mo
     }
   }
 
-  const sortedGallery = useMemo(() => [...gallery].sort((first, second) => {
-    if (sort === 'likes') return second.vote_count - first.vote_count || second.entry_id - first.entry_id
-    if (sort === 'newest') return Date.parse(second.submitted_at) - Date.parse(first.submitted_at)
-    return discoveryScore(first, discoverySeed) - discoveryScore(second, discoverySeed)
-  }), [discoverySeed, gallery, sort])
-  const galleryPageCount = Math.max(1, Math.ceil(sortedGallery.length / GALLERY_PAGE_SIZE))
-  const visibleGallery = useMemo(() => {
-    const pageStart = (galleryPage - 1) * GALLERY_PAGE_SIZE
-    return sortedGallery.slice(pageStart, pageStart + GALLERY_PAGE_SIZE)
-  }, [galleryPage, sortedGallery])
+  const handleGalleryPage = async (nextPage: number) => {
+    if (!selectedId || nextPage === galleryPage) return
+    galleryPageRef.current = nextPage
+    setGalleryPage(nextPage)
+    setLoading(true)
+    try {
+      await refresh(selectedId, isActive, user)
+      setStatus('A galéria következő oldala betöltve.')
+    } catch (error) {
+      setStatus(errorMessage(error))
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  useEffect(() => {
-    setGalleryPage(current => Math.min(current, galleryPageCount))
-  }, [galleryPageCount])
+  const handleGallerySort = async (nextSort: GallerySort) => {
+    if (!selectedId) return
+    const nextSeed = nextSort === 'discovery' ? createDiscoverySeed() : discoverySeedRef.current
+    gallerySortRef.current = nextSort
+    discoverySeedRef.current = nextSeed
+    galleryPageRef.current = 1
+    setSort(nextSort)
+    setDiscoverySeed(nextSeed)
+    setGalleryPage(1)
+    setLoading(true)
+    try {
+      await refresh(selectedId, isActive, user)
+      setStatus('A galéria rendezése frissült.')
+    } catch (error) {
+      setStatus(errorMessage(error))
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const accountReady = loadedChallengeId === selectedId
   const canEdit = Boolean(!loading && accountReady && isActive && user && account.profileName && !account.entryId)
@@ -472,10 +496,10 @@ function WeeklyDrawContent({ mode, onBack, onSelectFeed, onSelectMonthly }: { mo
       {mode === 'gallery' ? <section className="weekly-gallery" aria-labelledby="weekly-gallery-title">
         <div className="weekly-section-heading">
           <div><p className="step-label">Közösség</p><h2 id="weekly-gallery-title">Galéria</h2></div>
-          <label className="field weekly-sort"><span>Sorrend</span><select onChange={event => { const nextSort = event.target.value as GallerySort; if (nextSort === 'discovery') setDiscoverySeed(createDiscoverySeed()); setSort(nextSort); setGalleryPage(1) }} value={sort}><option value="likes">Legkedveltebb</option><option value="discovery">Felfedezés</option><option value="newest">Legújabb</option></select></label>
+          <label className="field weekly-sort"><span>Sorrend</span><select disabled={loading} onChange={event => void handleGallerySort(event.target.value as GallerySort)} value={sort}><option value="likes">Legkedveltebb</option><option value="discovery">Felfedezés</option><option value="newest">Legújabb</option></select></label>
         </div>
-        {sortedGallery.length ? <>
-          <div className="weekly-gallery-grid">{visibleGallery.map(entry => (
+        {gallery.length ? <>
+          <div className="weekly-gallery-grid">{gallery.map(entry => (
             <article className={`weekly-entry${entry.is_winner ? ' is-winner' : ''}`} key={entry.entry_id}>
               {entry.is_winner ? <span className="weekly-winner">Heti győztes</span> : null}
               <WeeklyArtwork label={`${entry.author_name} heti rajza`} pixels={entry.pixels} />
@@ -489,10 +513,10 @@ function WeeklyDrawContent({ mode, onBack, onSelectFeed, onSelectMonthly }: { mo
               <button aria-pressed={entry.has_voted} disabled={busy || loading || !accountReady || !user || !isActive || entry.is_own || (!entry.has_voted && account.votesUsed >= 3)} onClick={() => void handleVote(entry)} type="button">
                 {entry.is_own ? 'A te rajzod' : entry.has_voted ? 'Szavazat visszavonása' : 'Szavazok'}
               </button>
-              <GalleryComments artworkAuthor={entry.author_name} busy={busy} comments={entry.comments} isSignedIn={Boolean(user && account.profileName)} onSubmit={content => handleComment(entry.entry_id, content)} onUpdate={handleCommentUpdate} />
+              <GalleryComments artworkAuthor={entry.author_name} busy={busy} commentCount={entry.comment_count} isSignedIn={Boolean(user && account.profileName)} loadComments={page => loadGalleryCommentsForEntry('weekly', entry.entry_id, page, selectedId ?? undefined)} onSubmit={content => handleComment(entry.entry_id, content)} onUpdate={handleCommentUpdate} />
             </article>
           ))}</div>
-          <GalleryPagination currentPage={galleryPage} onPageChange={setGalleryPage} totalItems={sortedGallery.length} />
+          <GalleryPagination currentPage={galleryPage} onPageChange={page => void handleGalleryPage(page)} totalItems={galleryTotal} />
         </> : <p className="weekly-empty">Ezen a héten még nincs nevezés. Lehetsz te az első!</p>}
       </section> : null}
 

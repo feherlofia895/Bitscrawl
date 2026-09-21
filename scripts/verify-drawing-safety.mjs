@@ -122,13 +122,19 @@ test('a selected gallery vote uses one plain color instead of layered button art
 })
 
 test('gallery defaults to most-liked while discovery receives a fresh random order', async () => {
-  const weeklyDraw = await readFile(new URL('../src/components/WeeklyDraw.tsx', import.meta.url), 'utf8')
+  const [weeklyDraw, weeklyLib, migration] = await Promise.all([
+    readFile(new URL('../src/components/WeeklyDraw.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/lib/weekly.ts', import.meta.url), 'utf8'),
+    readFile(new URL('../supabase/migrations/20260921145950_paginated_challenge_galleries.sql', import.meta.url), 'utf8'),
+  ])
 
   assert.match(weeklyDraw, /useState<GallerySort>\('likes'\)/)
   assert.match(weeklyDraw, /function createDiscoverySeed\(\)[\s\S]*?Math\.random\(\)/)
-  assert.match(weeklyDraw, /discoveryScore\(first, discoverySeed\) - discoveryScore\(second, discoverySeed\)/)
-  assert.match(weeklyDraw, /nextSort === 'discovery'\) setDiscoverySeed\(createDiscoverySeed\(\)\)/)
+  assert.match(weeklyDraw, /loadWeeklyGallery\(challengeId, galleryPageRef\.current, gallerySortRef\.current, discoverySeedRef\.current\)/)
+  assert.match(weeklyDraw, /nextSort === 'discovery' \? createDiscoverySeed\(\) : discoverySeedRef\.current/)
   assert.match(weeklyDraw, /<option value="likes">Legkedveltebb<\/option><option value="discovery">Felfedezés<\/option>/)
+  assert.match(weeklyLib, /get_weekly_gallery_page/)
+  assert.match(migration, /safe_sort = 'discovery'[\s\S]*md5\(entry\.id::text \|\| ':' \|\| safe_seed::text\)/)
 })
 
 test('mobile guessers keep a compact guess dock visible below the live drawing and room chat', async () => {
@@ -262,7 +268,7 @@ test('monthly editor stays closed when the saved drawing fails to load', async (
   const component = await loadComponent('MonthlyDraw.tsx', {
     '../lib/monthly': {
       loadMonthlyChallenges: async () => [{ challenge_id: 1, challenge_status: 'drawing', prompt: 'Audit', starts_at: '2026-09-01T00:00:00Z', voting_starts_at: '2026-09-24T00:00:00Z', ends_at: '2026-10-01T00:00:00Z' }],
-      loadMonthlyGallery: async () => [],
+      loadMonthlyGallery: async () => ({ entries: [], totalCount: 0 }),
       loadMonthlyAccountState: async () => { throw new Error('simulated account load failure') },
     },
   }, hooks)
@@ -291,7 +297,7 @@ test('weekly editor stays unmounted while the newly selected draft is loading', 
     '../lib/weekly': {
       getWeeklyUser: async () => ({ id: 'audit-user', user_metadata: { display_name: 'Audit' } }),
       loadWeeklyChallenges: async () => challenges,
-      loadWeeklyGallery: async () => [],
+      loadWeeklyGallery: async () => ({ entries: [], totalCount: 0 }),
       loadWeeklyAccountState: async id => hold ? delayedAccount : account(id),
       saveWeeklyDraft: async () => undefined,
     },

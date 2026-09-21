@@ -1,7 +1,13 @@
 import type { User } from '@supabase/supabase-js'
 import type { Json } from '../types/database'
 import { supabase } from './supabase'
-import { loadGalleryComments, type GalleryComment } from './galleryComments'
+import {
+  CHALLENGE_GALLERY_PAGE_SIZE,
+  isMissingRpc,
+  legacyDiscoveryScore,
+  loadGalleryComments,
+  type GallerySort,
+} from './galleryComments'
 
 export type WeeklyChallenge = {
   challenge_id: number
@@ -17,7 +23,7 @@ export type WeeklyChallenge = {
 export type WeeklyGalleryEntry = {
   authorAvatar: string[] | null
   author_name: string
-  comments: GalleryComment[]
+  comment_count: number
   entry_id: number
   has_voted: boolean
   is_own: boolean
@@ -25,6 +31,11 @@ export type WeeklyGalleryEntry = {
   pixels: string[]
   submitted_at: string
   vote_count: number
+}
+
+export type WeeklyGalleryPage = {
+  entries: WeeklyGalleryEntry[]
+  totalCount: number
 }
 
 export type WeeklyAccountState = {
@@ -46,6 +57,7 @@ const messages: Record<string, string> = {
   WEEKLY_OWN_VOTE_FORBIDDEN: 'A saját rajzodra nem szavazhatsz.',
   WEEKLY_PROFILE_REQUIRED: 'Előbb válassz megjelenített nevet.',
   WEEKLY_VOTE_LIMIT: 'Mindhárom heti szavazatodat felhasználtad.',
+  GALLERY_SORT_INVALID: 'Ez a galériarendezés nem érhető el.',
   'Could not find the function public.get_weekly_challenges': 'A Heti Rajz még nincs bekapcsolva ezen a szerveren.',
 }
 
@@ -99,18 +111,51 @@ export async function loadWeeklyChallenges() {
   return data as WeeklyChallenge[]
 }
 
-export async function loadWeeklyGallery(challengeId: number) {
-  const [{ data, error }, comments] = await Promise.all([
-    supabase.rpc('get_weekly_gallery', { target_challenge_id: challengeId }),
-    loadGalleryComments('weekly', challengeId),
-  ])
-  if (error) throw weeklyError(error)
-  return data.map(entry => ({
-    ...entry,
-    authorAvatar: pixels(entry.author_avatar),
-    comments: comments.filter(comment => comment.entry_id === entry.entry_id),
-    pixels: pixels(entry.pixels) ?? [],
-  })) as WeeklyGalleryEntry[]
+export async function loadWeeklyGallery(
+  challengeId: number,
+  page = 1,
+  sort: GallerySort = 'likes',
+  discoverySeed = 0,
+): Promise<WeeklyGalleryPage> {
+  const { data, error } = await supabase.rpc('get_weekly_gallery_page', {
+    discovery_seed: discoverySeed,
+    requested_limit: CHALLENGE_GALLERY_PAGE_SIZE,
+    requested_offset: Math.max(0, page - 1) * CHALLENGE_GALLERY_PAGE_SIZE,
+    requested_sort: sort,
+    target_challenge_id: challengeId,
+  })
+  if (error) {
+    if (!isMissingRpc(error, 'get_weekly_gallery_page')) throw weeklyError(error)
+    const [{ data: legacyData, error: legacyError }, comments] = await Promise.all([
+      supabase.rpc('get_weekly_gallery', { target_challenge_id: challengeId }),
+      loadGalleryComments('weekly', challengeId),
+    ])
+    if (legacyError) throw weeklyError(legacyError)
+    const entries = legacyData.map(entry => ({
+      ...entry,
+      authorAvatar: pixels(entry.author_avatar),
+      comment_count: comments.filter(comment => comment.entry_id === entry.entry_id).length,
+      pixels: pixels(entry.pixels) ?? [],
+    })) as WeeklyGalleryEntry[]
+    entries.sort((first, second) => {
+      if (sort === 'likes') return second.vote_count - first.vote_count || Date.parse(second.submitted_at) - Date.parse(first.submitted_at) || second.entry_id - first.entry_id
+      if (sort === 'newest') return Date.parse(second.submitted_at) - Date.parse(first.submitted_at) || second.entry_id - first.entry_id
+      return legacyDiscoveryScore(first.entry_id, first.author_name, discoverySeed) - legacyDiscoveryScore(second.entry_id, second.author_name, discoverySeed)
+    })
+    const offset = Math.max(0, page - 1) * CHALLENGE_GALLERY_PAGE_SIZE
+    return {
+      entries: entries.slice(offset, offset + CHALLENGE_GALLERY_PAGE_SIZE),
+      totalCount: entries.length,
+    }
+  }
+  return {
+    entries: data.map(entry => ({
+      ...entry,
+      authorAvatar: pixels(entry.author_avatar),
+      pixels: pixels(entry.pixels) ?? [],
+    })) as WeeklyGalleryEntry[],
+    totalCount: Number(data[0]?.total_count ?? 0),
+  }
 }
 
 export async function loadWeeklyAccountState(challengeId: number): Promise<WeeklyAccountState> {

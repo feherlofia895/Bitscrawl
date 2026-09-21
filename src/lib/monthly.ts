@@ -1,6 +1,12 @@
 import type { Json } from '../types/database'
 import { supabase } from './supabase'
-import { loadGalleryComments, type GalleryComment } from './galleryComments'
+import {
+  CHALLENGE_GALLERY_PAGE_SIZE,
+  isMissingRpc,
+  legacyDiscoveryScore,
+  loadGalleryComments,
+  type GallerySort,
+} from './galleryComments'
 
 export type MonthlyChallenge = {
   challenge_id: number
@@ -17,7 +23,7 @@ export type MonthlyChallenge = {
 export type MonthlyGalleryEntry = {
   authorAvatar: string[] | null
   author_name: string
-  comments: GalleryComment[]
+  comment_count: number
   entry_id: number
   has_voted: boolean
   is_own: boolean
@@ -25,6 +31,11 @@ export type MonthlyGalleryEntry = {
   pixels: string[]
   updated_at: string
   vote_count: number
+}
+
+export type MonthlyGalleryPage = {
+  entries: MonthlyGalleryEntry[]
+  totalCount: number
 }
 
 export type MonthlyAccountState = {
@@ -43,6 +54,7 @@ const messages: Record<string, string> = {
   MONTHLY_OWN_VOTE_FORBIDDEN: 'A saját rajzodra nem szavazhatsz.',
   MONTHLY_VOTE_LIMIT: 'Mindhárom havi szavazatodat felhasználtad.',
   MONTHLY_VOTING_CLOSED: 'A havi szavazás most nem aktív.',
+  GALLERY_SORT_INVALID: 'Ez a galériarendezés nem érhető el.',
   WEEKLY_ACCOUNT_REQUIRED: 'Ehhez regisztrált, bejelentkezett fiók szükséges.',
   WEEKLY_PROFILE_REQUIRED: 'Előbb válassz megjelenített nevet.',
 }
@@ -67,18 +79,51 @@ export async function loadMonthlyChallenges() {
   return data as MonthlyChallenge[]
 }
 
-export async function loadMonthlyGallery(challengeId: number) {
-  const [{ data, error }, comments] = await Promise.all([
-    supabase.rpc('get_monthly_gallery', { target_challenge_id: challengeId }),
-    loadGalleryComments('monthly', challengeId),
-  ])
-  if (error) throw monthlyError(error)
-  return data.map(entry => ({
-    ...entry,
-    authorAvatar: pixels(entry.author_avatar),
-    comments: comments.filter(comment => comment.entry_id === entry.entry_id),
-    pixels: pixels(entry.pixels) ?? [],
-  })) as MonthlyGalleryEntry[]
+export async function loadMonthlyGallery(
+  challengeId: number,
+  page = 1,
+  sort: GallerySort = 'likes',
+  discoverySeed = 0,
+): Promise<MonthlyGalleryPage> {
+  const { data, error } = await supabase.rpc('get_monthly_gallery_page', {
+    discovery_seed: discoverySeed,
+    requested_limit: CHALLENGE_GALLERY_PAGE_SIZE,
+    requested_offset: Math.max(0, page - 1) * CHALLENGE_GALLERY_PAGE_SIZE,
+    requested_sort: sort,
+    target_challenge_id: challengeId,
+  })
+  if (error) {
+    if (!isMissingRpc(error, 'get_monthly_gallery_page')) throw monthlyError(error)
+    const [{ data: legacyData, error: legacyError }, comments] = await Promise.all([
+      supabase.rpc('get_monthly_gallery', { target_challenge_id: challengeId }),
+      loadGalleryComments('monthly', challengeId),
+    ])
+    if (legacyError) throw monthlyError(legacyError)
+    const entries = legacyData.map(entry => ({
+      ...entry,
+      authorAvatar: pixels(entry.author_avatar),
+      comment_count: comments.filter(comment => comment.entry_id === entry.entry_id).length,
+      pixels: pixels(entry.pixels) ?? [],
+    })) as MonthlyGalleryEntry[]
+    entries.sort((first, second) => {
+      if (sort === 'likes') return second.vote_count - first.vote_count || Date.parse(second.updated_at) - Date.parse(first.updated_at) || second.entry_id - first.entry_id
+      if (sort === 'newest') return Date.parse(second.updated_at) - Date.parse(first.updated_at) || second.entry_id - first.entry_id
+      return legacyDiscoveryScore(first.entry_id, first.author_name, discoverySeed) - legacyDiscoveryScore(second.entry_id, second.author_name, discoverySeed)
+    })
+    const offset = Math.max(0, page - 1) * CHALLENGE_GALLERY_PAGE_SIZE
+    return {
+      entries: entries.slice(offset, offset + CHALLENGE_GALLERY_PAGE_SIZE),
+      totalCount: entries.length,
+    }
+  }
+  return {
+    entries: data.map(entry => ({
+      ...entry,
+      authorAvatar: pixels(entry.author_avatar),
+      pixels: pixels(entry.pixels) ?? [],
+    })) as MonthlyGalleryEntry[],
+    totalCount: Number(data[0]?.total_count ?? 0),
+  }
 }
 
 export async function loadMonthlyAccountState(challengeId: number): Promise<MonthlyAccountState> {

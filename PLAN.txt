@@ -46,6 +46,14 @@ Jelölések:
   beállítható. A csere előtt megerősítő ablak figyelmeztet a korábbi profilkép
   lecserélésére; a kliens és a szerver ugyanazt a 32 színű profilpalettát fogadja.
   A production build és az automatizált ellenőrzések sikeresek.
+- [x] A heti és havi galéria már valódi szerveroldali, hatképes lapozást használ.
+  A `Legkedveltebb`, `Felfedezés` és `Legújabb` rendezés a teljes adathalmazon fut;
+  a Felfedezés egy lapozáson belül stabil, új kiválasztáskor új sorrendet kap. A
+  havi galéria is megkapta ugyanazt a három rendezést. A kommentek nem a teljes
+  kihívással együtt töltődnek le: csak a kiválasztott kép kommentablakának
+  megnyitásakor érkeznek, húszasával lapozva. Az adatbázis-integrációs teszt, lint,
+  rajzbiztonsági regresszió és production build sikeres; az adatbázis-migráció és az
+  éles kiadás 2026-09-21-én elkészült.
 
 2026-09-20-i teljes kódaudit javítási állapot:
 - [x] A heti és havi rajz automatikus mentése sorosított; a régi kérés nem írhatja
@@ -66,16 +74,15 @@ Jelölések:
 - [x] Hálózatkimaradás után a multiplayer pixelcsomagok és a heti/havi rajzmentés
   automatikusan újraindul; a be nem küldött kihívásrajz felhasználónként és
   kihívásonként helyi vázlatban is megmarad, majd sikeres szervermentéskor törlődik.
-- [>] Következő auditcsomag: szerveroldali galéria-, komment-, rajzesemény- és
-  chatlapozás. A Hírfolyam már valódi, hatképes szerveroldali `limit`/`offset`
-  lapozást használ. A heti és havi galéria viszont még a teljes kép- és kommentlistát
-  letölti, majd a kliens szeleteli hatos oldalakra. A szobachat, a körüzenetek és a
-  rajzesemények visszatöltése szintén teljes listás. A kliens által állított online
-  jelenléti azonosító szerveres hitelesítése 2026-09-21-én elkészült.
+- [>] Következő auditcsomag: a szobachat, a körüzenetek és a rajzesemények
+  korlátozott, kurzoros visszatöltése. A Hírfolyam, a heti és a havi galéria már
+  szerveroldali, hatképes lapozást használ; a heti/havi kommentek képenként,
+  húszasával töltődnek. A kliens által állított online jelenléti azonosító szerveres
+  hitelesítése 2026-09-21-én elkészült.
 
 2026-09-19-i történeti záró állapot:
 - Az akkori kiadott commit `2be5512` volt az `agent/12-color-palette-logo` ágon.
-  A jelenlegi kiadott commit `fbf68f3`; az éles oldal: https://bitscrawl.pages.dev/
+  A korábbi kiadott commit `c9145ff` volt; az éles oldal: https://bitscrawl.pages.dev/
 - A 13/D és a 20. pont megvalósítása, ellenőrzése és élesítése elkészült. A Supabase
   helyi és távoli migrációs sora 20260919182613-ig egyezik.
 - A főmenü jelenleg öt belépési pontból áll: Játék, Kihívás, Szerkesztő, Galéria,
@@ -92,15 +99,12 @@ Jelölések:
   lefutott; az éles főmenü és a Gomba kihívás külön böngészős ellenőrzést kapott.
 
 Következő javasolt munkasorrend:
-1. A heti és havi galéria valódi, hatképes szerveroldali lapozása úgy, hogy a
-   `Legkedveltebb`, `Felfedezés` és `Legújabb` rendezés a teljes adathalmazon működjön.
-2. A kommentek igény szerinti, képenkénti betöltése és lapozása; ezután a szobachat,
-   a körüzenetek és a rajzesemények korlátozott, kurzoros visszatöltése.
-3. A 14-es teljes regresszió: többkörös multiplayer, 270/360/390 pixeles mobilnézet,
+1. A szobachat, a körüzenetek és a rajzesemények korlátozott, kurzoros visszatöltése.
+2. A 14-es teljes regresszió: többkörös multiplayer, 270/360/390 pixeles mobilnézet,
    fizikai telefon, megnyíló billentyűzet, teljes nézet, PNG-export és hálózatkimaradás.
-4. A PWA tényleges telepíthetőségi próbája, majd a 16-os MVP-kiadási ellenőrzés és
+3. A PWA tényleges telepíthetőségi próbája, majd a 16-os MVP-kiadási ellenőrzés és
    rövid üzemeltetési/tesztelési README.
-5. A végleges magyar ékezetes betűkészlet és a 13/E fordítási alap csak a fenti
+4. A végleges magyar ékezetes betűkészlet és a 13/E fordítási alap csak a fenti
    stabilizálás után következzen, hogy a mostani hibajavításokat ne keverjük nagy UI-cserével.
 
 
@@ -772,8 +776,8 @@ Részellenőrzés:
 - A 2026-09-20-i teljes kódaudit mentési, jogosultsági, hálózati és adatérvényességi
   javításai elkészültek; a helyi adatbázis-integrációs próbák, lint és production build
   többször sikeresen lefutottak.
-- A teljes lezáráshoz még egy összevont fizikai telefonos és többkörös kiadási próba,
-  valamint a nyitott szerveroldali lapozási csomag szükséges.
+- A teljes lezáráshoz még egy összevont fizikai telefonos és többkörös kiadási próba
+  szükséges.
 
 
 [>] 15. PWA – TELEPÍTHETŐ Bitscrawl

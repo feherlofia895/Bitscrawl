@@ -514,6 +514,79 @@ test('weekly and monthly gallery comments persist without exposing account ids',
   assert.equal(monthlyComments[0].content, 'Ez a béka aranyos.')
 })
 
+test('challenge galleries and entry comments are paginated and sorted on the server', async () => {
+  const firstWeeklyPage = await asUser(
+    null,
+    'select * from public.get_weekly_gallery_page($1, $2, $3, $4, $5)',
+    [challengeId, 'likes', 17, 2, 0],
+    { role: 'anon' },
+  )
+  const secondWeeklyPage = await asUser(
+    null,
+    'select * from public.get_weekly_gallery_page($1, $2, $3, $4, $5)',
+    [challengeId, 'likes', 17, 2, 2],
+    { role: 'anon' },
+  )
+  assert.equal(firstWeeklyPage.length, 2)
+  assert.equal(Number(firstWeeklyPage[0].total_count), users.length)
+  assert.equal(new Set([...firstWeeklyPage, ...secondWeeklyPage].map(entry => entry.entry_id)).size, 4)
+
+  const discovery = await asUser(
+    null,
+    'select * from public.get_weekly_gallery_page($1, $2, $3, $4, $5)',
+    [challengeId, 'discovery', 12345, 6, 0],
+    { role: 'anon' },
+  )
+  const sameDiscovery = await asUser(
+    null,
+    'select * from public.get_weekly_gallery_page($1, $2, $3, $4, $5)',
+    [challengeId, 'discovery', 12345, 6, 0],
+    { role: 'anon' },
+  )
+  const reshuffledDiscovery = await asUser(
+    null,
+    'select * from public.get_weekly_gallery_page($1, $2, $3, $4, $5)',
+    [challengeId, 'discovery', 54321, 6, 0],
+    { role: 'anon' },
+  )
+  assert.deepEqual(discovery.map(entry => entry.entry_id), sameDiscovery.map(entry => entry.entry_id))
+  assert.notDeepEqual(discovery.map(entry => entry.entry_id), reshuffledDiscovery.map(entry => entry.entry_id))
+  assert(discovery.some(entry => Number(entry.comment_count) === 2))
+  await assert.rejects(
+    asUser(null, 'select * from public.get_weekly_gallery_page($1, $2, $3, $4, $5)', [challengeId, 'invalid', 0, 6, 0], { role: 'anon' }),
+    /GALLERY_SORT_INVALID/,
+  )
+
+  const monthlyPage = await asUser(
+    null,
+    'select * from public.get_monthly_gallery_page($1, $2, $3, $4, $5)',
+    [monthlyChallengeId, 'newest', 0, 2, 0],
+    { role: 'anon' },
+  )
+  assert.equal(monthlyPage.length, 2)
+  assert.equal(Number(monthlyPage[0].total_count), 5)
+  assert(Number(monthlyPage[0].vote_count) <= 3)
+
+  const commentedEntry = discovery.find(entry => Number(entry.comment_count) === 2)
+  assert(commentedEntry)
+  const firstCommentPage = await asUser(
+    null,
+    'select * from public.get_gallery_comments_for_entry($1, $2, $3, $4)',
+    ['weekly', commentedEntry.entry_id, 1, 0],
+    { role: 'anon' },
+  )
+  const secondCommentPage = await asUser(
+    null,
+    'select * from public.get_gallery_comments_for_entry($1, $2, $3, $4)',
+    ['weekly', commentedEntry.entry_id, 1, 1],
+    { role: 'anon' },
+  )
+  assert.equal(firstCommentPage.length, 1)
+  assert.equal(Number(firstCommentPage[0].total_count), 2)
+  assert.notEqual(firstCommentPage[0].comment_id, secondCommentPage[0].comment_id)
+  assert(firstCommentPage.every(comment => !('user_id' in comment)))
+})
+
 test('voting enforces ownership, the three-vote limit and moving a vote', async () => {
   const entries = await asUser(users[0], 'select entry_id, is_own from public.get_weekly_gallery($1)', [challengeId])
   const own = entries.find(entry => entry.is_own)

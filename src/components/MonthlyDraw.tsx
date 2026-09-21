@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { emptyDrawing } from '../lib/drawing'
 import {
@@ -24,8 +24,13 @@ import { ProfileAvatar } from './ProfileAvatar'
 import { ProfilePreviewButton } from './ProfilePreviewButton'
 import { WeeklyArtwork } from './WeeklyArtwork'
 import { GalleryComments } from './GalleryComments'
-import { GALLERY_PAGE_SIZE, GalleryPagination } from './GalleryPagination'
-import { addGalleryComment, updateGalleryComment } from '../lib/galleryComments'
+import { GalleryPagination } from './GalleryPagination'
+import {
+  addGalleryComment,
+  loadGalleryCommentsForEntry,
+  updateGalleryComment,
+  type GallerySort,
+} from '../lib/galleryComments'
 import { createDrawingSaveQueue } from '../lib/drawingSaveQueue'
 import { clearChallengeDraft, loadChallengeDraft, saveChallengeDraft } from '../lib/challengeDrafts'
 
@@ -52,6 +57,10 @@ function profileNameFromUser(user: User | null) {
     : ''
 }
 
+function createDiscoverySeed() {
+  return Math.floor(Math.random() * 0x100000000) >>> 0
+}
+
 export function MonthlyDraw({
   mode,
   onBack,
@@ -76,6 +85,9 @@ export function MonthlyDraw({
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [galleryPage, setGalleryPage] = useState(1)
+  const [galleryTotal, setGalleryTotal] = useState(0)
+  const [sort, setSort] = useState<GallerySort>('likes')
+  const [discoverySeed, setDiscoverySeed] = useState(createDiscoverySeed)
   const [loadedChallengeId, setLoadedChallengeId] = useState<number | null>(null)
   const pixelsRef = useRef(emptyDrawing())
   const mountedRef = useRef(true)
@@ -83,8 +95,14 @@ export function MonthlyDraw({
   const userIdRef = useRef(user?.id ?? null)
   const localDraftStoredRef = useRef(false)
   const selectedIdRef = useRef(selectedId)
+  const galleryPageRef = useRef(galleryPage)
+  const gallerySortRef = useRef(sort)
+  const discoverySeedRef = useRef(discoverySeed)
   userIdRef.current = user?.id ?? null
   selectedIdRef.current = selectedId
+  galleryPageRef.current = galleryPage
+  gallerySortRef.current = sort
+  discoverySeedRef.current = discoverySeed
   const saveQueueRef = useRef<ReturnType<typeof createDrawingSaveQueue<number>> | null>(null)
   if (!saveQueueRef.current) {
     saveQueueRef.current = createDrawingSaveQueue({
@@ -123,8 +141,8 @@ export function MonthlyDraw({
   ) => {
     const loadVersion = ++loadVersionRef.current
     const currentUser = knownUser === undefined ? await getWeeklyUser() : knownUser
-    const [nextGallery, nextAccount] = await Promise.all([
-      loadMonthlyGallery(challengeId),
+    const [nextGalleryPage, nextAccount] = await Promise.all([
+      loadMonthlyGallery(challengeId, galleryPageRef.current, gallerySortRef.current, discoverySeedRef.current),
       currentUser ? loadMonthlyAccountState(challengeId) : Promise.resolve(blankAccount),
     ])
     if (loadVersion !== loadVersionRef.current) return false
@@ -136,7 +154,8 @@ export function MonthlyDraw({
       : nextAccount
     userIdRef.current = currentUser?.id ?? null
     setUser(currentUser)
-    setGallery(nextGallery)
+    setGallery(nextGalleryPage.entries)
+    setGalleryTotal(nextGalleryPage.totalCount)
     setAccount(mergedAccount)
     pixelsRef.current = [...(mergedAccount.entryPixels ?? emptyDrawing())]
     setDisplayName(mergedAccount.profileName ?? '')
@@ -222,6 +241,7 @@ export function MonthlyDraw({
     }
     setSelectedId(challengeId)
     setLoadedChallengeId(null)
+    galleryPageRef.current = 1
     setGalleryPage(1)
     try {
       const selectedChallenge = challenges.find(item => item.challenge_id === challengeId)
@@ -313,7 +333,6 @@ export function MonthlyDraw({
     setBusy(true)
     try {
       await addGalleryComment('monthly', entryId, content)
-      if (selectedId) await refresh(selectedId, isDrawing, user)
       setStatus('A kommented megmaradt a kép alatt.')
     } catch (error) {
       setStatus(errorMessage(error))
@@ -325,7 +344,6 @@ export function MonthlyDraw({
     setBusy(true)
     try {
       await updateGalleryComment(commentId, content)
-      if (selectedId) await refresh(selectedId, isDrawing, user)
       setStatus('A kommented módosításai elmentve.')
     } catch (error) {
       setStatus(errorMessage(error))
@@ -333,18 +351,40 @@ export function MonthlyDraw({
     } finally { setBusy(false) }
   }
 
-  const sortedGallery = useMemo(() => [...gallery].sort((a, b) =>
-    b.vote_count - a.vote_count || Date.parse(b.updated_at) - Date.parse(a.updated_at)
-  ), [gallery])
-  const galleryPageCount = Math.max(1, Math.ceil(sortedGallery.length / GALLERY_PAGE_SIZE))
-  const visibleGallery = useMemo(() => {
-    const pageStart = (galleryPage - 1) * GALLERY_PAGE_SIZE
-    return sortedGallery.slice(pageStart, pageStart + GALLERY_PAGE_SIZE)
-  }, [galleryPage, sortedGallery])
+  const handleGalleryPage = async (nextPage: number) => {
+    if (!selectedId || nextPage === galleryPage) return
+    galleryPageRef.current = nextPage
+    setGalleryPage(nextPage)
+    setLoading(true)
+    try {
+      await refresh(selectedId, isDrawing, user)
+      setStatus('A galéria következő oldala betöltve.')
+    } catch (error) {
+      setStatus(errorMessage(error))
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  useEffect(() => {
-    setGalleryPage(current => Math.min(current, galleryPageCount))
-  }, [galleryPageCount])
+  const handleGallerySort = async (nextSort: GallerySort) => {
+    if (!selectedId) return
+    const nextSeed = nextSort === 'discovery' ? createDiscoverySeed() : discoverySeedRef.current
+    gallerySortRef.current = nextSort
+    discoverySeedRef.current = nextSeed
+    galleryPageRef.current = 1
+    setSort(nextSort)
+    setDiscoverySeed(nextSeed)
+    setGalleryPage(1)
+    setLoading(true)
+    try {
+      await refresh(selectedId, isDrawing, user)
+      setStatus('A galéria rendezése frissült.')
+    } catch (error) {
+      setStatus(errorMessage(error))
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const statusLabel = challenge?.challenge_status === 'drawing' ? 'Rajzolási időszak'
     : challenge?.challenge_status === 'voting' ? 'Szavazás'
@@ -380,7 +420,7 @@ export function MonthlyDraw({
 
     {mode === 'challenge' && !isDrawing && account.submittedAt && account.entryPixels ? <section className="weekly-submitted"><WeeklyArtwork label="A havi rajzod" pixels={account.entryPixels} /><div><p className="step-label">{statusLabel}</p><h2>A beküldött rajzod biztonságban van</h2><p>A szavazási időszak kezdetétől a havi rajz már nem módosítható.</p></div></section> : null}
 
-    {mode === 'gallery' ? <section className="weekly-gallery"><div className="weekly-section-heading"><div><p className="step-label">Havi közösség</p><h2>Havi galéria</h2></div></div>{sortedGallery.length ? <><div className="weekly-gallery-grid">{visibleGallery.map(entry => <article className={`weekly-entry${entry.is_winner ? ' is-winner' : ''}`} key={entry.entry_id}>{entry.is_winner ? <span className="weekly-winner">Havi győztes</span> : null}<WeeklyArtwork label={`${entry.author_name} havi rajza`} pixels={entry.pixels} /><div className="weekly-entry-meta"><ProfilePreviewButton className="weekly-entry-author" name={entry.author_name} pixels={entry.authorAvatar}><ProfileAvatar label={`${entry.author_name} profilképe`} pixels={entry.authorAvatar} /><strong>{entry.author_name}</strong></ProfilePreviewButton><span>{entry.vote_count} szavazat</span></div><button aria-pressed={entry.has_voted} disabled={busy || loading || !accountReady || !user || !isVoting || entry.is_own || (!entry.has_voted && account.votesUsed >= 3)} onClick={() => void handleVote(entry)} type="button">{entry.is_own ? 'A te rajzod' : entry.has_voted ? 'Szavazat visszavonása' : 'Szavazok'}</button><GalleryComments artworkAuthor={entry.author_name} busy={busy} comments={entry.comments} isSignedIn={Boolean(user && account.profileName)} onSubmit={content => handleComment(entry.entry_id, content)} onUpdate={handleCommentUpdate} /></article>)}</div><GalleryPagination currentPage={galleryPage} onPageChange={setGalleryPage} totalItems={sortedGallery.length} /></> : <p className="weekly-empty">{isDrawing ? 'A havi rajzok a szavazási időszak kezdetén válnak láthatóvá.' : 'Ehhez a hónaphoz még nincs nevezés.'}</p>}</section> : null}
+    {mode === 'gallery' ? <section className="weekly-gallery"><div className="weekly-section-heading"><div><p className="step-label">Havi közösség</p><h2>Havi galéria</h2></div><label className="field weekly-sort"><span>Sorrend</span><select disabled={loading} onChange={event => void handleGallerySort(event.target.value as GallerySort)} value={sort}><option value="likes">Legkedveltebb</option><option value="discovery">Felfedezés</option><option value="newest">Legújabb</option></select></label></div>{gallery.length ? <><div className="weekly-gallery-grid">{gallery.map(entry => <article className={`weekly-entry${entry.is_winner ? ' is-winner' : ''}`} key={entry.entry_id}>{entry.is_winner ? <span className="weekly-winner">Havi győztes</span> : null}<WeeklyArtwork label={`${entry.author_name} havi rajza`} pixels={entry.pixels} /><div className="weekly-entry-meta"><ProfilePreviewButton className="weekly-entry-author" name={entry.author_name} pixels={entry.authorAvatar}><ProfileAvatar label={`${entry.author_name} profilképe`} pixels={entry.authorAvatar} /><strong>{entry.author_name}</strong></ProfilePreviewButton><span>{entry.vote_count} szavazat</span></div><button aria-pressed={entry.has_voted} disabled={busy || loading || !accountReady || !user || !isVoting || entry.is_own || (!entry.has_voted && account.votesUsed >= 3)} onClick={() => void handleVote(entry)} type="button">{entry.is_own ? 'A te rajzod' : entry.has_voted ? 'Szavazat visszavonása' : 'Szavazok'}</button><GalleryComments artworkAuthor={entry.author_name} busy={busy} commentCount={entry.comment_count} isSignedIn={Boolean(user && account.profileName)} loadComments={page => loadGalleryCommentsForEntry('monthly', entry.entry_id, page, selectedId ?? undefined)} onSubmit={content => handleComment(entry.entry_id, content)} onUpdate={handleCommentUpdate} /></article>)}</div><GalleryPagination currentPage={galleryPage} onPageChange={page => void handleGalleryPage(page)} totalItems={galleryTotal} /></> : <p className="weekly-empty">{isDrawing ? 'A havi rajzok a szavazási időszak kezdetén válnak láthatóvá.' : 'Ehhez a hónaphoz még nincs nevezés.'}</p>}</section> : null}
     <p className="status-message weekly-message" aria-live="polite">{status}</p>
   </section>
 }

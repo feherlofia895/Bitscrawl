@@ -511,6 +511,24 @@ export type Database = {
           is_own: boolean
         }[]
       }
+      get_gallery_comments_for_entry: {
+        Args: {
+          requested_limit?: number
+          requested_offset?: number
+          target_entry_id: number
+          target_kind: string
+        }
+        Returns: {
+          author_avatar: Json | null
+          author_name: string
+          comment_id: number
+          content: string
+          created_at: string
+          entry_id: number
+          is_own: boolean
+          total_count: number
+        }[]
+      }
       get_monthly_gallery: {
         Args: { target_challenge_id: number }
         Returns: {
@@ -521,6 +539,28 @@ export type Database = {
           is_own: boolean
           is_winner: boolean
           pixels: Json
+          updated_at: string
+          vote_count: number
+        }[]
+      }
+      get_monthly_gallery_page: {
+        Args: {
+          discovery_seed?: number
+          requested_limit?: number
+          requested_offset?: number
+          requested_sort?: string
+          target_challenge_id: number
+        }
+        Returns: {
+          author_avatar: Json | null
+          author_name: string
+          comment_count: number
+          entry_id: number
+          has_voted: boolean
+          is_own: boolean
+          is_winner: boolean
+          pixels: Json
+          total_count: number
           updated_at: string
           vote_count: number
         }[]
@@ -559,6 +599,28 @@ export type Database = {
           is_winner: boolean
           pixels: Json
           submitted_at: string
+          vote_count: number
+        }[]
+      }
+      get_weekly_gallery_page: {
+        Args: {
+          discovery_seed?: number
+          requested_limit?: number
+          requested_offset?: number
+          requested_sort?: string
+          target_challenge_id: number
+        }
+        Returns: {
+          author_avatar: Json | null
+          author_name: string
+          comment_count: number
+          entry_id: number
+          has_voted: boolean
+          is_own: boolean
+          is_winner: boolean
+          pixels: Json
+          submitted_at: string
+          total_count: number
           vote_count: number
         }[]
       }
