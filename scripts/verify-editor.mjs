@@ -96,6 +96,33 @@ test('the monthly canvas waits for the saved drawing before mounting', async () 
   assert.match(source, /initialPixels: account\.entryPixels \?\? emptyDrawing\(\)/)
 })
 
+test('the editor uses one share menu for the feed and both challenge entries', async () => {
+  const [editorSource, gallerySource, feedSource, cssSource] = await Promise.all([
+    readFile(new URL('../src/components/DrawingEditor.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/WeeklyDraw.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/DailyFeed.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/App.css', import.meta.url), 'utf8'),
+  ])
+  assert.match(editorSource, /<summary[^>]*>Megosztás \/ nevezés<\/summary>/)
+  assert.match(editorSource, /shareDrawing\('feed'\)/)
+  assert.match(editorSource, /shareDrawing\('weekly'\)/)
+  assert.match(editorSource, /shareDrawing\('monthly'\)/)
+  assert.match(editorSource, /A kihívások a 12 színű palettát fogadják/)
+  assert.match(editorSource, /A Hírfolyam adatbázis-frissítése még nincs telepítve/)
+  assert.match(editorSource, /shareState\.feedPostCount >= 2/)
+  assert.match(editorSource, /Megosztás a Hírfolyamban \(\$\{shareState\.feedPostCount\}\/2\)/)
+  assert.match(gallerySource, /'weekly' \| 'monthly' \| 'feed'/)
+  assert.match(gallerySource, />Hírfolyam<\/button>/)
+  assert.match(feedSource, /todayPostCount}\/2 képet tettél közzé/)
+  assert.match(feedSource, /deleteOwnDailyFeedPost\(post\.post_id\)/)
+  assert.match(feedSource, /a napi hely azonnal felszabadul/)
+  assert.match(feedSource, /FEED_DESCRIPTION_MAX_LENGTH/)
+  assert.match(feedSource, /rows=\{FEED_DESCRIPTION_MAX_LINES\}/)
+  assert.match(feedSource, /disabled=\{busy \|\| !user \|\| post\.is_own\}/)
+  assert.match(feedSource, />❤<\/button>/)
+  assert.match(cssSource, /\.feed-entry-actions\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,/)
+})
+
 test('local draft restores colors, transparency and export status', () => {
   const pixels = emptyDrawing()
   basePalette.forEach(({ hex }, index) => { pixels[index * 32 + index] = hex })

@@ -1,12 +1,15 @@
 import type { User } from '@supabase/supabase-js'
 import type { Json } from '../types/database'
 import { basePalette } from './palette'
+import { loadOwnFeedStats } from './feed'
 import { supabase } from './supabase'
 import { getWeeklyUser } from './weekly'
 
 export type PlayerProfile = {
   avatarPixels: string[] | null
   displayName: string
+  feedPostCount: number
+  receivedLikes: number
 }
 
 export type ProfileAvatarSaveResult = {
@@ -78,10 +81,15 @@ export async function loadOwnProfile(): Promise<{ profile: PlayerProfile | null;
   }
 
   if (error) throw profileError(error)
+  const feedStats = data
+    ? await loadOwnFeedStats().catch(() => ({ postCount: 0, receivedLikeCount: 0 }))
+    : { postCount: 0, receivedLikeCount: 0 }
   return {
     profile: data ? {
       avatarPixels: parseAvatarPixels(data.avatar_pixels) ?? loadLocalAvatar(user.id),
       displayName: data.display_name,
+      feedPostCount: feedStats.postCount,
+      receivedLikes: feedStats.receivedLikeCount,
     } : null,
     user,
   }

@@ -7,6 +7,21 @@ Jelölések:
 [ ] még hátra van
 
 2026-09-21-i audit- és visszajelzési állapot:
+- [>] Elkészült helyben a Galéria harmadik, `Hírfolyam` almenüje. Egy végleges
+  fiók naponta két 32×32-es képet tehet közzé, a saját képek szerkeszthetők és
+  törölhetők; egy mai kép törlése azonnal visszaad egy napi helyet. Minden képhez
+  legfeljebb 160 karakteres, maximum háromsoros leírás adható. A kártyákon a
+  szerkesztés, törlés és szív alakú kedvelés egyetlen kompakt sorban van; a saját
+  képnél a szív látszik, de nem használható. A hírfolyam
+  hatosával lapozható, a képek kedvelhetők és
+  kommentelhetők, a saját komment szerkeszthető, a kapott kedvelések összege pedig
+  megjelenik a profilon. Az adatbázis-jogosultsági, integrációs, asztali és mobilos
+  vizuális ellenőrzés kész, az adatbázis-migráció pedig élesben is fent van;
+  még a commit és a Cloudflare-frontend élesítése van hátra.
+- [x] A Szerkesztő egyetlen `Megosztás / nevezés` menüből tudja a rajzot a mai
+  hírfolyamba, az aktív heti kihívásba vagy az aktív havi kihívásba küldeni. A már
+  beküldött nevezés szerveroldalon is tiltott, a 32 színű rajz pedig csak a
+  Hírfolyamba tehető; a kihívások továbbra is a 12 színű palettát fogadják.
 - [x] A hibajelentések és az Ötletláda adatbázisa áttekintve. Három friss mobilos
   bejelentés ugyanarra a konfliktusra mutatott: a szobachat és a rögzített megfejtés
   egymásra csúszott. A chat most külön helyet hagy a tippelő sávnak, a tippelő pedig

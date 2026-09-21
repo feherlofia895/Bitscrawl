@@ -450,6 +450,55 @@ export type Database = {
           message_id: number
         }[]
       }
+      get_daily_feed: {
+        Args: { requested_limit?: number; requested_offset?: number }
+        Returns: {
+          author_avatar: Json | null
+          author_name: string
+          author_received_likes: number
+          comment_count: number
+          created_at: string
+          description: string
+          has_liked: boolean
+          is_own: boolean
+          like_count: number
+          pixels: Json
+          post_date: string
+          post_id: number
+          total_count: number
+          updated_at: string
+        }[]
+      }
+      get_daily_feed_account_state: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          post_date: string | null
+          post_id: number | null
+          post_pixels: Json | null
+          profile_name: string
+          received_like_count: number
+          today_post_count: number
+        }[]
+      }
+      get_daily_feed_comments: {
+        Args: { target_post_ids: number[] }
+        Returns: {
+          author_avatar: Json | null
+          author_name: string
+          comment_id: number
+          content: string
+          created_at: string
+          entry_id: number
+          is_own: boolean
+        }[]
+      }
+      get_own_feed_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          post_count: number
+          received_like_count: number
+        }[]
+      }
       get_gallery_comments: {
         Args: { target_challenge_id: number; target_kind: string }
         Returns: {
@@ -571,6 +620,26 @@ export type Database = {
       save_monthly_entry: {
         Args: { drawing_pixels: Json; target_challenge_id: number }
         Returns: number
+      }
+      publish_daily_feed_post: {
+        Args: { drawing_pixels: Json; requested_description?: string; target_post_id?: number | null }
+        Returns: number
+      }
+      delete_own_daily_feed_post: {
+        Args: { target_post_id: number }
+        Returns: boolean
+      }
+      set_daily_feed_like: {
+        Args: { like_enabled: boolean; target_post_id: number }
+        Returns: { active_like_count: number; liked: boolean }[]
+      }
+      add_daily_feed_comment: {
+        Args: { requested_content: string; target_post_id: number }
+        Returns: number
+      }
+      update_daily_feed_comment: {
+        Args: { requested_content: string; target_comment_id: number }
+        Returns: string
       }
       submit_monthly_entry: {
         Args: { target_challenge_id: number }

@@ -7,11 +7,13 @@ export function ProfilePreviewButton({
   className = '',
   name,
   pixels,
+  receivedLikes,
 }: {
   children: ReactNode
   className?: string
   name: string
   pixels: string[] | null
+  receivedLikes?: number
 }) {
   const [open, setOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
@@ -61,6 +63,7 @@ export function ProfilePreviewButton({
           <p className="step-label">Játékosprofil</p>
           <ProfileAvatar className="profile-preview-avatar" label={`${name} profilképe nagy méretben`} pixels={pixels} />
           <h2 id="profile-preview-title">{name}</h2>
+          {receivedLikes !== undefined ? <p className="profile-preview-likes"><strong>{receivedLikes}</strong> kapott kedvelés</p> : null}
           {!pixels ? <p className="profile-preview-empty">Még nincs megrajzolt profilképe.</p> : null}
           <button className="profile-preview-close" onClick={close} ref={closeRef} type="button">Bezárás</button>
         </section>

@@ -177,6 +177,10 @@ export function ProfilePanel({ onBack, onProfileChange }: {
               <p className="step-label">Belépve</p>
               <h2>{profile?.displayName ?? user.email ?? 'Játékos'}</h2>
               <p>{user.email}</p>
+              <div className="profile-feed-stats" aria-label="Hírfolyam statisztikák">
+                <span><strong>{profile?.receivedLikes ?? 0}</strong> kapott kedvelés</span>
+                <span><strong>{profile?.feedPostCount ?? 0}</strong> közzétett kép</span>
+              </div>
             </div>
             <button disabled={busy} onClick={() => void handleSignOut()} type="button">Kilépés</button>
           </section>

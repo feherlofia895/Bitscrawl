@@ -55,10 +55,12 @@ function profileNameFromUser(user: User | null) {
 export function MonthlyDraw({
   mode,
   onBack,
+  onSelectFeed,
   onSelectWeekly,
 }: {
   mode: 'challenge' | 'gallery'
   onBack: () => void
+  onSelectFeed: () => void
   onSelectWeekly: () => void
 }) {
   const [challenges, setChallenges] = useState<MonthlyChallenge[]>([])
@@ -356,6 +358,7 @@ export function MonthlyDraw({
     <nav className="challenge-period-switch" aria-label="Kihívás időtartama">
       <button disabled={busy} onClick={() => void leavePage(onSelectWeekly)} type="button">{mode === 'gallery' ? 'Heti galéria' : 'Heti kihívás'}</button>
       <button aria-pressed="true" type="button">{mode === 'gallery' ? 'Havi galéria' : 'Havi kihívás'}</button>
+      {mode === 'gallery' ? <button disabled={busy} onClick={() => void leavePage(onSelectFeed)} type="button">Hírfolyam</button> : null}
     </nav>
 
     {challenge ? <section className="weekly-challenge-card">

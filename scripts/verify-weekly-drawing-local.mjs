@@ -117,6 +117,136 @@ test('profile avatars are validated, private and copied beside room names', asyn
   assert.deepEqual(roomAvatar, updatedAvatar)
 })
 
+test('daily feed limits posts by Budapest day and protects likes, comments and profile totals', async () => {
+  const expandedDrawing = drawing('#f7f3e8')
+  await assert.rejects(
+    asUser(anonymousUser, 'select public.publish_daily_feed_post($1::jsonb)', [JSON.stringify(expandedDrawing)], { anonymous: true }),
+    /WEEKLY_ACCOUNT_REQUIRED/,
+  )
+  await assert.rejects(
+    asUser(users[0], 'select public.publish_daily_feed_post($1::jsonb)', [JSON.stringify(Array(1024).fill('transparent'))]),
+    /FEED_DRAWING_INVALID/,
+  )
+  await assert.rejects(
+    asUser(users[0], 'select public.publish_daily_feed_post($1::jsonb)', [JSON.stringify(drawing('#ffffff'))]),
+    /FEED_DRAWING_INVALID/,
+  )
+  await assert.rejects(
+    asUser(
+      users[0],
+      'select public.publish_daily_feed_post($1::jsonb, null, $2)',
+      [JSON.stringify(expandedDrawing), 'x'.repeat(161)],
+    ),
+    /FEED_DESCRIPTION_INVALID/,
+  )
+  await assert.rejects(
+    asUser(
+      users[0],
+      'select public.publish_daily_feed_post($1::jsonb, null, $2)',
+      [JSON.stringify(expandedDrawing), 'egy\nkettő\nhárom\nnégy'],
+    ),
+    /FEED_DESCRIPTION_INVALID/,
+  )
+
+  const [{ publish_daily_feed_post: firstPostId }] = await asUser(
+    users[0],
+    'select public.publish_daily_feed_post($1::jsonb, null, $2)',
+    [JSON.stringify(expandedDrawing), 'Első sor\nMásodik sor\nHarmadik sor'],
+  )
+  const [{ publish_daily_feed_post: secondOwnPostId }] = await asUser(
+    users[0], 'select public.publish_daily_feed_post($1::jsonb)', [JSON.stringify(drawing(colors[0]))],
+  )
+  assert.notEqual(secondOwnPostId, firstPostId)
+  await assert.rejects(
+    asUser(users[0], 'select public.publish_daily_feed_post($1::jsonb)', [JSON.stringify(drawing(colors[2]))]),
+    /FEED_DAILY_LIMIT/,
+  )
+  const [{ publish_daily_feed_post: editedOwnPostId }] = await asUser(
+    users[0],
+    'select public.publish_daily_feed_post($1::jsonb, $2, $3)',
+    [JSON.stringify(drawing(colors[3])), secondOwnPostId, 'Szerkesztett leírás'],
+  )
+  assert.equal(editedOwnPostId, secondOwnPostId)
+  assert.equal((await db.query('select count(*)::integer as count from public.feed_posts where user_id = $1', [users[0]])).rows[0].count, 2)
+
+  const [{ publish_daily_feed_post: otherUserPostId }] = await asUser(
+    users[1], 'select public.publish_daily_feed_post($1::jsonb)', [JSON.stringify(drawing(colors[1]))],
+  )
+  await assert.rejects(
+    asUser(users[1], 'select public.publish_daily_feed_post($1::jsonb, $2)', [JSON.stringify(drawing(colors[4])), firstPostId]),
+    /FEED_POST_NOT_OWN/,
+  )
+  await assert.rejects(asUser(users[0], 'select * from public.feed_posts'), /permission denied/)
+
+  const guestFeed = await asUser(null, 'select * from public.get_daily_feed(6, 0)', [], { role: 'anon' })
+  assert.equal(guestFeed.length, 3)
+  assert(guestFeed.every(post => Number(post.total_count) === 3 && !('user_id' in post)))
+  assert.deepEqual(guestFeed.find(post => post.post_id === firstPostId).pixels, expandedDrawing)
+  assert.equal(guestFeed.find(post => post.post_id === firstPostId).description, 'Első sor\nMásodik sor\nHarmadik sor')
+  assert.equal(guestFeed.find(post => post.post_id === secondOwnPostId).description, 'Szerkesztett leírás')
+
+  await assert.rejects(
+    asUser(users[0], 'select * from public.set_daily_feed_like($1, true)', [firstPostId]),
+    /FEED_OWN_LIKE_FORBIDDEN/,
+  )
+  await asUser(users[2], 'select * from public.set_daily_feed_like($1, true)', [firstPostId])
+  await asUser(users[2], 'select * from public.set_daily_feed_like($1, true)', [firstPostId])
+  const [account] = await asUser(users[0], 'select * from public.get_daily_feed_account_state()')
+  assert.equal(account.received_like_count, 1)
+  assert.equal(account.today_post_count, 2)
+  const [stats] = await asUser(users[0], 'select * from public.get_own_feed_stats()')
+  assert.equal(stats.post_count, 2)
+  assert.equal(stats.received_like_count, 1)
+
+  await assert.rejects(
+    asUser(users[2], 'select public.add_daily_feed_comment($1, $2)', [firstPostId, '   ']),
+    /GALLERY_COMMENT_INVALID/,
+  )
+  await asUser(users[2], 'select public.add_daily_feed_comment($1, $2)', [firstPostId, '  Nagyon   jó!  '])
+  await assert.rejects(
+    asUser(users[2], 'select public.add_daily_feed_comment($1, $2)', [otherUserPostId, 'Túl gyors']),
+    /GALLERY_COMMENT_RATE_LIMIT/,
+  )
+  await asUser(users[3], 'select public.add_daily_feed_comment($1, $2)', [firstPostId, 'Nekem is tetszik.'])
+  const comments = await asUser(null, 'select * from public.get_daily_feed_comments($1)', [[firstPostId]], { role: 'anon' })
+  assert.deepEqual(comments.map(comment => comment.content), ['Nagyon jó!', 'Nekem is tetszik.'])
+  assert(comments.every(comment => !('user_id' in comment)))
+  await assert.rejects(
+    asUser(users[3], 'select public.update_daily_feed_comment($1, $2)', [comments[0].comment_id, 'Nem az enyém']),
+    /GALLERY_COMMENT_NOT_OWN/,
+  )
+  await asUser(users[2], 'select public.update_daily_feed_comment($1, $2)', [comments[0].comment_id, 'Még mindig jó!'])
+  const edited = await asUser(null, 'select * from public.get_daily_feed_comments($1)', [[firstPostId]], { role: 'anon' })
+  assert.equal(edited[0].content, 'Még mindig jó!')
+
+  await assert.rejects(
+    asUser(users[3], 'select public.delete_own_daily_feed_post($1)', [firstPostId]),
+    /FEED_POST_NOT_OWN/,
+  )
+  const [{ delete_own_daily_feed_post: deleted }] = await asUser(
+    users[0], 'select public.delete_own_daily_feed_post($1)', [firstPostId],
+  )
+  assert.equal(deleted, true)
+  assert.equal((await db.query('select count(*)::integer as count from public.feed_likes where post_id = $1', [firstPostId])).rows[0].count, 0)
+  assert.equal((await db.query('select count(*)::integer as count from public.feed_comments where post_id = $1', [firstPostId])).rows[0].count, 0)
+  const [afterDelete] = await asUser(users[0], 'select * from public.get_daily_feed_account_state()')
+  assert.equal(afterDelete.today_post_count, 1)
+
+  const [{ publish_daily_feed_post: replacementPostId }] = await asUser(
+    users[0], 'select public.publish_daily_feed_post($1::jsonb)', [JSON.stringify(drawing(colors[2]))],
+  )
+  assert.notEqual(replacementPostId, firstPostId)
+  await db.query('update public.feed_posts set post_date = post_date - 1 where user_id = $1', [users[0]])
+  await asUser(users[0], 'select public.publish_daily_feed_post($1::jsonb)', [JSON.stringify(drawing(colors[2]))])
+  await asUser(users[0], 'select public.publish_daily_feed_post($1::jsonb)', [JSON.stringify(drawing(colors[3]))])
+  await assert.rejects(
+    asUser(users[0], 'select public.publish_daily_feed_post($1::jsonb)', [JSON.stringify(drawing(colors[4]))]),
+    /FEED_DAILY_LIMIT/,
+  )
+  const [nextDayStats] = await asUser(users[0], 'select * from public.get_own_feed_stats()')
+  assert.equal(nextDayStats.post_count, 4)
+})
+
 test('global lobby authenticates presence, exposes only safe profile fields and persists rate-limited chat', async () => {
   await assert.rejects(
     asUser(anonymousUser, 'select public.touch_global_lobby_presence()', [], { anonymous: true }),

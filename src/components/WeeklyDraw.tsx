@@ -23,6 +23,7 @@ import { ProfileAvatar } from './ProfileAvatar'
 import { ProfilePreviewButton } from './ProfilePreviewButton'
 import { WeeklyArtwork } from './WeeklyArtwork'
 import { MonthlyDraw } from './MonthlyDraw'
+import { DailyFeed } from './DailyFeed'
 import { GalleryComments } from './GalleryComments'
 import { GALLERY_PAGE_SIZE, GalleryPagination } from './GalleryPagination'
 import { addGalleryComment, updateGalleryComment } from '../lib/galleryComments'
@@ -53,7 +54,7 @@ function discoveryScore(entry: WeeklyGalleryEntry) {
   return hash >>> 0
 }
 
-function WeeklyDrawContent({ mode, onBack, onSelectMonthly }: { mode: 'challenge' | 'gallery'; onBack: () => void; onSelectMonthly: () => void }) {
+function WeeklyDrawContent({ mode, onBack, onSelectFeed, onSelectMonthly }: { mode: 'challenge' | 'gallery'; onBack: () => void; onSelectFeed: () => void; onSelectMonthly: () => void }) {
   const [challenges, setChallenges] = useState<WeeklyChallenge[]>([])
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [gallery, setGallery] = useState<WeeklyGalleryEntry[]>([])
@@ -376,6 +377,7 @@ function WeeklyDrawContent({ mode, onBack, onSelectMonthly }: { mode: 'challenge
       <nav className="challenge-period-switch" aria-label="Kihívás időtartama">
         <button aria-pressed="true" type="button">{mode === 'gallery' ? 'Heti galéria' : 'Heti kihívás'}</button>
         <button disabled={busy} onClick={() => void leavePage(onSelectMonthly)} type="button">{mode === 'gallery' ? 'Havi galéria' : 'Havi kihívás'}</button>
+        {mode === 'gallery' ? <button disabled={busy} onClick={() => void leavePage(onSelectFeed)} type="button">Hírfolyam</button> : null}
       </nav>
 
       {challenge ? (
@@ -496,8 +498,11 @@ function WeeklyDrawContent({ mode, onBack, onSelectMonthly }: { mode: 'challenge
 }
 
 export function WeeklyDraw({ mode, onBack }: { mode: 'challenge' | 'gallery'; onBack: () => void }) {
-  const [period, setPeriod] = useState<'weekly' | 'monthly'>('weekly')
+  const [period, setPeriod] = useState<'weekly' | 'monthly' | 'feed'>('weekly')
+  if (mode === 'gallery' && period === 'feed') {
+    return <DailyFeed onBack={onBack} onSelectMonthly={() => setPeriod('monthly')} onSelectWeekly={() => setPeriod('weekly')} />
+  }
   return period === 'monthly'
-    ? <MonthlyDraw mode={mode} onBack={onBack} onSelectWeekly={() => setPeriod('weekly')} />
-    : <WeeklyDrawContent mode={mode} onBack={onBack} onSelectMonthly={() => setPeriod('monthly')} />
+    ? <MonthlyDraw mode={mode} onBack={onBack} onSelectFeed={() => setPeriod('feed')} onSelectWeekly={() => setPeriod('weekly')} />
+    : <WeeklyDrawContent mode={mode} onBack={onBack} onSelectFeed={() => setPeriod('feed')} onSelectMonthly={() => setPeriod('monthly')} />
 }
