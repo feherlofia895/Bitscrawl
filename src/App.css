@@ -1792,6 +1792,10 @@ footer {
   box-shadow: 3px 3px 0 var(--ink);
 }
 
+.guess-submit-short {
+  display: none;
+}
+
 .chat-form button {
   color: var(--paper);
   background: var(--violet);
@@ -2412,6 +2416,38 @@ button,
 
   .chat-heading-actions > span {
     display: none;
+  }
+
+  @media (max-width: 400px) {
+    .round-play-area.is-guesser .guess-panel.is-guessing {
+      padding: 8px;
+    }
+
+    .round-play-area.is-guesser .guess-panel.is-guessing .round-chat-heading {
+      display: none;
+    }
+
+    .round-play-area.is-guesser .guess-panel.is-guessing .guess-form {
+      grid-template-columns: minmax(0, 1fr) 78px;
+    }
+
+    .round-play-area.is-guesser .guess-panel.is-guessing .guess-form input {
+      max-width: 100%;
+      padding-inline: 8px;
+    }
+
+    .round-play-area.is-guesser .guess-panel.is-guessing .guess-form button {
+      min-width: 0;
+      padding-inline: 6px;
+    }
+
+    .guess-submit-long {
+      display: none;
+    }
+
+    .guess-submit-short {
+      display: inline;
+    }
   }
 
   .confirm-modal-actions {

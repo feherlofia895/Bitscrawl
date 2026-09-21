@@ -121,6 +121,16 @@ test('a selected gallery vote uses one plain color instead of layered button art
   assert.doesNotMatch(selectedVoteRule, /url\(/)
 })
 
+test('gallery defaults to most-liked while discovery receives a fresh random order', async () => {
+  const weeklyDraw = await readFile(new URL('../src/components/WeeklyDraw.tsx', import.meta.url), 'utf8')
+
+  assert.match(weeklyDraw, /useState<GallerySort>\('likes'\)/)
+  assert.match(weeklyDraw, /function createDiscoverySeed\(\)[\s\S]*?Math\.random\(\)/)
+  assert.match(weeklyDraw, /discoveryScore\(first, discoverySeed\) - discoveryScore\(second, discoverySeed\)/)
+  assert.match(weeklyDraw, /nextSort === 'discovery'\) setDiscoverySeed\(createDiscoverySeed\(\)\)/)
+  assert.match(weeklyDraw, /<option value="likes">Legkedveltebb<\/option><option value="discovery">Felfedezés<\/option>/)
+})
+
 test('mobile guessers keep a compact guess dock visible below the live drawing and room chat', async () => {
   const [app, chat, roomChat, css] = await Promise.all([
     readFile(new URL('../src/App.tsx', import.meta.url), 'utf8'),
@@ -136,6 +146,19 @@ test('mobile guessers keep a compact guess dock visible below the live drawing a
   assert.match(css, /\.mobile-chat-toggle\.has-guess-bar\s*\{[^}]*bottom:\s*calc\(/)
   assert.match(css, /\.room-chat\.has-guess-bar\s*\{[^}]*bottom:\s*calc\(/)
   assert.match(css, /\.round-play-area \.guess-panel\s*\{[\s\S]*?order:\s*1/)
+})
+
+test('very narrow phones keep the guess input readable beside a compact send button', async () => {
+  const [chat, css] = await Promise.all([
+    readFile(new URL('../src/components/RoundChat.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/App.css', import.meta.url), 'utf8'),
+  ])
+
+  assert.match(chat, /className="guess-submit-long">Tipp küldése/)
+  assert.match(chat, /className="guess-submit-short">Küldés/)
+  assert.match(css, /@media \(max-width: 400px\)[\s\S]*?\.guess-panel\.is-guessing \.round-chat-heading\s*\{\s*display:\s*none;/)
+  assert.match(css, /@media \(max-width: 400px\)[\s\S]*?\.guess-panel\.is-guessing \.guess-form\s*\{\s*grid-template-columns:\s*minmax\(0, 1fr\) 78px;/)
+  assert.match(css, /@media \(max-width: 400px\)[\s\S]*?\.guess-panel\.is-guessing \.guess-form input\s*\{[\s\S]*?max-width:\s*100%;/)
 })
 
 test('the same guess form stays available over immersive canvas on desktop and mobile', async () => {

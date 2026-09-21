@@ -126,8 +126,19 @@ export function RoundChat({
             type="text"
             value={guess}
           />
-          <button disabled={isSubmitting || !guess.trim()} type="submit">
-            {isSubmitting ? 'Küldés…' : 'Tipp küldése'}
+          <button
+            aria-label={isSubmitting ? 'Tipp küldése folyamatban' : 'Tipp küldése'}
+            disabled={isSubmitting || !guess.trim()}
+            type="submit"
+          >
+            {isSubmitting ? (
+              'Küldés…'
+            ) : (
+              <>
+                <span className="guess-submit-long">Tipp küldése</span>
+                <span aria-hidden="true" className="guess-submit-short">Küldés</span>
+              </>
+            )}
           </button>
         </form>
       )}

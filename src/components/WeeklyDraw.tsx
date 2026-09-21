@@ -48,8 +48,12 @@ function dateLabel(value: string) {
   return new Intl.DateTimeFormat('hu-HU', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
 }
 
-function discoveryScore(entry: WeeklyGalleryEntry) {
-  let hash = entry.entry_id * 2654435761
+function createDiscoverySeed() {
+  return Math.floor(Math.random() * 0x100000000) >>> 0
+}
+
+function discoveryScore(entry: WeeklyGalleryEntry, seed: number) {
+  let hash = (entry.entry_id * 2654435761) ^ seed
   for (const char of entry.author_name) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619)
   return hash >>> 0
 }
@@ -63,7 +67,8 @@ function WeeklyDrawContent({ mode, onBack, onSelectFeed, onSelectMonthly }: { mo
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState('A heti kihívás betöltése…')
-  const [sort, setSort] = useState<GallerySort>('discovery')
+  const [sort, setSort] = useState<GallerySort>('likes')
+  const [discoverySeed, setDiscoverySeed] = useState(createDiscoverySeed)
   const [galleryPage, setGalleryPage] = useState(1)
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
@@ -349,8 +354,8 @@ function WeeklyDrawContent({ mode, onBack, onSelectFeed, onSelectMonthly }: { mo
   const sortedGallery = useMemo(() => [...gallery].sort((first, second) => {
     if (sort === 'likes') return second.vote_count - first.vote_count || second.entry_id - first.entry_id
     if (sort === 'newest') return Date.parse(second.submitted_at) - Date.parse(first.submitted_at)
-    return discoveryScore(first) - discoveryScore(second)
-  }), [gallery, sort])
+    return discoveryScore(first, discoverySeed) - discoveryScore(second, discoverySeed)
+  }), [discoverySeed, gallery, sort])
   const galleryPageCount = Math.max(1, Math.ceil(sortedGallery.length / GALLERY_PAGE_SIZE))
   const visibleGallery = useMemo(() => {
     const pageStart = (galleryPage - 1) * GALLERY_PAGE_SIZE
@@ -467,7 +472,7 @@ function WeeklyDrawContent({ mode, onBack, onSelectFeed, onSelectMonthly }: { mo
       {mode === 'gallery' ? <section className="weekly-gallery" aria-labelledby="weekly-gallery-title">
         <div className="weekly-section-heading">
           <div><p className="step-label">Közösség</p><h2 id="weekly-gallery-title">Galéria</h2></div>
-          <label className="field weekly-sort"><span>Sorrend</span><select onChange={event => { setSort(event.target.value as GallerySort); setGalleryPage(1) }} value={sort}><option value="discovery">Felfedezés</option><option value="likes">Legkedveltebb</option><option value="newest">Legújabb</option></select></label>
+          <label className="field weekly-sort"><span>Sorrend</span><select onChange={event => { const nextSort = event.target.value as GallerySort; if (nextSort === 'discovery') setDiscoverySeed(createDiscoverySeed()); setSort(nextSort); setGalleryPage(1) }} value={sort}><option value="likes">Legkedveltebb</option><option value="discovery">Felfedezés</option><option value="newest">Legújabb</option></select></label>
         </div>
         {sortedGallery.length ? <>
           <div className="weekly-gallery-grid">{visibleGallery.map(entry => (
