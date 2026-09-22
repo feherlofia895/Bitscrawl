@@ -429,7 +429,17 @@ test('monthly challenge keeps entries editable only before the seven-day voting 
   const [account] = await asUser(users[0], 'select * from public.get_monthly_account_state($1)', [monthlyChallengeId])
   assert.deepEqual(account.entry_pixels, drawing(colors[5]))
   assert(account.submitted_at)
-  assert.equal((await asUser(null, 'select * from public.get_monthly_gallery($1)', [monthlyChallengeId], { role: 'anon' })).length, 0)
+  const drawingPeriodGallery = await asUser(null, 'select * from public.get_monthly_gallery($1)', [monthlyChallengeId], { role: 'anon' })
+  assert.equal(drawingPeriodGallery.length, 5)
+  assert(drawingPeriodGallery.every(entry => Number(entry.vote_count) === 0 && entry.has_voted === false))
+  const drawingPeriodPage = await asUser(
+    null,
+    'select * from public.get_monthly_gallery_page($1, $2, $3, $4, $5)',
+    [monthlyChallengeId, 'newest', 0, 6, 0],
+    { role: 'anon' },
+  )
+  assert.equal(drawingPeriodPage.length, 5)
+  assert.equal(Number(drawingPeriodPage[0].total_count), 5)
 
   const [{ id: targetBeforeVoting }] = (await db.query(
     'select id from public.monthly_entries where challenge_id = $1 and user_id = $2',

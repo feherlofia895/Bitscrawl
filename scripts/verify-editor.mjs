@@ -124,6 +124,11 @@ test('the monthly canvas waits for the saved drawing before mounting', async () 
   assert.match(source, /initialPixels: account\.entryPixels \?\? emptyDrawing\(\)/)
 })
 
+test('monthly gallery keeps comments hidden until voting starts', async () => {
+  const source = await readFile(new URL('../src/components/MonthlyDraw.tsx', import.meta.url), 'utf8')
+  assert.match(source, /isDrawing \? null : <GalleryComments/)
+})
+
 test('the editor uses one share menu for the feed and both challenge entries', async () => {
   const [editorSource, gallerySource, feedSource, cssSource] = await Promise.all([
     readFile(new URL('../src/components/DrawingEditor.tsx', import.meta.url), 'utf8'),
