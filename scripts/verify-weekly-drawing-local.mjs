@@ -259,12 +259,20 @@ test('daily feed limits posts by Budapest day and protects likes, comments and p
   )
   await assert.rejects(asUser(users[0], 'select * from public.feed_posts'), /permission denied/)
 
-  const guestFeed = await asUser(null, 'select * from public.get_daily_feed(6, 0)', [], { role: 'anon' })
-  assert.equal(guestFeed.length, 3)
-  assert(guestFeed.every(post => Number(post.total_count) === 3 && !('user_id' in post)))
-  assert.deepEqual(guestFeed.find(post => post.post_id === firstPostId).pixels, expandedDrawing)
-  assert.equal(guestFeed.find(post => post.post_id === firstPostId).description, 'Első sor\nMásodik sor\nHarmadik sor')
-  assert.equal(guestFeed.find(post => post.post_id === secondOwnPostId).description, 'Szerkesztett leírás')
+  await assert.rejects(
+    asUser(null, 'select * from public.get_daily_feed(6, 0)', [], { role: 'anon' }),
+    /permission denied/,
+  )
+  await assert.rejects(
+    asUser(anonymousUser, 'select * from public.get_daily_feed(6, 0)', [], { anonymous: true }),
+    /WEEKLY_ACCOUNT_REQUIRED/,
+  )
+  const signedInFeed = await asUser(users[0], 'select * from public.get_daily_feed(6, 0)')
+  assert.equal(signedInFeed.length, 3)
+  assert(signedInFeed.every(post => Number(post.total_count) === 3 && !('user_id' in post)))
+  assert.deepEqual(signedInFeed.find(post => post.post_id === firstPostId).pixels, expandedDrawing)
+  assert.equal(signedInFeed.find(post => post.post_id === firstPostId).description, 'Első sor\nMásodik sor\nHarmadik sor')
+  assert.equal(signedInFeed.find(post => post.post_id === secondOwnPostId).description, 'Szerkesztett leírás')
 
   await assert.rejects(
     asUser(users[0], 'select * from public.set_daily_feed_like($1, true)', [firstPostId]),
@@ -272,19 +280,27 @@ test('daily feed limits posts by Budapest day and protects likes, comments and p
   )
   await asUser(users[2], 'select * from public.set_daily_feed_like($1, true)', [firstPostId])
   await asUser(users[2], 'select * from public.set_daily_feed_like($1, true)', [firstPostId])
-  const likedFeed = await asUser(null, "select * from public.get_daily_feed_page(6, 0, 'likes', 0)", [], { role: 'anon' })
+  await assert.rejects(
+    asUser(null, "select * from public.get_daily_feed_page(6, 0, 'likes', 0)", [], { role: 'anon' }),
+    /permission denied/,
+  )
+  await assert.rejects(
+    asUser(anonymousUser, "select * from public.get_daily_feed_page(6, 0, 'likes', 0)", [], { anonymous: true }),
+    /WEEKLY_ACCOUNT_REQUIRED/,
+  )
+  const likedFeed = await asUser(users[0], "select * from public.get_daily_feed_page(6, 0, 'likes', 0)")
   assert.equal(likedFeed[0].post_id, firstPostId)
-  const newestFeed = await asUser(null, "select * from public.get_daily_feed_page(6, 0, 'newest', 0)", [], { role: 'anon' })
+  const newestFeed = await asUser(users[0], "select * from public.get_daily_feed_page(6, 0, 'newest', 0)")
   assert.deepEqual(newestFeed.map(post => post.post_id), [otherUserPostId, secondOwnPostId, firstPostId])
-  const discoveryFeed = await asUser(null, "select * from public.get_daily_feed_page(6, 0, 'discovery', 418)", [], { role: 'anon' })
-  const repeatedDiscoveryFeed = await asUser(null, "select * from public.get_daily_feed_page(6, 0, 'discovery', 418)", [], { role: 'anon' })
+  const discoveryFeed = await asUser(users[0], "select * from public.get_daily_feed_page(6, 0, 'discovery', 418)")
+  const repeatedDiscoveryFeed = await asUser(users[0], "select * from public.get_daily_feed_page(6, 0, 'discovery', 418)")
   assert.deepEqual(repeatedDiscoveryFeed.map(post => post.post_id), discoveryFeed.map(post => post.post_id))
   assert(discoveryFeed.every(post => Number(post.total_count) === 3))
-  const discoveryPageOne = await asUser(null, "select * from public.get_daily_feed_page(2, 0, 'discovery', 418)", [], { role: 'anon' })
-  const discoveryPageTwo = await asUser(null, "select * from public.get_daily_feed_page(2, 2, 'discovery', 418)", [], { role: 'anon' })
+  const discoveryPageOne = await asUser(users[0], "select * from public.get_daily_feed_page(2, 0, 'discovery', 418)")
+  const discoveryPageTwo = await asUser(users[0], "select * from public.get_daily_feed_page(2, 2, 'discovery', 418)")
   assert.equal(new Set([...discoveryPageOne, ...discoveryPageTwo].map(post => post.post_id)).size, 3)
   await assert.rejects(
-    asUser(null, "select * from public.get_daily_feed_page(6, 0, 'unknown', 0)", [], { role: 'anon' }),
+    asUser(users[0], "select * from public.get_daily_feed_page(6, 0, 'unknown', 0)"),
     /FEED_SORT_INVALID/,
   )
   const [account] = await asUser(users[0], 'select * from public.get_daily_feed_account_state()')
@@ -304,7 +320,15 @@ test('daily feed limits posts by Budapest day and protects likes, comments and p
     /GALLERY_COMMENT_RATE_LIMIT/,
   )
   await asUser(users[3], 'select public.add_daily_feed_comment($1, $2)', [firstPostId, 'Nekem is tetszik.'])
-  const comments = await asUser(null, 'select * from public.get_daily_feed_comments($1)', [[firstPostId]], { role: 'anon' })
+  await assert.rejects(
+    asUser(null, 'select * from public.get_daily_feed_comments($1)', [[firstPostId]], { role: 'anon' }),
+    /permission denied/,
+  )
+  await assert.rejects(
+    asUser(anonymousUser, 'select * from public.get_daily_feed_comments($1)', [[firstPostId]], { anonymous: true }),
+    /WEEKLY_ACCOUNT_REQUIRED/,
+  )
+  const comments = await asUser(users[0], 'select * from public.get_daily_feed_comments($1)', [[firstPostId]])
   assert.deepEqual(comments.map(comment => comment.content), ['Nagyon jó!', 'Nekem is tetszik.'])
   assert(comments.every(comment => !('user_id' in comment)))
   await assert.rejects(
@@ -312,7 +336,7 @@ test('daily feed limits posts by Budapest day and protects likes, comments and p
     /GALLERY_COMMENT_NOT_OWN/,
   )
   await asUser(users[2], 'select public.update_daily_feed_comment($1, $2)', [comments[0].comment_id, 'Még mindig jó!'])
-  const edited = await asUser(null, 'select * from public.get_daily_feed_comments($1)', [[firstPostId]], { role: 'anon' })
+  const edited = await asUser(users[0], 'select * from public.get_daily_feed_comments($1)', [[firstPostId]])
   assert.equal(edited[0].content, 'Még mindig jó!')
 
   await assert.rejects(

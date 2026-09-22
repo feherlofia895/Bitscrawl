@@ -96,9 +96,16 @@ export function DailyFeed({
 
   const refresh = useCallback(async (requestedPage: number, knownUser?: User | null) => {
     const currentUser = knownUser === undefined ? await getWeeklyUser() : knownUser
+    if (!currentUser) {
+      setUser(null)
+      setPosts([])
+      setTotalCount(0)
+      setAccount(null)
+      return
+    }
     const [feedPage, nextAccount] = await Promise.all([
       loadDailyFeed(requestedPage, sortRef.current, discoverySeedRef.current),
-      currentUser ? loadDailyFeedAccountState() : Promise.resolve(null),
+      loadDailyFeedAccountState(),
     ])
     setUser(currentUser)
     setPosts(feedPage.posts)
@@ -285,10 +292,10 @@ export function DailyFeed({
     </nav>
 
     {!loading && !user ? <section className="weekly-account-card">
-      <div><p className="step-label">Saját kép</p><h2>Jelentkezz be a közzétételhez</h2><p>A képeket fiók nélkül is megnézheted. Megosztani, kedvelni és hozzászólni bejelentkezve lehet.</p></div>
+      <div><p className="step-label">Bejelentkezés szükséges</p><h2>A hírfolyam csak belépés után látható</h2><p>Belépéshez vagy regisztrációhoz nyisd meg a profilodat a jobb felső sarokban.</p></div>
     </section> : null}
 
-    {user && account ? <section className={`feed-composer${editorOpen ? ' is-editor-open' : ''}`}>
+    {user && account ? <><section className={`feed-composer${editorOpen ? ' is-editor-open' : ''}`}>
       <div className="feed-composer-heading">
         <div>
           <p className="step-label">A mai képed</p>
@@ -331,7 +338,7 @@ export function DailyFeed({
           {busy ? 'Mentés…' : editingPostId ? 'Kép frissítése' : 'Közzététel'}
         </button>
       </div> : null}
-    </section> : null}
+    </section>
 
     <section className="weekly-gallery" aria-labelledby="feed-gallery-title">
       <div className="weekly-section-heading">
@@ -382,6 +389,6 @@ export function DailyFeed({
         void handleDelete(target)
       }}
       title="Törlöd a saját képedet?"
-    /> : null}
+    /> : null}</> : null}
   </section>
 }
