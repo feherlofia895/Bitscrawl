@@ -184,6 +184,19 @@ test('the mobile lobby chat keeps its composer inside the panel', async () => {
   assert.match(css, /@media \(max-width: 760px\)[\s\S]*?\.global-lobby-chat\s*\{[\s\S]*?grid-template-rows:\s*auto minmax\(0, 1fr\) auto;[\s\S]*?overflow:\s*hidden;/)
 })
 
+test('very narrow mobile layouts can shrink below 320px without clipping editor controls', async () => {
+  const [appCss, rootCss] = await Promise.all([
+    readFile(new URL('../src/App.css', import.meta.url), 'utf8'),
+    readFile(new URL('../src/index.css', import.meta.url), 'utf8'),
+  ])
+
+  assert.match(rootCss, /html\s*\{[^}]*min-width:\s*0;/)
+  assert.match(rootCss, /body\s*\{[^}]*min-width:\s*0;/)
+  assert.match(appCss, /@media \(max-width: 320px\)[\s\S]*?\.tool-buttons\s*\{[^}]*width:\s*100%;[^}]*min-width:\s*0;[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*42px\)\)/)
+  assert.match(appCss, /@media \(max-width: 320px\)[\s\S]*?\.drawing-palette\[data-palette-size='12'\]\s*\{[^}]*grid-template-columns:\s*repeat\(6,\s*16px\);[^}]*grid-template-rows:\s*repeat\(2,\s*16px\)/)
+  assert.match(appCss, /@media \(max-width: 320px\)[\s\S]*?\.gallery-comments-heading[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\) auto/)
+})
+
 test('the lobby button shows unread chat without moving and profile previews expose avatar likes', async () => {
   const [css, activeUsersSource, previewSource, profileSource] = await Promise.all([
     readFile(new URL('../src/App.css', import.meta.url), 'utf8'),

@@ -4477,3 +4477,87 @@ canvas.player-avatar {
     padding: 34px 32px 28px;
   }
 }
+
+@media (max-width: 320px) {
+  .app-shell {
+    width: calc(100% - 12px);
+  }
+
+  .tool-buttons {
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: repeat(3, minmax(0, 42px));
+  }
+
+  .drawing-palette[data-palette-size='12'] {
+    grid-template-columns: repeat(6, 16px);
+    grid-template-rows: repeat(2, 16px);
+    width: fit-content;
+    min-width: 0;
+    justify-self: center;
+  }
+
+  .topbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .brand {
+    justify-content: center;
+  }
+
+  .topbar-statuses {
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .backend-badge,
+  .prototype-badge,
+  .profile-menu-button {
+    width: 100%;
+    max-width: none;
+    justify-content: center;
+  }
+
+  .weekly-gallery .weekly-section-heading {
+    padding-inline: 0;
+  }
+
+  .weekly-sort {
+    min-width: 0;
+  }
+
+  .weekly-gallery-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .weekly-entry-meta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .gallery-comments-heading,
+  .gallery-comments-heading > div:first-child,
+  .gallery-comments-body,
+  .gallery-comment-form,
+  .gallery-comment-form label,
+  .gallery-comment-form textarea {
+    min-width: 0;
+  }
+
+  .gallery-comments-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .gallery-comments-heading .step-label {
+    overflow-wrap: anywhere;
+  }
+
+  .gallery-comments-heading h2 {
+    font-size: 1.45rem;
+  }
+}
