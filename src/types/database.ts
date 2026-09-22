@@ -12,6 +12,114 @@ export type Database = {
   }
   public: {
     Tables: {
+      bug_reports: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          id: number
+          reporter_name: string | null
+          room_code: string | null
+          room_id: number | null
+          status: string
+          steps: string | null
+          technical_context: Json
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description: string
+          id?: never
+          reporter_name?: string | null
+          room_code?: string | null
+          room_id?: number | null
+          status?: string
+          steps?: string | null
+          technical_context?: Json
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          id?: never
+          reporter_name?: string | null
+          room_code?: string | null
+          room_id?: number | null
+          status?: string
+          steps?: string | null
+          technical_context?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      competition_draw_events: {
+        Row: {
+          changes: Json
+          created_at: string
+          id: number
+          room_id: number
+          round_id: number
+          user_id: string
+        }
+        Insert: {
+          changes: Json
+          created_at?: string
+          id?: never
+          room_id: number
+          round_id: number
+          user_id: string
+        }
+        Update: {
+          changes?: Json
+          created_at?: string
+          id?: never
+          room_id?: number
+          round_id?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      competition_rounds: {
+        Row: {
+          drawing_ends_at: string
+          drawing_started_at: string
+          finished_at: string | null
+          id: number
+          room_id: number
+          round_number: number
+          status: string
+          voting_ends_at: string | null
+          voting_started_at: string | null
+          word: string
+        }
+        Insert: {
+          drawing_ends_at: string
+          drawing_started_at: string
+          finished_at?: string | null
+          id?: never
+          room_id: number
+          round_number: number
+          status?: string
+          voting_ends_at?: string | null
+          voting_started_at?: string | null
+          word: string
+        }
+        Update: {
+          drawing_ends_at?: string
+          drawing_started_at?: string
+          finished_at?: string | null
+          id?: never
+          room_id?: number
+          round_number?: number
+          status?: string
+          voting_ends_at?: string | null
+          voting_started_at?: string | null
+          word?: string
+        }
+        Relationships: []
+      }
       game_rounds: {
         Row: {
           created_at: string
@@ -56,8 +164,30 @@ export type Database = {
           },
         ]
       }
+      lobby_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: number
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: never
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: never
+          user_id?: string
+        }
+        Relationships: []
+      }
       room_players: {
         Row: {
+          avatar_pixels: Json | null
           display_name: string
           id: number
           joined_at: string
@@ -67,6 +197,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          avatar_pixels?: Json | null
           display_name: string
           id?: never
           joined_at?: string
@@ -76,6 +207,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          avatar_pixels?: Json | null
           display_name?: string
           id?: never
           joined_at?: string
@@ -94,11 +226,39 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          avatar_pixels: Json | null
+          avatar_version: number
+          created_at: string
+          display_name: string
+          user_id: string
+        }
+        Insert: {
+          avatar_pixels?: Json | null
+          avatar_version?: number
+          created_at?: string
+          display_name: string
+          user_id: string
+        }
+        Update: {
+          avatar_pixels?: Json | null
+          avatar_version?: number
+          created_at?: string
+          display_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       rooms: {
         Row: {
+          competition_draw_seconds: number
+          competition_round_count: number
+          round_duration_seconds: number
           code: string
           created_at: string
           finished_at: string | null
+          game_mode: string
           host_user_id: string
           id: number
           max_players: number
@@ -108,9 +268,13 @@ export type Database = {
           test_mode: boolean
         }
         Insert: {
+          competition_draw_seconds?: number
+          competition_round_count?: number
+          round_duration_seconds?: number
           code: string
           created_at?: string
           finished_at?: string | null
+          game_mode?: string
           host_user_id: string
           id?: never
           max_players?: number
@@ -120,9 +284,13 @@ export type Database = {
           test_mode?: boolean
         }
         Update: {
+          competition_draw_seconds?: number
+          competition_round_count?: number
+          round_duration_seconds?: number
           code?: string
           created_at?: string
           finished_at?: string | null
+          game_mode?: string
           host_user_id?: string
           id?: never
           max_players?: number
@@ -257,6 +425,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      advance_competition_game: {
+        Args: { target_round_id: number }
+        Returns: {
+          next_round_id: number | null
+          next_round_number: number | null
+          room_id: number
+          room_status: string
+        }[]
+      }
       advance_game: {
         Args: { target_round_id: number }
         Returns: {
@@ -282,11 +459,108 @@ export type Database = {
           room_id: number
         }[]
       }
+      create_room_with_duration: {
+        Args: { player_name: string; duration_seconds?: number }
+        Returns: {
+          player_id: number
+          room_code: string
+          room_id: number
+        }[]
+      }
+      create_room_with_settings: {
+        Args: {
+          duration_seconds?: number
+          player_name: string
+          requested_competition_draw_seconds?: number
+          requested_competition_round_count?: number
+          requested_game_mode?: string
+        }
+        Returns: {
+          player_id: number
+          room_code: string
+          room_id: number
+        }[]
+      }
+      set_room_round_duration: {
+        Args: { target_room_id: number; duration_seconds: number }
+        Returns: {
+          room_id: number
+          round_duration_seconds: number
+        }[]
+      }
+      set_room_game_settings: {
+        Args: {
+          requested_competition_draw_seconds?: number
+          requested_competition_round_count?: number
+          requested_game_mode: string
+          target_room_id: number
+        }
+        Returns: {
+          competition_draw_seconds: number
+          competition_round_count: number
+          game_mode: string
+          room_id: number
+        }[]
+      }
       finish_expired_round: {
         Args: { target_round_id: number }
         Returns: {
           round_id: number
           round_status: string
+        }[]
+      }
+      finish_competition_drawing: {
+        Args: { target_round_id: number }
+        Returns: {
+          round_id: number
+          round_status: string
+          voting_ends_at: string
+        }[]
+      }
+      finish_competition_voting: {
+        Args: { target_round_id: number }
+        Returns: {
+          finished_at: string
+          round_id: number
+          round_status: string
+        }[]
+      }
+      get_competition_draw_updates: {
+        Args: {
+          after_event_id?: number | null
+          requested_limit?: number
+          target_round_id: number
+        }
+        Returns: {
+          changes: Json
+          drawing_id: string
+          id: number
+          round_id: number
+        }[]
+      }
+      get_competition_results: {
+        Args: { target_round_id: number }
+        Returns: {
+          display_name: string | null
+          drawing_id: string
+          is_own: boolean
+          vote_count: number | null
+        }[]
+      }
+      get_competition_round_view: {
+        Args: { target_room_id: number }
+        Returns: {
+          chosen_word: string
+          drawing_ends_at: string
+          finished_at: string | null
+          next_round_at: string | null
+          round_id: number
+          round_number: number
+          round_status: string
+          server_now: string
+          total_rounds: number
+          voted_for_drawing_id: string | null
+          voting_ends_at: string | null
         }[]
       }
       get_round_view: {
@@ -305,6 +579,318 @@ export type Database = {
           server_now: string
           total_rounds: number
           word_options: string[]
+        }[]
+      }
+      get_room_message_updates: {
+        Args: {
+          after_message_id?: number | null
+          requested_limit?: number
+          target_room_id: number
+        }
+        Returns: {
+          content: string
+          created_at: string
+          id: number
+          room_id: number
+          sender_user_id: string
+        }[]
+      }
+      get_round_message_updates: {
+        Args: {
+          after_message_id?: number | null
+          requested_limit?: number
+          target_round_id: number
+        }
+        Returns: {
+          content: string | null
+          created_at: string
+          id: number
+          kind: string
+          round_id: number
+          sender_user_id: string
+        }[]
+      }
+      get_round_draw_updates: {
+        Args: {
+          after_event_id?: number | null
+          requested_limit?: number
+          target_round_id: number
+        }
+        Returns: {
+          changes: Json
+          id: number
+          round_id: number
+        }[]
+      }
+      get_weekly_challenges: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          challenge_id: number
+          challenge_status: string
+          description: string | null
+          ends_at: string
+          prompt: string
+          server_now: string
+          starts_at: string
+          week_key: string
+        }[]
+      }
+      get_monthly_challenges: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          challenge_id: number
+          challenge_status: string
+          description: string | null
+          ends_at: string
+          month_key: string
+          prompt: string
+          server_now: string
+          starts_at: string
+          voting_starts_at: string
+        }[]
+      }
+      get_global_lobby_messages: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          author_avatar: Json | null
+          author_name: string
+          content: string
+          created_at: string
+          is_own: boolean
+          message_id: number
+        }[]
+      }
+      get_global_lobby_unread_count: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      mark_global_lobby_read: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      get_profile_avatar_like_state: {
+        Args: { target_profile_name: string }
+        Returns: {
+          can_like: boolean
+          like_count: number
+          liked: boolean
+        }[]
+      }
+      get_daily_feed: {
+        Args: { requested_limit?: number; requested_offset?: number }
+        Returns: {
+          author_avatar: Json | null
+          author_name: string
+          author_received_likes: number
+          comment_count: number
+          created_at: string
+          description: string
+          has_liked: boolean
+          is_own: boolean
+          like_count: number
+          pixels: Json
+          post_date: string
+          post_id: number
+          total_count: number
+          updated_at: string
+        }[]
+      }
+      get_daily_feed_page: {
+        Args: {
+          discovery_seed?: number
+          requested_limit?: number
+          requested_offset?: number
+          requested_sort?: string
+        }
+        Returns: {
+          author_avatar: Json | null
+          author_name: string
+          author_received_likes: number
+          comment_count: number
+          created_at: string
+          description: string
+          has_liked: boolean
+          is_own: boolean
+          like_count: number
+          pixels: Json
+          post_date: string
+          post_id: number
+          total_count: number
+          updated_at: string
+        }[]
+      }
+      get_daily_feed_account_state: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          post_date: string | null
+          post_id: number | null
+          post_pixels: Json | null
+          profile_name: string
+          received_like_count: number
+          today_post_count: number
+        }[]
+      }
+      get_daily_feed_comments: {
+        Args: { target_post_ids: number[] }
+        Returns: {
+          author_avatar: Json | null
+          author_name: string
+          comment_id: number
+          content: string
+          created_at: string
+          entry_id: number
+          is_own: boolean
+        }[]
+      }
+      get_own_feed_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          post_count: number
+          received_like_count: number
+        }[]
+      }
+      get_own_editor_gallery: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          palette_size: number
+          pixels: Json
+          slot_index: number
+          updated_at: string
+        }[]
+      }
+      get_gallery_comments: {
+        Args: { target_challenge_id: number; target_kind: string }
+        Returns: {
+          author_avatar: Json | null
+          author_name: string
+          comment_id: number
+          content: string
+          created_at: string
+          entry_id: number
+          is_own: boolean
+        }[]
+      }
+      get_gallery_comments_for_entry: {
+        Args: {
+          requested_limit?: number
+          requested_offset?: number
+          target_entry_id: number
+          target_kind: string
+        }
+        Returns: {
+          author_avatar: Json | null
+          author_name: string
+          comment_id: number
+          content: string
+          created_at: string
+          entry_id: number
+          is_own: boolean
+          total_count: number
+        }[]
+      }
+      get_monthly_gallery: {
+        Args: { target_challenge_id: number }
+        Returns: {
+          author_avatar: Json | null
+          author_name: string
+          entry_id: number
+          has_voted: boolean
+          is_own: boolean
+          is_winner: boolean
+          pixels: Json
+          updated_at: string
+          vote_count: number
+        }[]
+      }
+      get_monthly_gallery_page: {
+        Args: {
+          discovery_seed?: number
+          requested_limit?: number
+          requested_offset?: number
+          requested_sort?: string
+          target_challenge_id: number
+        }
+        Returns: {
+          author_avatar: Json | null
+          author_name: string
+          comment_count: number
+          entry_id: number
+          has_voted: boolean
+          is_own: boolean
+          is_winner: boolean
+          pixels: Json
+          total_count: number
+          updated_at: string
+          vote_count: number
+        }[]
+      }
+      get_monthly_account_state: {
+        Args: { target_challenge_id: number }
+        Returns: {
+          entry_id: number | null
+          entry_pixels: Json | null
+          profile_name: string | null
+          submitted_at: string | null
+          updated_at: string | null
+          votes_used: number
+        }[]
+      }
+      get_online_profiles: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          avatar_pixels: Json | null
+          display_name: string
+          user_id: string
+        }[]
+      }
+      touch_global_lobby_presence: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_weekly_gallery: {
+        Args: { target_challenge_id: number }
+        Returns: {
+          author_avatar: Json | null
+          author_name: string
+          entry_id: number
+          has_voted: boolean
+          is_own: boolean
+          is_winner: boolean
+          pixels: Json
+          submitted_at: string
+          vote_count: number
+        }[]
+      }
+      get_weekly_gallery_page: {
+        Args: {
+          discovery_seed?: number
+          requested_limit?: number
+          requested_offset?: number
+          requested_sort?: string
+          target_challenge_id: number
+        }
+        Returns: {
+          author_avatar: Json | null
+          author_name: string
+          comment_count: number
+          entry_id: number
+          has_voted: boolean
+          is_own: boolean
+          is_winner: boolean
+          pixels: Json
+          submitted_at: string
+          total_count: number
+          vote_count: number
+        }[]
+      }
+      get_weekly_account_state: {
+        Args: { target_challenge_id: number }
+        Returns: {
+          draft_pixels: Json | null
+          entry_id: number | null
+          entry_pixels: Json | null
+          profile_name: string | null
+          votes_used: number
         }[]
       }
       join_room: {
@@ -336,6 +922,54 @@ export type Database = {
         Args: { message_content: string; target_room_id: number }
         Returns: number
       }
+      send_global_lobby_message: {
+        Args: { requested_content: string }
+        Returns: number
+      }
+      save_weekly_draft: {
+        Args: { drawing_pixels: Json; target_challenge_id: number }
+        Returns: string
+      }
+      add_gallery_comment: {
+        Args: { requested_content: string; target_entry_id: number; target_kind: string }
+        Returns: number
+      }
+      update_gallery_comment: {
+        Args: { requested_content: string; target_comment_id: number }
+        Returns: string
+      }
+      save_monthly_entry: {
+        Args: { drawing_pixels: Json; target_challenge_id: number }
+        Returns: number
+      }
+      publish_daily_feed_post: {
+        Args: { drawing_pixels: Json; requested_description?: string; target_post_id?: number | null }
+        Returns: number
+      }
+      delete_own_daily_feed_post: {
+        Args: { target_post_id: number }
+        Returns: boolean
+      }
+      delete_own_editor_gallery_slot: {
+        Args: { target_slot: number }
+        Returns: boolean
+      }
+      set_daily_feed_like: {
+        Args: { like_enabled: boolean; target_post_id: number }
+        Returns: { active_like_count: number; liked: boolean }[]
+      }
+      add_daily_feed_comment: {
+        Args: { requested_content: string; target_post_id: number }
+        Returns: number
+      }
+      update_daily_feed_comment: {
+        Args: { requested_content: string; target_comment_id: number }
+        Returns: string
+      }
+      submit_monthly_entry: {
+        Args: { target_challenge_id: number }
+        Returns: string
+      }
       resume_room: {
         Args: { room_code: string }
         Returns: {
@@ -352,6 +986,30 @@ export type Database = {
           test_mode: boolean
         }[]
       }
+      set_weekly_profile: {
+        Args: { requested_name: string }
+        Returns: string
+      }
+      set_profile_avatar: {
+        Args: { requested_pixels: Json }
+        Returns: Json
+      }
+      set_profile_avatar_like: {
+        Args: { like_enabled: boolean; target_profile_name: string }
+        Returns: { like_count: number; liked: boolean }[]
+      }
+      save_own_editor_gallery_slot: {
+        Args: { drawing_pixels: Json; requested_palette_size: number; target_slot: number }
+        Returns: string
+      }
+      set_weekly_vote: {
+        Args: { target_entry_id: number; vote_enabled: boolean }
+        Returns: { active_vote_count: number; voted: boolean }[]
+      }
+      set_monthly_vote: {
+        Args: { target_entry_id: number; vote_enabled: boolean }
+        Returns: { active_vote_count: number; voted: boolean }[]
+      }
       set_room_palette_size: {
         Args: { palette_size_value: number; target_room_id: number }
         Returns: {
@@ -360,6 +1018,14 @@ export type Database = {
         }[]
       }
       start_game: {
+        Args: { target_room_id: number }
+        Returns: {
+          room_id: number
+          room_status: string
+          started_at: string
+        }[]
+      }
+      start_competition_game: {
         Args: { target_room_id: number }
         Returns: {
           room_id: number
@@ -379,6 +1045,29 @@ export type Database = {
       submit_pixel_changes: {
         Args: { pixel_changes: Json; target_round_id: number }
         Returns: number
+      }
+      submit_weekly_entry: {
+        Args: { drawing_pixels: Json; target_challenge_id: number }
+        Returns: number
+      }
+      submit_competition_pixel_changes: {
+        Args: { pixel_changes: Json; target_round_id: number }
+        Returns: number
+      }
+      set_competition_vote: {
+        Args: { target_drawing_id: string; target_round_id: number }
+        Returns: {
+          round_id: number
+          voted_for_drawing_id: string
+        }[]
+      }
+      restart_competition_game: {
+        Args: { target_room_id: number }
+        Returns: {
+          room_id: number
+          room_status: string
+          started_at: string
+        }[]
       }
       touch_room_presence: {
         Args: { target_room_id: number }

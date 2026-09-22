@@ -17,7 +17,7 @@ Nyilvános tesztváltozat: **https://bitscrawl.pages.dev/**
 - csak a rajzoló számára látható szóválasztás
 - host által kapcsolható egyszemélyes teszt mód
 - egyszemélyes teszt módban korlátlan rajzidő
-- 32×32-as HTML Canvas ceruzával, radírral és nyolcszínű palettával
+- 32×32-as HTML Canvas több rajzeszközzel és 12 színű alappalettával
 - szerver által ellenőrzött, változásalapú élő pixelrajzolás
 - valós idejű chat és szerveroldali, ékezetfüggetlen megfejtés-ellenőrzés
 - szerver által felügyelt 90 másodperces köridő és gyors, 15 másodperces tesztidő
@@ -97,6 +97,12 @@ A multiplayer-jogosultságok és az egyszemélyes korlátlan idő ellenőrzése:
 
 ```bash
 node --env-file=.env.local scripts/verify-multiplayer-security.mjs
+```
+
+A háromjátékos, kilenckörös teljes meccsszimuláció futtatása:
+
+```bash
+npm run test:three-player
 ```
 
 Az adatbázis változásai a `supabase/migrations` mappában találhatók.

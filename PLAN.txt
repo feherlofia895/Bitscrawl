@@ -1,10 +1,153 @@
 Bitscrawl MVP – FEJLESZTÉSI TERV
-Frissítve: 2026-08-08
+Frissítve: 2026-09-21
 
 Jelölések:
 [x] elkészült
 [>] folyamatban
 [ ] még hátra van
+
+2026-09-21-i audit- és visszajelzési állapot:
+- [x] Bejelentkezett, mentett profillal az Új szoba és a Csatlakozás már nem kér
+  külön szerkeszthető játékosnevet: a profil megjelenített neve látszik és kerül a
+  váróterembe. Vendégként továbbra is megadható külön név. A névkártya mindkét
+  útvonalon, valamint egy valóban létrehozott és utána törölt próbaszobában is
+  ellenőrizve lett.
+- [x] A 14-es teljes regresszió automatizálható része újra lefutott. A build, lint,
+  diff-ellenőrzés, szerkesztő-, rajzbiztonsági-, PWA-, paletta-, köridő- és heti
+  rajztesztek sikeresek. Az élő Supabase-környezetben a köridő, kilépés/hostátadás,
+  hibabejelentési jogosultságok, valamint egy 2 játékosos 6 körös és egy 5 játékosos
+  15 körös teljes meccs is hibátlanul végigment; minden játékos rajzolt, tippelt és
+  pontot kapott, a próbaszobák a végén törlődtek. Az éles felületen ellenőrizve lett
+  a heti/havi kihívás, a galéria lapozása, teljes képes nézete, kommentablaka,
+  profilnézete, visszalépései, a játék- és beállításmenü, továbbá a Szerkesztő két
+  mentett saját képe, teljes nézete és PNG-exportja. A palettamód élő regressziós
+  szkriptje a már elrejtett 16 színű
+  játékmód helyett most a jelenlegi 12 színű módot és a tiltásokat ellenőrzi.
+- [x] A Szerkesztő `Megosztás / nevezés` menüjében elkészült a profilonkénti,
+  két férőhelyes privát saját galéria. Mindkét helyre menthető vagy felülírható a
+  vászon, a mentett kép előnézhető, visszatölthető további szerkesztésre és külön
+  törölhető. A felülírás, betöltés és törlés megerősítést kér; a 12/32 színű mód is
+  helyesen áll vissza. A jogosultsági és adatbázis-integrációs teszt, lint, editor-
+  regresszió és production build sikeres. Az adatbázis-migráció éles, a helyi
+  felületen az üres hely, a valódi felhőmentés, a foglalt előnézet és a szerkesztőbe
+  visszatöltés a bejelentkezett profillal ellenőrizve. A GitHub- és Cloudflare-
+  production kiadás 2026-09-21-én elkészült.
+- [x] A Beállítások `Csökkentett mozgás` kapcsolójának BE állapota egyszerűsödött:
+  nem rak egymásra két gombgrafikát, csak a jobb oldali állapotjelző kap korallszínt.
+- [x] Elkészült és élesedett a Galéria harmadik, `Hírfolyam` almenüje. Egy végleges
+  fiók naponta két 32×32-es képet tehet közzé, a saját képek szerkeszthetők és
+  törölhetők; egy mai kép törlése azonnal visszaad egy napi helyet. Minden képhez
+  legfeljebb 160 karakteres, maximum háromsoros leírás adható. A kártyákon a
+  szerkesztés, törlés és szív alakú kedvelés egyetlen kompakt sorban van; a saját
+  képnél a szív látszik, de nem használható. A hírfolyam
+  hatosával lapozható, a képek kedvelhetők és
+  kommentelhetők, a saját komment szerkeszthető, a kapott kedvelések összege pedig
+  megjelenik a profilon. Az adatbázis-jogosultsági, integrációs, asztali és mobilos
+  vizuális ellenőrzés kész, az adatbázis-migráció és a Cloudflare-frontend pedig
+  élesben is fent van a `90c2ed2` commitból.
+- [x] A Szerkesztő egyetlen `Megosztás / nevezés` menüből tudja a rajzot a mai
+  hírfolyamba, az aktív heti kihívásba vagy az aktív havi kihívásba küldeni. A már
+  beküldött nevezés szerveroldalon is tiltott, a 32 színű rajz pedig csak a
+  Hírfolyamba tehető; a kihívások továbbra is a 12 színű palettát fogadják.
+- [x] A hibajelentések és az Ötletláda adatbázisa áttekintve. Három friss mobilos
+  bejelentés ugyanarra a konfliktusra mutatott: a szobachat és a rögzített megfejtés
+  egymásra csúszott. A chat most külön helyet hagy a tippelő sávnak, a tippelő pedig
+  a chat háttere felett is látható és használható marad.
+- [x] Az online jelenlét kliens által megadható felhasználó-azonosítója megszűnt.
+  Az új, közvetlenül nem olvasható jelenléti tábla és RPC az `auth.uid()` alapján
+  küld szívverést; az online profilok csak friss, szerver által hitelesített
+  szívverésből származhatnak.
+- [x] Az előszobachat mobilos küldőmező-kilógása 360×640 és 390×844 méreten
+  reprodukálva és javítva: az üzenetlista zsugorodik és belül görgethető, a beviteli
+  mező és a Küldés gomb a panelen belül marad.
+- [x] A paletta üres pixelei és a rácsvonalak asztali és 390×844-es mobilnézetben
+  újraellenőrizve; a jelenlegi buildben igazodnak egymáshoz, a korábbi hiba nem
+  reprodukálható.
+- [x] A klasszikus játék szóbankja bővült, a profilkép-szerkesztő megkapta a 32 színű
+  palettát, a 400 pixelnél keskenyebb mobilos tippelő pedig külön kompakt elrendezést
+  kapott. A Galéria alapértelmezett sorrendje `Legkedveltebb`; a `Felfedezés` minden
+  kiválasztásakor új, véletlenszerű sorrendet készít, amely lapozás közben stabil marad.
+- [x] A `fbf68f3` kiadásnál a GitHub és a Cloudflare Pages production környezet
+  egyezett; az éles oldal új buildje külön visszaellenőrzést kapott.
+- [x] A Szerkesztő `Megosztás / nevezés` menüjéből a rajz profilképként is
+  beállítható. A csere előtt megerősítő ablak figyelmeztet a korábbi profilkép
+  lecserélésére; a kliens és a szerver ugyanazt a 32 színű profilpalettát fogadja.
+  A production build és az automatizált ellenőrzések sikeresek.
+- [x] A heti és havi galéria már valódi szerveroldali, hatképes lapozást használ.
+  A `Legkedveltebb`, `Felfedezés` és `Legújabb` rendezés a teljes adathalmazon fut;
+  a Felfedezés egy lapozáson belül stabil, új kiválasztáskor új sorrendet kap. A
+  havi galéria is megkapta ugyanazt a három rendezést. A kommentek nem a teljes
+  kihívással együtt töltődnek le: csak a kiválasztott kép kommentablakának
+  megnyitásakor érkeznek, húszasával lapozva. Az adatbázis-integrációs teszt, lint,
+  rajzbiztonsági regresszió és production build sikeres; az adatbázis-migráció és az
+  éles kiadás 2026-09-21-én elkészült.
+- [x] A szobachat, a helyes megfejtések és a rajzesemények korlátozott, azonosító-alapú
+  visszatöltése helyben elkészült. A szobachat egyszerre az 50, a megfejtéslista a 10
+  legutóbbi sort tartja meg. A rajz első betöltése legfeljebb 32×32 pixeles tömör
+  állapotot kap; az új események kurzorral érkeznek, 100-nál nagyobb lemaradásnál a
+  szerver ismét tömör állapotot küld. Újracsatlakozáskor mindhárom adatfolyam pótolja
+  a kimaradt frissítéseket. A helyi adatbázis-integrációs teszt, lint és production
+  build sikeres; az adatbázis-migráció és az éles kiadás elkészült.
+- [x] A Hírfolyam megkapta a `Legújabb`, `Legkedveltebb` és `Felfedezés`
+  rendezést. A sorrend a teljes adathalmazon, szerveroldalon készül, a Felfedezés
+  lapozás közben stabil és újbóli kiválasztáskor újrakeveredik. A heti, havi és
+  hírfolyam-galéria képei kattintásra nagy, külön ablakban nyílnak meg; az ablak
+  jobb felső X-szel, háttérkattintással vagy Escape-pel zárható. A production build,
+  a helyi adatbázis-integrációs próba, a kódellenőrzés, valamint az asztali és
+  390×844-es mobilos vizuális ellenőrzés sikeres; az adatbázis-migráció és az éles
+  kiadás elkészült.
+
+2026-09-20-i teljes kódaudit javítási állapot:
+- [x] A heti és havi rajz automatikus mentése sorosított; a régi kérés nem írhatja
+  felül az újabbat, sikertelen mentés újrapróbálható, belső navigáció előtt pedig a
+  függő mentés befejeződik.
+- [x] A heti/havi szerkesztő csak a kiválasztott kihívás mentett rajzának sikeres
+  betöltése után nyílik meg. Hibánál üres vászon helyett újrapróbálás jelenik meg.
+- [x] Átmeneti Supabase Auth-hiba nem törli a meglévő helyi munkamenetet.
+- [x] A havi szavazati korlát tranzakciósan sorosított; beküldetlen havi piszkozat
+  nem szavazható meg; a szerver a null vagy nem szöveges pixelt elutasítja.
+- [x] A galériakommentek kétmásodperces szerveroldali spamkorlátot kaptak.
+- [x] A meghosszabbított Gomba alatt nem készül második aktív heti kihívás, és a
+  Gomba-adatmigráció későbbi tiszta környezetben is determinisztikusan fut.
+- [x] A multiplayer sikertelen pixelcsomagjai megmaradnak későbbi újraküldéshez;
+  a profil mentése alatt a név és a profilkép nem módosítható.
+- [x] A profilablak Escape-je csak a legfelső ablakot zárja; a fejlesztői
+  Wrangler/Miniflare/Sharp függőséglánc ismert sérülékenysége frissítve.
+- [x] Hálózatkimaradás után a multiplayer pixelcsomagok és a heti/havi rajzmentés
+  automatikusan újraindul; a be nem küldött kihívásrajz felhasználónként és
+  kihívásonként helyi vázlatban is megmarad, majd sikeres szervermentéskor törlődik.
+- [x] A szobachat, a körüzenetek és a rajzesemények korlátozott, kurzoros
+  visszatöltése helyben elkészült. A Hírfolyam, a heti és a havi galéria már
+  szerveroldali, hatképes lapozást használ; a heti/havi kommentek képenként,
+  húszasával töltődnek. A kliens által állított online jelenléti azonosító szerveres
+  hitelesítése 2026-09-21-én elkészült.
+
+2026-09-19-i történeti záró állapot:
+- Az akkori kiadott commit `2be5512` volt az `agent/12-color-palette-logo` ágon.
+  A jelenlegi kiadott commit `24648b8`; az éles oldal: https://bitscrawl.pages.dev/
+- A 13/D és a 20. pont megvalósítása, ellenőrzése és élesítése elkészült. A Supabase
+  helyi és távoli migrációs sora 20260919182613-ig egyezik.
+- A főmenü jelenleg öt belépési pontból áll: Játék, Kihívás, Szerkesztő, Galéria,
+  Beállítások. A Szerkesztő közvetlenül a Kihívás alatt érhető el gyakorláshoz.
+- Az aktív kihívás témája Gomba, határideje 2026. szeptember 27. 23:59
+  (Europe/Budapest). Az éles felületen és az adatbázisban is ellenőrizve.
+- Az új logó, ablakok, palettaforma és kétállapotú eszköztár mellett a nagy szöveges
+  műveleti gombok is az egységes hosszú türkiz/sárga rajzolt gombcsaládot használják.
+  A Hibát találtam gomb, a szobachat kis kezelői, valamint a paletta- és eszközgombok
+  szándékosan megtartották a saját kis méretű megjelenésüket.
+- A vászon átlátszósági sakktáblája külön semleges #eeeeee / #d4d4d4 színeket kapott;
+  ez megjelenítési háttér, nem rajzadat vagy új palettaszín.
+- A legutóbbi kiadás előtt a production build, a lint és a diff-ellenőrzés sikeresen
+  lefutott; az éles főmenü és a Gomba kihívás külön böngészős ellenőrzést kapott.
+
+Következő javasolt munkasorrend:
+1. A 14-es regresszió hátralévő kézi része: 270/360/390 pixeles mobilnézet, fizikai
+   telefon, megnyíló billentyűzet, érintéses teljes nézet, PNG-export és valós
+   hálózatkimaradás/újracsatlakozás.
+2. A PWA tényleges telepíthetőségi próbája, majd a 16-os MVP-kiadási ellenőrzés és
+   rövid üzemeltetési/tesztelési README.
+3. A végleges magyar ékezetes betűkészlet és a 13/E fordítási alap csak a fenti
+   stabilizálás után következzen, hogy a mostani hibajavításokat ne keverjük nagy UI-cserével.
 
 
 [x] 1. A 9. MÉRFÖLDKŐ LEZÁRÁSA
@@ -213,6 +356,10 @@ Még hátra van a pont teljes lezárásához:
 
 [x] 10. NYOLCSZÍNŰ PALETTA ÉS KOMPAKT ESZKÖZTÁR
 
+Történeti megjegyzés: ez a mérföldkő az akkori 8/16 színű rendszert dokumentálja.
+A jelenlegi termékdöntést a későbbi 13/A, 13/D és 13/F pont írja le: az alapmód már
+12 színű, a régi 16 színű választás pedig a tervezett 32 színű mód elkészültéig elrejtendő.
+
 - Az alapértelmezett palettában maradjon pontosan nyolc rajzszín és a jelenlegi
   fanyar Bitscrawl-hangulat.
 - A mostani jól működő színek többségét tartsuk meg.
@@ -358,7 +505,7 @@ Elkészült és ellenőrizve:
   és a várótermi, valamint játék közbeni böngészős felületi próba sikeres volt.
 
 
-[>] 12. FŐMENÜ, PANELEK ÉS SZEBB FELUGRÓ ABLAKOK
+[x] 12. FŐMENÜ, PANELEK ÉS SZEBB FELUGRÓ ABLAKOK
 
 - Készüljön valódi főmenü külön, jól felismerhető lehetőségekkel: játék indítása,
   csatlakozás, később elérhető szobák, beállítások és információk.
@@ -382,8 +529,8 @@ Első működő változat elkészült:
 - Asztali játék közben a megfejtés és a szobachat a rajz melletti oldalsó oszlopba került.
 - A folyamatban lévő meccsből kilépés a böngésző egyszerű megerősítése helyett saját,
   Bitscrawl-stílusú modalban történik; bezárható Escape-pel, vissza gombbal és Mégsem gombbal.
-- A főmenü külön Új szoba, Csatlakozás, Beállítások és Információk nézetet kapott; az
-  Elérhető szobák lehetőség látható, de a későbbi 17. pontig „hamarosan” állapotú.
+- A főmenü külön Játék, Kihívás, Szerkesztő, Galéria és Beállítások nézetet kapott.
+  Az Elérhető szobák lehetőség a későbbi 17. pont megvalósításáig nincs a felületen.
 - A főmenü alnézetei Vissza gombbal, Escape-pel és a böngésző vagy telefon vissza gombjával
   bezárhatók. A játékosnév nézetváltáskor megmarad.
 - Elkészült a helyben tárolt Csökkentett mozgás beállítás, amely leállítja a díszanimációkat
@@ -391,12 +538,16 @@ Első működő változat elkészült:
 - A főmenüt 360×800-as mobil- és 1280×800-as asztali nézetben, kilógás és böngészőhiba
   nélkül ellenőriztük.
 
-Még hátra van a 12. pont lezárásához:
+Lezárás:
 
-- Az olvasatlan jelzés két valódi játékossal történő ellenőrzése.
+- Az olvasatlan jelzés többjátékos próbája megtörtént.
+- Elkészült a beépített hibajelentő funkció, hogy a külső tesztelők közvetlenül
+  jelezhessék a tapasztalt problémákat.
+- A főmenü saját, könnyen cserélhető pixelgrafikus ablakot és gombkészletet kapott.
+- A verzió GitHubra és a Cloudflare Pages production környezetébe is kikerült.
 
 
-[ ] 13. UI-, BETŰKÉSZLET- ÉS MOBILOS FINOMHANGOLÁS
+[>] 13. UI-, BETŰKÉSZLET- ÉS MOBILOS FINOMHANGOLÁS
 
 - A jelenlegi oldal színei és fanyar vizuális hangulata maradjon meg.
 - A jelenlegi általános, mesterséges sablonhatású betűkészletet cseréljük egy
@@ -410,9 +561,247 @@ Még hátra van a 12. pont lezárásához:
 - Ne legyen véletlen oldalnagyítás, szövegkijelölés vagy oldalmozgatás rajzolás közben.
 - A billentyűzet megnyitásakor a chat és a megfejtés mező ne takarja el teljesen a játékot.
 - Ellenőrizzük az álló mobilos, fekvő mobilos és asztali elrendezést.
+- A hosszabb felületeket logikus almenükre és összecsukható csoportokra kell bontani,
+  hogy mobilon se kelljen sokat görgetni egy ritkábban használt beállítás vagy művelet miatt.
+- Az elsődleges műveletek maradjanak azonnal láthatók; a részletes beállítások, ritkább
+  eszközök és magyarázatok kerüljenek jól elnevezett almenük vagy lenyitható szakaszok alá.
+- Az almenükből mindig legyen egyértelmű visszalépés, és a böngésző vagy telefon vissza
+  gombja ne léptesse ki véletlenül a játékost a szobából.
+- A teljes képernyős rajznézet kompakt, minimalista eszköztárát használjuk alapként a
+  normál rajznézetben is, hogy az eszközök kevesebb helyet foglaljanak és több tér maradjon
+  a vászonnak. A gombok érintési területe ettől még maradjon legalább 44×44 pixel mobilon.
+- Nézzük át a főmenü, panelek, gombok, súgók, üres állapotok és hibaüzenetek teljes
+  szövegezését. A sablonos vagy mesterségesen hangzó mondatokat rövid, természetes,
+  emberi magyar szövegre kell cserélni, a jelentés és a hibák hasznos részleteinek megtartásával.
+
+Folyamatban:
+
+- A főmenü és a fontosabb alnézetek a saját sárga és türkiz pixelablakokat használják.
+- A főmenü, a Játék almenü és a nagy szöveges műveletek az átadott hosszú türkiz/sárga
+  gombváltozatokat használják. A kis chat-, hibajelentő-, paletta- és eszközgombok
+  külön, a méretükhöz illő megjelenést tartottak meg.
+- A grafikai elemek külön PNG-fájlok, ezért az új, egyenként megrajzolt változatok
+  később a működés átírása nélkül cserélhetők be.
+- A logó alatti szlogen: „Draw and scrawl it!”
+- A jelenlegi változat mobilon és számítógépen használható, buildje és lintje sikeres,
+  valamint nyilvánosan elérhető a Cloudflare Pages oldalon.
+
+Még hátra van a 13. pont lezárásához:
+
+- A még hátralévő speciális ablakok és kis vezérlők saját rajzainak egyenkénti beépítése.
+- A végleges, magyar ékezeteket támogató betűkészlet kiválasztása.
+- Az álló és fekvő mobilnézet, a megnyíló billentyűzet és az összes panel utolsó
+  vizuális visszaellenőrzése az új grafikákkal.
 
 
-[ ] 14. TELJES VISSZAELLENŐRZÉS
+[x] 13/A. SAJÁT 12 SZÍNŰ ALAPPALLETTA ÉS LOGÓ
+
+- A kezdőképernyő a saját, 192×64 pixeles Bitscrawl-logót használja, villogó piros kurzorral.
+- A korábbi 8 színű alapmódot a saját 12 színű Pixelsquare-paletta váltja fel.
+- Az UI színei ugyanehhez a palettához igazodnak.
+- A 16 színű bővített mód egyelőre változatlan marad; ezt később külön 32 színű
+  paletta váltja fel.
+- A kliens és az adatbázis átállását egy kiadásban kellett élesíteni, hogy a futó játék verziói
+  ne kerüljenek átmenetileg eltérő palettaszabályokra.
+
+Elkészült és élesítve:
+
+- A saját 12 színű alappaletta, a hozzá igazított felületszínek és feliratok bekerültek.
+- A saját kezdőképernyős logó és a villogó piros kurzor működik.
+- A játék szobái továbbra is a 12 színű alappalettát használják. A 32 színű változat
+  időközben elkészült a helyi Szerkesztőben és a profilkép-szerkesztőben; multiplayerbe
+  vitele továbbra is a 13/F külön szerveroldali feladata.
+
+
+[>] 13/B. VÁLASZTHATÓ KÖRIDŐ A SZOBÁBAN
+
+2026-09-19-i megvalósítás és élesítés:
+- A létrehozó felület és a host várószobai vezérlője 30/45/60/75/90 másodpercet kínál.
+- Elkészült a 20260919103705_configurable_round_duration.sql migráció, és az éles
+  Supabase adatbázisra is alkalmaztuk. A mező és a három szükséges RPC éles ellenőrzése
+  sikerült; a rövidebb köridők a kiadott klienssel használhatók.
+- A beállítás a szobához tartozik; meccs közben és lezárt meccsnél nem módosítható.
+  Új meccsnél és visszacsatlakozáskor megmarad. A tesztmód külön időzítése változatlan.
+- A teljes migrációs sor lefutott izolált, memóriabeli PostgreSQL-ben (PGlite).
+  Tíz helyi tesztcsoport ellenőrzi az időket, érvénytelen értékeket, atomikus
+  szobanyitást, RLS-t, jogosultságokat, visszatérést, új meccset, tesztmódot,
+  arányos pontozást és a lejárt körök szerveroldali lezárását.
+- Az éles Supabase/PostgREST környezetben két külön anonim felhasználóval lefutott a
+  30 másodperces szobanyitás, a host 45 másodpercre váltása, a vendégoldali láthatóság,
+  a vendég módosításának tiltása, a pontos 45 másodperces körindítás és az indulás
+  utáni zárolás. A próba megismételhető a `npm run test:round-duration:live` paranccsal.
+- Hátravan a teljes többkörös Realtime regresszió és a fizikai telefonos ellenőrzés.
+
+- Új szoba létrehozásakor a host választhassa ki a rajzolási időt.
+- A legrövidebb választható idő 30 másodperc, a leghosszabb 90 másodperc legyen.
+- Az első felületi változat 30, 45, 60, 75 és 90 másodperces értékeket kínáljon,
+  hogy mobilon is gyorsan és félreérthetetlenül használható maradjon.
+- Az alapérték maradjon 90 másodperc, így a jelenlegi játékmenet nem változik meg
+  azoknak, akik nem állítanak át semmit.
+- A kiválasztott idő a szoba szerveroldali beállítása legyen, minden játékos ugyanazt
+  lássa, és elindított meccs alatt már ne lehessen módosítani.
+- Az átmenetileg még meglévő tesztmód rövid ideje ne keveredjen a normál szobák által
+  választható köridővel. A felhasználói egyszemélyes tesztmód a 13/C szerkesztő
+  ellenőrzése után kivehető.
+- Ellenőrizzük a 30 és 90 másodperces szélsőértéket, a hostjogosultságot, az új meccset,
+  a visszacsatlakozást és azt, hogy tiltott értéket a kliens ne küldhessen be.
+
+
+[>] 13/C. ÖNÁLLÓ PIXELRAJZ-SZERKESZTŐ ÉS PNG-MENTÉS
+
+2026-09-19-i megvalósítás és élesítés:
+- A Szerkesztő közvetlen főmenüpont lett, a Kihívás alatt. A Játék almenüben az
+  Új szoba és a Csatlakozás maradt; az Elérhető szobák a későbbi 17. pont része.
+- A szerkesztő a közös PixelCanvas helyi adatforrását használja, szoba nélkül.
+- A 12 színű rajz helyben megmarad; új rajz és nem exportált rajzból visszalépés
+  előtt megerősítést kér. 32×32 és 256×256 PNG-export került a felületre.
+- A semleges vászonhátteret normál és teljes nézetben ellenőriztük.
+- Böngészőben kipróbálva: rajzolás, teljes nézet, visszalépés megszakítása és
+  elfogadása, rajz visszatöltése, mindkét PNG-export indítása.
+- Az éles oldalon 360×800-as szimulált telefonnézetben működött a rajzolás és mindkét
+  PNG-méret letöltési indítása; a felület sikerüzenetet adott, konzolhiba nem volt.
+  A fizikai telefon letöltési mappájának és a tényleges fájloknak a külön ellenőrzése,
+  valamint az összes eszköz teljes regressziós próbája továbbra is hátravan.
+- Az Új rajz, a rajztörlés és a szerkesztőből visszalépés a meglévő saját
+  megerősítő ablakot használja. A modal megőrzi az almenü/teljes nézet history-adatait;
+  a teljes nézet a modal bezárásától nem záródik be. A StrictMode és a dupla kattintás
+  sem hozhat létre több megerősítést ugyanarra a műveletre.
+- Hat helyi teszt ellenőrzi a rajz visszatöltését, a sérült helyi adat kezelését,
+  a PNG-be kerülő RGBA-képadat átlátszóságát és a pontos 8× pixelismétlést.
+  Ez a képadat ellenőrzése, nem a telefon által letöltött PNG-fájl vizsgálata.
+- A módosítások a 6d2eb26 commitban GitHubra, majd a Cloudflare Pages production
+  környezetébe is kikerültek.
+- Az egyszemélyes tesztmód eltávolítása és a szerveroldali tesztgyorsítás
+  elkülönítése továbbra is hátravan.
+
+Cél: a főmenüből verseny és szoba nélkül megnyitható rajzfelület készüljön, amely
+gyakorlásra és az új rajzeszközök gyors fejlesztői ellenőrzésére is használható.
+
+- Korábbi terv volt a Játék alá tenni a Szerkesztőt; a végleges döntés szerint önálló
+  főmenüpont lett közvetlenül a Kihívás alatt.
+- A főmenü jelenlegi „Új szoba” menüpontját nevezzük át „Játék”-ra. A véglegesített
+  elrendezésben a Szerkesztő önálló főmenüpont a Kihívás alatt; az Új szoba és a
+  Csatlakozás a Játék almenüben marad.
+- Az „Elérhető szobák” csak a 17. pont megvalósításakor kerüljön vissza a felületre.
+- A szerkesztő használatához ne kelljen szobát létrehozni vagy játékosokra várni;
+  ne legyen titkos szó, időzítő, pontozás, chat vagy körváltás.
+- Ugyanazt a PixelCanvas komponenst, rajzeszközöket, palettákat, nagyítást, mozgatást,
+  rácsot, koordinátákat, visszavonást és teljes nézetet használja, mint a játék.
+- A vászon rajzolási állapotát válasszuk le a szoba hálózati eseményeiről: a szerkesztő,
+  a klasszikus játék és a későbbi párhuzamos mód ugyanazt a rajzmotor-réteget használja,
+  de külön helyi vagy hálózati adatforrással. Így egy új eszközt csak egyszer kell megírni.
+- A rajz helyben maradjon meg a szerkesztő és a főmenü közötti véletlen váltáskor;
+  új rajz vagy kilépés előtt kérjen megerősítést, ha van nem mentett változtatás.
+- A kész kép legyen letölthető átlátszóságot támogató PNG-fájlként eredeti 32×32 pixeles
+  méretben.
+- Legyen választható nagyított PNG-export is legalább 8× méretben. A nagyítás nearest-neighbor
+  módszerrel történjen, hogy a pixelek élesek maradjanak és ne mosódjanak el.
+- A letöltött fájl kapjon biztonságos, dátumot tartalmazó alapértelmezett fájlnevet.
+- Az exportba csak maga a rajz kerüljön; a rács, koordináták, sakktáblás háttér és kezelőfelület ne.
+- Telefonon és számítógépen is ellenőrizzük a PNG létrehozását, letöltését, méretét,
+  átlátszóságát és azt, hogy a nagyított változat nem mosódik el.
+- Amikor a szerkesztő minden meglévő eszköz fejlesztői kipróbálására alkalmas, az eddigi
+  egyszemélyes szobateszt módot és a korlátlan egyjátékos időt eltávolíthatjuk a felületről.
+- A szerveroldali tesztgyorsítást addig nem töröljük, amíg az automatizált integrációs tesztek
+  használják. Később ezt külön tesztkörnyezethez vagy csak fejlesztésben engedélyezett
+  beállításhoz kell kötni, hogy production szobában ne legyen elérhető.
+- Az automatizált két-, három-, négy- és többjátékos integrációs tesztek továbbra is
+  megmaradnak; a szerkesztő csak a kézi egyszemélyes tesztmódot váltja ki.
+
+
+[x] 13/D. BŐVÍTETT PALETTA IDEIGLENES ELREJTÉSE
+
+- A jelenlegi 16 színű választási lehetőséget ideiglenesen elérhetetlenné kell tenni a
+  felületen. A 12 színű paletta marad az egyetlen választható mód addig, amíg a bővített
+  palettát közösen meg nem tervezzük és 32 színű változatként el nem készítjük.
+- A szerver a régi 16 színű szobák biztonságos kezelésére átmenetileg megtarthatja a
+  kompatibilitást, de új szobánál a kliens ne kínáljon fel félkész bővített palettát.
+- Ellenőrizzük, hogy új szobánál mindig 12 szín tárolódik, visszatéréskor a régi szobák
+  nem omlanak össze, és a 16 színű mód közvetlen kliensmanipulációval sem kapcsolható be.
+- A későbbi 32 színhez a palettabeállítás ne egyszerű bővített/nem bővített kapcsoló legyen:
+  verziózható palettaazonosítót használjunk, hogy új készletekhez ne kelljen újra átírni
+  minden korábbi szobát, rajzot és ellenőrzést.
+
+Helyi állapot (2026-09-19):
+- A választó eltűnt a felületről, új szoba csak 12 színű lehet.
+- A régi 16 színű szobák továbbra is olvashatók és játszhatók.
+- A szerveroldali tiltás és a kompatibilitás automatizált helyi próbái átmentek.
+- Az adatbázis-módosítás és a webes kiadás élesítve.
+
+
+[ ] 13/E. MAGYAR ÉS ANGOL NYELVI VÁLTOZAT
+
+- Először véglegesítsük a rövid, természetes és emberi magyar feliratokat, leírásokat,
+  súgókat, üres állapotokat és hibaüzeneteket.
+- A felületen megjelenő szövegek ne maradjanak szétszórva a komponensekben: kerüljenek
+  közös fordítási kulcsok és külön magyar, illetve angol nyelvi fájlok alá.
+- A szerver és az adatbázis stabil hibakódokat küldjön, a hozzájuk tartozó emberi üzenetet
+  pedig a kliens jelenítse meg a kiválasztott nyelven.
+- A Beállítások között legyen Magyar és English nyelvválasztó; a választás ezen az
+  eszközön maradjon meg a következő látogatáskor is.
+- Első megnyitáskor a böngésző nyelve alapján ajánlhatunk alapértelmezést, de a játékos
+  ezt bármikor felülírhassa.
+- A játékosok által írt nevek, chatüzenetek és rajzok természetesen ne legyenek géppel
+  lefordítva.
+- A szavak a szoba közös szónyelvéhez tartozó szóbankból érkezzenek. A felület
+  nyelvének átállítása ne változtassa meg a feladványt vagy az elfogadott megfejtést.
+- Egy szobán belül a játékszó nyelve a host által választott közös beállítás legyen,
+  miközben minden játékos a saját felületét külön nyelven használhassa.
+- Ellenőrizzük a magyar ékezeteket, az angol szövegek eltérő hosszát, a mobilos tördelést,
+  a nyelvváltást folyamatban lévő szobában és a hiányzó fordítások biztonságos tartalékát.
+
+
+[>] 13/F. VÁSZONESZKÖZÖK ÉS 32 SZÍNŰ BŐVÍTETT PALETTA
+
+- A vászon rajzeszközei között legyen mindig közvetlenül elérhető, saját ikonos
+  Visszavonás gomb; ne kelljen másik panelre vagy nézetbe lépni hozzá.
+- Készüljön külön Kijelölés eszköz, amellyel első változatban téglalap alakú terület
+  jelölhető ki egérrel és érintéssel is.
+- A Mozgatás eszköz is kerüljön a rajzeszközök közé. Egyértelműen különüljön el a
+  rajzoló eszközöktől, és használatakor ne keletkezzen véletlen pixel.
+- A kijelölt képrész mozgatásának pontos viselkedését különítsük el a teljes vászon
+  nézetének elhúzásától. Mindkettő legyen visszavonható és mobilon is félreérthetetlen.
+- A kijelölés és mozgatás ugyanabban a közös rajzmotorban működjön a Szerkesztőben,
+  a klasszikus játékban és a későbbi játékmódokban.
+- A 12 színű alap-paletta maradjon meg gyors, könnyen tanulható választásként.
+- Készüljön külön, választható 32 színű bővített paletta, saját verziózott
+  palettaazonosítóval. Ne a régi 16 színű mód egyszerű visszakapcsolása legyen.
+- A 32 szín árnyalatpárokba és jól áttekinthető sorokba rendeződjön; mobilon a paletta
+  összecsukható maradjon, és ne vegyen el túl sok helyet a vászontól.
+- Multiplayerben a szobabeállítás rögzítse a palettát, a szerver pedig csak az adott
+  paletta engedélyezett színeit fogadja el. Elindított meccs közben ne lehessen váltani.
+- Készüljön automatizált ellenőrzés a kijelölésre, mozgatásra, visszavonásra,
+  12/32 színű szerveroldali ellenőrzésre és a régi 16 színű szobák kompatibilitására.
+
+Első működő eszköztár-bővítés (2026-09-19):
+- A meglévő, közvetlen Visszavonás mellé bekerült a téglalapos Kijelölés és a vászon
+  Mozgatása a normál és a teljes nézet eszköztárába is.
+- A kijelölt pixelek húzással áthelyezhetők, a vászon szélén belül maradnak, és az egész
+  áthelyezés egyetlen lépésben visszavonható.
+- A közös rajzmotoros megoldás a Szerkesztőben és a klasszikus játékban is használható;
+  a kijelölt pixelek mozgatására automatizált helyi próba készült.
+- A saját 32 színű paletta megtervezése, verziózott tárolása és szerveroldali engedélyezése
+  még ennek a mérföldkőnek a következő része.
+
+Szerkesztői 32 színű paletta (2026-09-20):
+- A helyi Szerkesztőben elkészült a 12 színű alap- és a 32 színű bővített paletta
+  közötti választás. A 32 szín négy, nyolcszínes sorba rendeződik, és az összes
+  korábbi alapszínt tartalmazza.
+- A kiválasztott palettamód a rajzzal együtt helyben megmarad; a régi mentések
+  automatikusan a 12 színű alappalettával nyílnak meg.
+- Az új színek a PNG-exportban, a helyi mentésben, a teljes nézetben és mobilos
+  elrendezésben is támogatottak. A 12/32 színkészletet és a mentés visszatöltését
+  automatizált teszt ellenőrzi.
+- A 32 színű mód játékszobákba vitele, verziózott szerveroldali palettaazonosítója
+  és multiplayer-ellenőrzése továbbra is külön következő lépés.
+
+
+[>] 14. TELJES VISSZAELLENŐRZÉS
+
+A célzott visszaellenőrzés minden változtatást kövessen; a 14. pont végső lezárása a 13,
+13/B, 13/C, 13/D, 13/F és a magyar szövegek 13/E szerinti leválasztása után történjen.
+Az angol fordítás tartalmi elkészítése történhet az első MVP után is, de az
+új felületi szövegeket már most fordítási kulcsokon keresztül kell hozzáadni.
 
 - Kétjátékos teljes meccs számítógép és mobilinternetet használó telefon között.
 - Ötjátékos automatizált meccspróba az új funkciók után.
@@ -421,10 +810,39 @@ Még hátra van a 12. pont lezárásához:
 - Minden rajzeszköz, alakzatelőnézet, visszavonás és valós idejű továbbítás ellenőrzése.
 - Chat, hibás megfejtés elrejtése, helyes megfejtés és pontozás ellenőrzése.
 
+Részellenőrzés:
 
-[ ] 15. PWA – TELEPÍTHETŐ Bitscrawl
+- 2026-09-21-én a kétjátékos próba hat, az ötjátékos próba tizenöt teljes körön át
+  sikeresen lefutott az élő Supabase-környezetben. A rajzolás, hibás és helyes tipp,
+  pontozás, körváltás, kilépés, hostátadás és a próbaszobák törlése működött.
+- Az éles Cloudflare-oldalon a fő útvonalak, heti/havi kihívás, galérialapozás,
+  képnagyítás, komment- és profilablak, valamint a Szerkesztő két férőhelyes saját
+  galériája, teljes nézete és PNG-exportja billentyűzet/egér használatával vissza
+  lett ellenőrizve.
+- A build, lint, diff, szerkesztő-, rajzbiztonsági-, PWA-, paletta-, köridő-, heti
+  rajz- és hibabejelentési jogosultsági tesztek ugyanebben a körben sikeresek voltak.
+- A paraméterezhető multiplayer teszt három külön játékosmunkamenettel, kilenc körön át
+  sikeresen lefutott. Mindhárom játékos háromszor rajzolt, a titkos szavak védelme,
+  a rajztovábbítás, a hibás és helyes tippek, a pontozás és a körváltás működött.
+- A 2026-09-20-i teljes kódaudit mentési, jogosultsági, hálózati és adatérvényességi
+  javításai elkészültek; a helyi adatbázis-integrációs próbák, lint és production build
+  többször sikeresen lefutottak.
+- A teljes lezáráshoz még a 270/360/390 pixeles kézi mobilpróba, egy fizikai telefonos
+  megnyíló-billentyűzetes próba, az érintéses teljes nézet és a valós
+  hálózatkimaradás/újracsatlakozás ellenőrzése szükséges.
+
+
+[>] 15. PWA – TELEPÍTHETŐ Bitscrawl
 
 Csak a fenti kezelhetőségi változtatások stabil nyilvános próbája után.
+
+Első PWA-alap (2026-09-20):
+- Elkészült a web app manifest a Bitscrawl névvel, saját pixelikonnal, színekkel és
+  önálló alkalmazásablakos megjelenéssel; a szükséges HTML-metaadatok is bekerültek.
+- Automatizált próba ellenőrzi a manifest kötelező adatait, az ikon elérhetőségét és
+  a mobilos metaadatokat.
+- Service worker és offline gyorsítótár még nincs: a multiplayerhez szükséges friss
+  hálózati állapotot nem kockáztatjuk egy túl korán bevezetett gyorsítótárral.
 
 - Web app manifest.
 - Bitscrawl név, színek és alkalmazásikonok.
@@ -434,7 +852,7 @@ Csak a fenti kezelhetőségi változtatások stabil nyilvános próbája után.
 - A multiplayerhez továbbra is internetkapcsolat szükséges; teljes offline játék nem cél.
 
 
-[ ] 16. MVP KIADÁSI ELLENŐRZÉS
+[>] 16. MVP KIADÁSI ELLENŐRZÉS
 
 - Legalább két játékossal többször végigjátszható teljes meccs.
 - Nincs ismert játékot megakasztó hiba.
@@ -445,6 +863,20 @@ Csak a fenti kezelhetőségi változtatások stabil nyilvános próbája után.
 
 
 MVP UTÁNI KÖVETKEZŐ LEHETŐSÉGEK
+
+Javasolt sorrend és függőségek:
+
+1. Az MVP előtt zárjuk le a szerveroldali lapozást, majd a 14-es összevont mobilos,
+   többjátékos és hálózatkimaradási regressziót.
+2. Ezután következzen a PWA tényleges telepíthetőségi próbája és a 16-os MVP-kiadási
+   ellenőrzés; a manifest már elkészült, a service worker és a frissítési stratégia nyitott.
+3. Az Elérhető szobák csak alapvető név- és spamvédelemmel kerüljön ki.
+4. A Párhuzamos rajzverseny a meglévő vendégmunkamenetekkel is elkészülhet, de külön
+   játékmód-állapotgépet igényel.
+5. A Kihívás első fiókos, rajzbeküldős és szavazós változata elkészült; következőként
+   a moderációs és visszaélésvédelmi kezelőfelületet kell tovább erősíteni.
+6. A teljes angol fordítás és az avatárkészítő az MVP stabilizálása után is elkészülhet;
+   az i18n-alapokat és a bővíthető profil-adatmodellt viszont már korábban készítsük elő.
 
 [ ] 17. ELÉRHETŐ SZOBÁK
 
@@ -458,19 +890,161 @@ MVP UTÁNI KÖVETKEZŐ LEHETŐSÉGEK
   szobalétrehozás alapvető védelmét.
 
 
-[ ] 18. FELHASZNÁLÓI FIÓKOK
+[>] 18. FELHASZNÁLÓI FIÓKOK
 
+- 2026-09-20: elkészült az első helyi profilváltozat. A felső profilsávból és a
+  Beállítások > Profil pontból elérhető a belépés, regisztráció és a saját profil.
+  A bejelentkezett játékos 32×32 pixeles profilképet rajzolhat a 12 színű
+  alappalettával; a kép a saját neve mellett és a szoba játékoslistájában is megjelenik.
+  Az adatbázis csak szabályos méretű és engedélyezett színű képet fogad el, a profil
+  pedig csak a tulajdonos számára olvasható és módosítható. A helyi migrációs teszt,
+  a build, a lint és a vendég nézet asztali/mobil ellenőrzése sikeres. A profilkép
+  felhasználónként helyben is megmarad, az online Supabase-mentés pedig 2026-09-20-án élesedett.
+- 2026-09-20: a rajzolt profilkép a Heti kihívás nyilvános galériájában is megjelenik
+  a készítő neve mellett, a felhasználói azonosító és a profil egyéb adatai nélkül.
+- 2026-09-20: a heti és havi galéria készítői, a kommentelők, valamint a játékszoba
+  játékosnevei kattinthatók; a közös profilablak nagy méretben mutatja a nevet és a
+  megrajzolt profilképet, személyes fiókadatok nélkül.
+- 2026-09-20: elkészült a közösségi előszoba helyi változata. Az Ötletláda melletti
+  Aktívak gomb a bejelentkezett profilokat Supabase Presence segítségével mutatja,
+  a nevekről megnyitható a nagy profilnézet, az előszoba-chat legutóbbi 100 üzenete
+  pedig tartósan megmarad. A külön adattábla RLS-védett, csak profilhoz kötött fiók
+  olvashat és írhat, a küldés szerveroldali hossz- és sebességkorlátot kapott.
+- 2026-09-20: az ingyenes Supabase levélküldés óránkénti korlátja miatt az e-mailes
+  regisztráció azonnali megerősítéssel működik, így nem fogyaszt megerősítő levelet.
+  Emiatt az e-mail-cím valódisága egyelőre nincs ellenőrizve; nyilvános indulás előtt
+  ingyenes vagy saját SMTP-szolgáltatást és ismét kötelező e-mail-megerősítést tervezünk.
+- 2026-09-21: a profilkép-szerkesztő a 12 és 32 színű palettát is támogatja; a mentett
+  profilkép a profilban, játékoslistában, galériában, kommenteknél és a közösségi
+  előszobában ugyanabból a szerveroldali profiladatból jelenik meg.
 - A vendégként, azonnali névvel történő játék továbbra is maradjon lehetséges.
 - Később opcionális Supabase-fiók kapcsolható a vendéghez, az egész játék újraírása nélkül.
 - Első fiókos változatként elég lehet a megjelenített név és az elmentett alapbeállítások.
+- A profil későbbi bővítéseként készüljön Bitscrawl-stílusú pixelavatár-készítő, amelyben
+  előre megadott arc-, haj-, szem-, ruha- és színváltozatokból állítható össze az avatár.
+- Az avatár ne képfeltöltés legyen az első változatban: a korlátozott alkatrészkészlet
+  egységesebb látványt ad, egyszerűbben moderálható és kisebb tárhelyet igényel.
+- Az összeállított avatár jelenjen meg a profilban, később pedig a váróteremben és az
+  eredménylistán is; az avatár módosítása ne érintse a játékos pontjait vagy azonosítóját.
 - Barátlista, ranglista, statisztika és kozmetikai elemek csak külön későbbi lépések legyenek.
 - A fiókok előtt külön tervezzük meg az adatkezelést, névfoglalást, törlést és a vendégfiók
   végleges fiókká alakítását.
 
 
+[>] 19. KÖZÖS SZÓ – PÁRHUZAMOS RAJZVERSENY
+
+Cél: minden játékos ugyanazt a szót rajzolja egyszerre, majd egymás munkáira szavaznak.
+
+- A host külön játékmódként választhassa a Párhuzamos rajzversenyt.
+- A szoba kapjon szerveroldali játékmód-azonosítót; a meglévő szobák migrációkor automatikusan
+  `classic` módot kapjanak, így a jelenlegi játék és meghívólinkek változatlanul működnek.
+- A klasszikus és a párhuzamos mód külön szerveroldali állapotgépet és mód-specifikus
+  adattáblákat használjon. A közös szobatagságot, jelenlétet, chatet és rajzmotor-réteget
+  osszuk meg, de ne bővítsük kezelhetetlen feltételekkel a klasszikus körfüggvényeket.
+- Egy forduló elején minden játékos ugyanazt a szerver által kiválasztott szót és ugyanazt
+  a rajzolási időt kapja.
+- A host 1 perc, 1 perc 30 másodperc vagy 2 perc rajzolási időt választhasson, és a
+  fordulók száma 1–5 között legyen állítható; az alapérték 2 forduló.
+- Minden játékos külön, csak általa szerkeszthető vásznon rajzoljon; rajzolás közben mások
+  képét ne láthassa.
+- Az idő lejártakor minden rajz egyszerre váljon láthatóvá, a készítő neve pedig csak a
+  szavazás lezárása után jelenjen meg, hogy a szavazás kevésbé legyen személyfüggő.
+- Minden jogosult játékosnak fordulónként legfeljebb egy érvényes szavazata legyen,
+  saját rajzára ne szavazhasson. A módosíthatóság külön nyitott termékdöntés;
+  ismételt vagy párhuzamos beküldés soha ne eredményezzen többszörös pontot.
+- A szavazási időt a szerver zárja le; a hiányzó szavazat ne akassza meg a játékot.
+- Egy szavazat alapértelmezetten egy pontot érjen. A forduló után jelenjen meg a rajzok
+  sorrendje, készítője és kapott szavazatai.
+- Minden játékos minden beállított fordulóban egyszerre rajzoljon; egy teljes meccs
+  1–5 közös szavas fordulóból álljon.
+- A meccs végén az összes forduló összesített szavazata döntsön; a legtöbb pontot szerző
+  játékos nyerjen.
+- A klasszikus gyorsasági pontok és a rajzverseny szavazatpontjai módonként elkülönítve
+  legyenek értelmezve; eredményképernyőn ne keverjük őket közös, félreérthető ponttípussá.
+- A szavazatokat, a saját képre szavazás tiltását, a forduló lezárását és a pontozást
+  kizárólag a szerver ellenőrizze.
+- Kapcsolatmegszakadáskor a rajz visszatölthető legyen; kilépő játékos rajza megmaradhat
+  a forduló végéig, de új szavazatot már ne adhasson le.
+- Készüljön automatizált próba legalább 3 és 6 játékossal, beleértve az önmagára szavazás,
+  a többszörös szavazás, a kimaradó szavazó és a holtverseny eseteit.
+
+Első alapréteg (2026-09-21):
+- Elkészült a szobák szerveroldali `classic` / `competition` módazonosítója úgy, hogy a
+  meglévő szobák automatikusan klasszikusak maradnak.
+- Elkészült a 60 / 90 / 120 másodperces rajzolási idő és az 1–5 közötti fordulószám
+  kliens- és adatbázis-validációja; az alapérték 90 másodperc és 2 forduló.
+- Elkészült az atomi szobalétrehozó és a csak host által, várakozó állapotban módosítható
+  beállítás-RPC, valamint a létrehozó felület és a várótermi összefoglaló.
+- Elkészült helyben a külön párhuzamos rajzállapotgép: minden játékos saját rejtett
+  eseményfolyamba rajzol, az idő lejárta után pedig egyszerre jelennek meg a képek.
+- Elkészült a 30 másodperces névtelen szavazási szakasz. Saját rajz nem választható,
+  a szavazat a határidőig módosítható, és a készítők neve csak lezáráskor jelenik meg.
+- Elkészült a fordulónkénti pontozás, az 1–5 beállított forduló léptetése, az összesített
+  eredmény és az ugyanazzal a társasággal indítható új verseny.
+- Az első játszható változat migrációja és kliensfelülete helyben kész; élesítés előtt
+  még több böngészős, három–hat játékosos próba és mobil vizuális ellenőrzés szükséges.
+
+
+[x] 20. HETI RAJZ
+
+Cél: nyugodt, meccsen kívüli gyakorlómód, amelyben egy teljes héten át ugyanarra a
+szóra és ugyanazzal a palettával készülnek rajzok.
+
+- Minden hét elején a szerver válasszon egy közös szót és egy rögzített palettát.
+- Egy játékos hetente egy rajzot küldhessen be; a rajz menthető és szerkeszthető legyen
+  a beküldési határidőig, utána pedig véglegessé váljon.
+- A heti rajz külön felületen legyen elérhető, ne kelljen hozzá aktív szobát létrehozni.
+- A Heti rajz ne a meccsszobák vagy körök speciális eseteként készüljön: külön heti kihívás-,
+  beküldés- és szavazási adatszerkezetet kapjon, mert több napig él és más jogosultságokat igényel.
+- Mások a kész rajzokra szavazhassanak, de saját rajzra ne lehessen szavazni, és egy
+  felhasználó ugyanarra a rajzra csak egy szavazatot adhasson.
+- A szavazás és a heti időszak lezárása szerveridő alapján történjen; a hét pontos kezdő-
+  és záróidőpontját minden időzónában egyértelműen jelenítsük meg.
+- A beküldésekhez stabil játékosazonosító szükséges, ezért a teljes mód a 18. pontban
+  tervezett opcionális fiókok után készüljön el. A vendégek előnézetben gyakorolhatnak,
+  de nyilvános rajzot és szavazatot csak azonosított játékos küldhessen be.
+- Legyen alapvető visszaélésvédelem: beküldési és szavazási korlát, jelentés, moderációs
+  elrejtés és a saját vagy többszörös szavazás szerveroldali tiltása.
+- Az első változatban csak részvétel, szavazás és heti eredménylista készüljön; jutalmak,
+  jelvények és sorozatok egy későbbi külön mérföldkő részei legyenek.
+- Mobilon és számítógépen is lehessen folytatni a félbehagyott heti rajzot.
+- Későbbi bővítésként a bejelentkezett játékosok tartós hozzászólásokat írhassanak
+  a galéria képei alá. A megoldás külön komment-adatszerkezetet, szerveroldali
+  hosszkorlátot és jogosultság-ellenőrzést, időbélyeget, saját hozzászólás törlését,
+  moderációs elrejtést, spamkorlátozást, mobil felületet és automatizált próbákat kapjon.
+
+Éles állapot (2026-09-19, a Bitscrawl Heti Rajz v0.1 átadó alapján):
+- Elkészült a külön heti adatmodell, a hétfő 00:00-kor (Europe/Budapest) váltó
+  szerveridős ciklus, a 12 színű rajzellenőrzés és a nyilvános galéria.
+- Elkészült az e-mailes fiók, a megjelenített név, a szerverre mentett vázlat,
+  az egyszeri végleges beküldés, a három mozgatható szavazat és az önszavazás tiltása.
+- Elkészült a felfedezés / legkedveltebb / legújabb sorrend, a lezárt heti archívum
+  és a holtversenyben minden első helyezettet győztesként jelölő eredmény. A
+  `Legkedveltebb` az alapértelmezett; a `Felfedezés` kiválasztáskor új véletlen
+  sorrendet készít.
+- A főmenü öt területre oszlik: Játék, Kihívás, Szerkesztő, Galéria és Beállítások.
+  A Kihívás és a Galéria külön nézetből nyitja meg a heti rajz megfelelő részét;
+  a Szerkesztő közvetlenül a Kihívás alatt érhető el gyakorláshoz.
+- Az átadott új logó, sárga és türkiz alapablakok, gombváltozatok, elválasztó panelek,
+  12 színű palettaforma és kétállapotú rajzeszköztár beépült.
+- Az öt fő szerveroldali forgatókönyv, a build és a kódellenőrzés helyben átment.
+- Az adatbázis-migráció és a Cloudflare Pages webes kiadás élesítve; az aktív
+  2026-W38 hét nyilvános API-próbája sikeres. Az aktuális téma Gomba, a kézzel
+  beállított zárás 2026. szeptember 27. 23:59 (Europe/Budapest).
+
+
 ELDÖNTÖTT IRÁNYOK
 
 - A szobachat ugyanazzal a társasággal indított új meccsnél megmarad; új szobánál törlődik.
+- A főmenü öt elsődleges belépési pontja a Játék, Kihívás, Szerkesztő, Galéria és
+  Beállítások; az Új szoba és a Csatlakozás a Játék részen belül marad.
+- A Szerkesztő a Kihívás alatt, közvetlen főmenüpontként szolgál időkorlát nélküli
+  gyakorlásra.
+- A korábbi Információk külön főmenüpont helyett a Beállítások része.
+- A növekvő számú funkció miatt a hosszú UI-részeket almenükre és összecsukható,
+  feladatalapú csoportokra bontjuk, hogy csökkenjen a szükséges görgetés.
+- A Bitscrawl először magyar szöveggel készül, de minden felületi szöveget fordítható
+  szerkezetbe rendezünk; az első további teljes nyelvi változat az angol lesz.
 - Mobilon a chat felhúzható alsó panel, asztali gépen oldalsó panel lesz.
 - A főmenü és a mobilos chat pontos látványához implementálás előtt egyszerű vázlat készül.
 - A teljes képernyős rajzolás első változata alkalmazáson belüli immerszív nézet lesz,
@@ -480,18 +1054,26 @@ ELDÖNTÖTT IRÁNYOK
 - A koordinátaszámok a vászon méretéhez igazodva legyenek nagyobbak és olvashatók.
 - A már elkészült paletták, körvonalas alakzatok, dinamikus nagyítás, SVG-ikonformátum
   és meccs közbeni kilépési megerősítés lezárt döntések.
+- A Párhuzamos rajzverseny minimumlétszáma 3 játékos. A rajzok a szavazás végéig
+  névtelenek, egy játékos egy szavazatát a határidőig módosíthatja, saját képre nem
+  szavazhat, holtversenynél pedig minden azonos első helyezett közös győztes.
 
 
 MÉG MEGBESZÉLENDŐ AZ IMPLEMENTÁLÁS ELŐTT
 
 - A végleges betűkészletet 3–4, magyar ékezeteket biztosan támogató látványpróbából
   választjuk ki.
+- Az avatár-készítő szabad rajzolás vagy előre gyártott elemek összeállítása legyen-e?
+  Az elemes megoldás jelenleg javaslat, nem végleges felhasználói döntés.
+- A Heti rajz első jutalmai csak kozmetikaiak legyenek-e, vagy később ranglistapontot is adjanak.
 
 
 NEM RÉSZE AZ ELSŐ MVP-NEK
 
 - Android és iOS natív csomag Capacitorral.
-- Felhasználói fiókok, barátlista és ranglista.
-- Galéria, mentett rajzok és közösségi szavazás.
+- Barátlista, globális ranglista és összetett játékosstatisztikák. Az alapfiók,
+  profilkép, heti/havi galéria és Hírfolyam időközben az MVP részévé vált.
+- Korlátlan felhőbeli rajzgyűjtemény. A jelenlegi közösségi felületek heti/havi
+  nevezéseket és felhasználónként napi két hírfolyamképet kezelnek.
 - Saját szócsomagok, tematikus módok és achievementek.
 - 16×16, 64×64 és különleges palettás játékmódok.

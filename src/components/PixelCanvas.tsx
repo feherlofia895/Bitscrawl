@@ -2,10 +2,14 @@ import {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
+import { createPortal } from 'react-dom'
 import type { DrawEvent, PixelChange } from '../lib/game'
 import { colorsForPalette, type PaletteSize } from '../lib/palette'
+import { clampSelectionOffset, movePixelSelection } from '../lib/drawing'
+import { editorText } from '../lib/editorText'
 
 const CANVAS_SIZE = 32
 const TRANSPARENT = 'transparent'
@@ -14,17 +18,19 @@ const MIN_ZOOM = 1
 const ZOOM_BUTTON_STEP = 0.5
 const CANVAS_SURFACE_RATIO = 0.93
 const CENTERED_CANVAS_OFFSET = (1 - CANVAS_SURFACE_RATIO) / 2
-const PIXEL_COORDINATES = Array.from(
-  { length: CANVAS_SIZE },
-  (_, index) => index + 1,
-)
 
 type PixelCanvasProps = {
+  localDrawing?: {
+    initialPixels: string[]
+    onChange: (pixels: string[]) => void
+    onRequestClear?: (clear: () => void) => void
+  }
   canDraw: boolean
   chosenWord: string | null
   drawingEndsAt: string | null
   events: DrawEvent[]
   onError: (error: unknown) => void
+  onImmersiveChange?: (isImmersive: boolean) => void
   onSubmit: (changes: PixelChange[]) => Promise<unknown>
   paletteSize: PaletteSize
   roundId: number
@@ -39,6 +45,7 @@ type DrawingTool =
   | 'line'
   | 'rectangle'
   | 'ellipse'
+  | 'select'
 type PixelMutation = PixelChange & { before: string }
 type ShapeTool = Extract<DrawingTool, 'line' | 'rectangle' | 'ellipse'>
 type ShapeGesture = {
@@ -47,6 +54,13 @@ type ShapeGesture = {
   tool: ShapeTool
 }
 type CanvasPan = { x: number; y: number }
+type SelectionBounds = { left: number; top: number; right: number; bottom: number }
+type SelectionGesture = { start: PixelPoint; current: PixelPoint }
+type SelectionMoveGesture = {
+  bounds: SelectionBounds
+  start: PixelPoint
+  current: PixelPoint
+}
 type PanGesture = {
   origin: CanvasPan
   startX: number
@@ -164,17 +178,40 @@ function isShapeTool(tool: DrawingTool): tool is ShapeTool {
 }
 
 const toolButtons: Array<{
-  icon: string
+  icon?: string
   label: string
+  spriteRow?: number
   tool: DrawingTool
 }> = [
-  { icon: 'pencil', label: 'Ceruza', tool: 'pencil' },
-  { icon: 'eraser', label: 'Radír', tool: 'eraser' },
-  { icon: 'fill', label: 'Kitöltés', tool: 'fill' },
-  { icon: 'line', label: 'Egyenes vonal', tool: 'line' },
-  { icon: 'rectangle', label: 'Négyzet vagy téglalap', tool: 'rectangle' },
-  { icon: 'ellipse', label: 'Kör vagy ellipszis', tool: 'ellipse' },
+  { label: 'Ceruza', spriteRow: 0, tool: 'pencil' },
+  { label: 'Radír', spriteRow: 2, tool: 'eraser' },
+  { label: 'Kitöltés', spriteRow: 1, tool: 'fill' },
+  { label: 'Egyenes vonal', spriteRow: 4, tool: 'line' },
+  { label: 'Négyzet vagy téglalap', spriteRow: 7, tool: 'rectangle' },
+  { label: 'Kör vagy ellipszis', spriteRow: 3, tool: 'ellipse' },
+  { icon: '/icons/tools/select.svg', label: 'Kijelölés', tool: 'select' },
 ]
+
+function toolSpriteStyle(spriteRow: number) {
+  return {
+    '--tool-sprite-y': `${spriteRow * -32}px`,
+    '--tool-sprite-y-large': `${spriteRow * -48}px`,
+  } as CSSProperties
+}
+
+function selectionBounds(from: PixelPoint, to: PixelPoint): SelectionBounds {
+  return {
+    left: Math.min(from.x, to.x),
+    top: Math.min(from.y, to.y),
+    right: Math.max(from.x, to.x),
+    bottom: Math.max(from.y, to.y),
+  }
+}
+
+function pointInSelection(point: PixelPoint, bounds: SelectionBounds) {
+  return point.x >= bounds.left && point.x <= bounds.right &&
+    point.y >= bounds.top && point.y <= bounds.bottom
+}
 
 function connectedPixels(pixels: string[], start: PixelPoint) {
   const targetColor = pixels[start.y * CANVAS_SIZE + start.x]
@@ -212,16 +249,28 @@ function connectedPixels(pixels: string[], start: PixelPoint) {
 }
 
 export function PixelCanvas({
+  localDrawing,
   canDraw,
   chosenWord,
   drawingEndsAt,
   events,
   onError,
+  onImmersiveChange,
   onSubmit,
   paletteSize,
   roundId,
   serverNow,
 }: PixelCanvasProps) {
+  const localDrawingRef = useRef(localDrawing)
+  useEffect(() => { localDrawingRef.current = localDrawing })
+  const onErrorRef = useRef(onError)
+  const onSubmitRef = useRef(onSubmit)
+  const roundIdRef = useRef(roundId)
+  useEffect(() => {
+    onErrorRef.current = onError
+    onSubmitRef.current = onSubmit
+    roundIdRef.current = roundId
+  }, [onError, onSubmit, roundId])
   const pixelPalette = colorsForPalette(paletteSize)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const canvasFrameRef = useRef<HTMLDivElement>(null)
@@ -231,6 +280,7 @@ export function PixelCanvas({
   const appliedEventIdsRef = useRef(new Set<number>())
   const pendingChangesRef = useRef(new Map<string, PixelChange>())
   const flushTimerRef = useRef<number | undefined>(undefined)
+  const flushPendingChangesRef = useRef<() => void>(() => undefined)
   const sendQueueRef = useRef<Promise<unknown>>(Promise.resolve())
   const isDrawingRef = useRef(false)
   const isPanningRef = useRef(false)
@@ -244,6 +294,8 @@ export function PixelCanvas({
   const lastPointRef = useRef<PixelPoint | null>(null)
   const activeStrokeRef = useRef<Map<string, PixelMutation> | null>(null)
   const shapeGestureRef = useRef<ShapeGesture | null>(null)
+  const selectionGestureRef = useRef<SelectionGesture | null>(null)
+  const selectionMoveGestureRef = useRef<SelectionMoveGesture | null>(null)
   const undoHistoryRef = useRef<PixelMutation[][]>([])
   const [activeColor, setActiveColor] = useState(pixelPalette[0].hex)
   const [activeTool, setActiveTool] = useState<DrawingTool>('pencil')
@@ -259,8 +311,9 @@ export function PixelCanvas({
     y: CENTERED_CANVAS_OFFSET,
   })
   const [isPanMode, setIsPanMode] = useState(false)
+  const [selectedArea, setSelectedArea] = useState<SelectionBounds | null>(null)
+  const [selectionOffset, setSelectionOffset] = useState<PixelPoint>({ x: 0, y: 0 })
   const [showGrid, setShowGrid] = useState(false)
-  const [showCoordinates, setShowCoordinates] = useState(false)
   const [isImmersive, setIsImmersive] = useState(false)
   const [areImmersiveToolsOpen, setAreImmersiveToolsOpen] = useState(false)
   const [isImmersivePaletteOpen, setIsImmersivePaletteOpen] = useState(false)
@@ -277,17 +330,29 @@ export function PixelCanvas({
   const clampZoom = (nextZoom: number) =>
     Math.max(MIN_ZOOM, Math.min(maximumZoom(), nextZoom))
 
-  const clampPan = (nextPan: CanvasPan, nextZoom = zoom) => {
-    const surfaceSize = CANVAS_SURFACE_RATIO * nextZoom
-    if (surfaceSize <= 1) {
-      const centeredOffset = (1 - surfaceSize) / 2
-      return { x: centeredOffset, y: centeredOffset }
+  const surfaceRatios = (nextZoom: number) => {
+    const frameBounds = canvasFrameRef.current?.getBoundingClientRect()
+    if (!frameBounds || frameBounds.width === 0 || frameBounds.height === 0) {
+      const ratio = CANVAS_SURFACE_RATIO * nextZoom
+      return { x: ratio, y: ratio }
     }
 
-    const minimum = 1 - surfaceSize
+    const baseSize = Math.min(frameBounds.width, frameBounds.height)
     return {
-      x: Math.max(minimum, Math.min(0, nextPan.x)),
-      y: Math.max(minimum, Math.min(0, nextPan.y)),
+      x: (baseSize / frameBounds.width) * CANVAS_SURFACE_RATIO * nextZoom,
+      y: (baseSize / frameBounds.height) * CANVAS_SURFACE_RATIO * nextZoom,
+    }
+  }
+
+  const clampPan = (nextPan: CanvasPan, nextZoom = zoom) => {
+    const surface = surfaceRatios(nextZoom)
+    const clampAxis = (offset: number, size: number) => {
+      if (size <= 1) return (1 - size) / 2
+      return Math.max(1 - size, Math.min(0, offset))
+    }
+    return {
+      x: clampAxis(nextPan.x, surface.x),
+      y: clampAxis(nextPan.y, surface.y),
     }
   }
 
@@ -303,15 +368,15 @@ export function PixelCanvas({
   ) => {
     const currentZoom = zoomRef.current
     const nextZoom = clampZoom(requestedZoom)
-    const currentSurfaceSize = CANVAS_SURFACE_RATIO * currentZoom
-    const nextSurfaceSize = CANVAS_SURFACE_RATIO * nextZoom
-    const contentX = (anchor.x - panRef.current.x) / currentSurfaceSize
-    const contentY = (anchor.y - panRef.current.y) / currentSurfaceSize
+    const currentSurface = surfaceRatios(currentZoom)
+    const nextSurface = surfaceRatios(nextZoom)
+    const contentX = (anchor.x - panRef.current.x) / currentSurface.x
+    const contentY = (anchor.y - panRef.current.y) / currentSurface.y
 
     updatePan(
       {
-        x: anchor.x - contentX * nextSurfaceSize,
-        y: anchor.y - contentY * nextSurfaceSize,
+        x: anchor.x - contentX * nextSurface.x,
+        y: anchor.y - contentY * nextSurface.y,
       },
       nextZoom,
     )
@@ -326,6 +391,16 @@ export function PixelCanvas({
   const selectDrawingTool = (tool: DrawingTool) => {
     setActiveTool(tool)
     setIsPanMode(false)
+    if (tool !== 'select') {
+      setSelectedArea(null)
+      setSelectionOffset({ x: 0, y: 0 })
+    }
+  }
+
+  const selectPanTool = () => {
+    setIsPanMode(true)
+    setSelectedArea(null)
+    setSelectionOffset({ x: 0, y: 0 })
   }
 
   const paintPixel = (change: PixelChange) => {
@@ -364,12 +439,24 @@ export function PixelCanvas({
     const changes = [...pendingChangesRef.current.values()]
     pendingChangesRef.current.clear()
 
+    if (localDrawing) {
+      if (changes.length) localDrawing.onChange([...pixelsRef.current])
+      return
+    }
+
     for (let index = 0; index < changes.length; index += 64) {
       const chunk = changes.slice(index, index + 64)
+      const sendingRoundId = roundId
       sendQueueRef.current = sendQueueRef.current
-        .then(() => onSubmit(chunk))
+        .then(() => onSubmitRef.current(chunk))
         .catch((error) => {
-          onError(error)
+          if (roundIdRef.current === sendingRoundId) {
+            chunk.forEach(change => {
+              const key = pixelKey(change)
+              if (!pendingChangesRef.current.has(key)) pendingChangesRef.current.set(key, change)
+            })
+          }
+          onErrorRef.current(error)
         })
     }
   }
@@ -512,6 +599,78 @@ export function PixelCanvas({
     redrawCanvas()
   }
 
+  useEffect(() => {
+    flushPendingChangesRef.current = flushPendingChanges
+  })
+
+  const previewSelection = (point: PixelPoint) => {
+    const gesture = selectionGestureRef.current
+    if (!gesture) return
+    gesture.current = point
+    setSelectedArea(selectionBounds(gesture.start, point))
+  }
+
+  const previewSelectionMove = (point: PixelPoint) => {
+    const gesture = selectionMoveGestureRef.current
+    if (!gesture) return
+    gesture.current = point
+    setSelectionOffset(clampSelectionOffset(gesture.bounds, {
+      x: point.x - gesture.start.x,
+      y: point.y - gesture.start.y,
+    }))
+  }
+
+  const finishSelectionMove = (point?: PixelPoint) => {
+    const gesture = selectionMoveGestureRef.current
+    if (!gesture) return
+    if (point) gesture.current = point
+
+    const original = [...pixelsRef.current]
+    const movedSelection = movePixelSelection(original, gesture.bounds, {
+      x: gesture.current.x - gesture.start.x,
+      y: gesture.current.y - gesture.start.y,
+    })
+    const { offset } = movedSelection
+    selectionMoveGestureRef.current = null
+    setSelectionOffset({ x: 0, y: 0 })
+    if (offset.x === 0 && offset.y === 0) return
+
+    const mutations = movedSelection.pixels.flatMap((color, index) =>
+      color === original[index]
+        ? []
+        : [{
+            before: original[index],
+            color,
+            x: index % CANVAS_SIZE,
+            y: Math.floor(index / CANVAS_SIZE),
+          }],
+    )
+    if (mutations.length === 0) {
+      setSelectedArea({
+        left: gesture.bounds.left + offset.x,
+        right: gesture.bounds.right + offset.x,
+        top: gesture.bounds.top + offset.y,
+        bottom: gesture.bounds.bottom + offset.y,
+      })
+      return
+    }
+    mutations.forEach(queueChange)
+    saveUndoStep(mutations)
+    flushPendingChanges()
+    setSelectedArea({
+      left: gesture.bounds.left + offset.x,
+      right: gesture.bounds.right + offset.x,
+      top: gesture.bounds.top + offset.y,
+      bottom: gesture.bounds.bottom + offset.y,
+    })
+  }
+
+  const cancelSelectionGesture = () => {
+    selectionGestureRef.current = null
+    selectionMoveGestureRef.current = null
+    setSelectionOffset({ x: 0, y: 0 })
+  }
+
   const undoLastStep = () => {
     if (isDrawingRef.current) return
 
@@ -523,6 +682,8 @@ export function PixelCanvas({
       queueChange({ x, y, color: before })
     })
     flushPendingChanges()
+    setSelectedArea(null)
+    setSelectionOffset({ x: 0, y: 0 })
     setCanUndo(undoHistoryRef.current.length > 0)
   }
 
@@ -542,6 +703,17 @@ export function PixelCanvas({
           ],
     )
     if (mutations.length === 0) return
+    setSelectedArea(null)
+    setSelectionOffset({ x: 0, y: 0 })
+    if (localDrawing?.onRequestClear) {
+      localDrawing.onRequestClear(() => {
+        flushPendingChanges()
+        mutations.forEach(queueChange)
+        saveUndoStep(mutations)
+        flushPendingChanges()
+      })
+      return
+    }
     if (!window.confirm('Biztosan törlöd a teljes rajzot?')) return
 
     flushPendingChanges()
@@ -553,10 +725,10 @@ export function PixelCanvas({
   const enterImmersiveMode = () => {
     setAreImmersiveToolsOpen(false)
     setIsImmersivePaletteOpen(false)
+    zoomRef.current = MIN_ZOOM
+    setZoom(MIN_ZOOM)
+    setIsPanMode(false)
     setIsImmersive(true)
-    if (zoomRef.current === MIN_ZOOM) {
-      window.setTimeout(() => changeZoom(1.5), 0)
-    }
   }
 
   const exitImmersiveMode = () => {
@@ -599,11 +771,11 @@ export function PixelCanvas({
     const midpoint = pointerMidpoint(pointers[0], pointers[1])
     const anchorX = (midpoint.clientX - frameBounds.left) / frameBounds.width
     const anchorY = (midpoint.clientY - frameBounds.top) / frameBounds.height
-    const currentSurfaceSize = CANVAS_SURFACE_RATIO * zoomRef.current
+    const currentSurface = surfaceRatios(zoomRef.current)
 
     pinchGestureRef.current = {
-      contentX: (anchorX - panRef.current.x) / currentSurfaceSize,
-      contentY: (anchorY - panRef.current.y) / currentSurfaceSize,
+      contentX: (anchorX - panRef.current.x) / currentSurface.x,
+      contentY: (anchorY - panRef.current.y) / currentSurface.y,
       startDistance: Math.max(1, pointerDistance(pointers[0], pointers[1])),
       startZoom: zoomRef.current,
     }
@@ -622,12 +794,12 @@ export function PixelCanvas({
       gesture.startZoom *
         (pointerDistance(pointers[0], pointers[1]) / gesture.startDistance),
     )
-    const nextSurfaceSize = CANVAS_SURFACE_RATIO * nextZoom
+    const nextSurface = surfaceRatios(nextZoom)
 
     updatePan(
       {
-        x: anchorX - gesture.contentX * nextSurfaceSize,
-        y: anchorY - gesture.contentY * nextSurfaceSize,
+        x: anchorX - gesture.contentX * nextSurface.x,
+        y: anchorY - gesture.contentY * nextSurface.y,
       },
       nextZoom,
     )
@@ -648,12 +820,17 @@ export function PixelCanvas({
   }
 
   useEffect(() => {
-    pixelsRef.current.fill(TRANSPARENT)
+    const localSource = localDrawingRef.current
+    pixelsRef.current = localSource
+      ? [...localSource.initialPixels]
+      : Array<string>(CANVAS_SIZE * CANVAS_SIZE).fill(TRANSPARENT)
     appliedEventIdsRef.current.clear()
     pendingChangesRef.current.clear()
     undoHistoryRef.current = []
     activeStrokeRef.current = null
     shapeGestureRef.current = null
+    selectionGestureRef.current = null
+    selectionMoveGestureRef.current = null
     isDrawingRef.current = false
     isPanningRef.current = false
     panGestureRef.current = null
@@ -670,8 +847,17 @@ export function PixelCanvas({
     }
     setPan(panRef.current)
     setIsPanMode(false)
+    setSelectedArea(null)
+    setSelectionOffset({ x: 0, y: 0 })
     const context = canvasRef.current?.getContext('2d')
     context?.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
+    if (context && localSource) {
+      pixelsRef.current.forEach((color, index) => {
+        if (color === TRANSPARENT) return
+        context.fillStyle = color
+        context.fillRect(index % CANVAS_SIZE, Math.floor(index / CANVAS_SIZE), 1, 1)
+      })
+    }
   }, [roundId])
 
   useEffect(() => {
@@ -688,13 +874,53 @@ export function PixelCanvas({
     })
   }, [events])
 
+  useEffect(() => () => {
+    if (pendingChangesRef.current.size) flushPendingChangesRef.current()
+  }, [roundId])
+
+  useEffect(() => {
+    if (localDrawing) return
+    const retryPendingChanges = () => {
+      if (pendingChangesRef.current.size) flushPendingChangesRef.current()
+    }
+    window.addEventListener('online', retryPendingChanges)
+    return () => window.removeEventListener('online', retryPendingChanges)
+  }, [localDrawing, roundId])
+
   useEffect(() => {
     const frame = canvasFrameRef.current
     if (!frame) return
 
     frame.addEventListener('wheel', handleWheel, { passive: false })
     return () => frame.removeEventListener('wheel', handleWheel)
-  }, [])
+  }, [isImmersive])
+
+  useEffect(() => {
+    const animationFrame = window.requestAnimationFrame(() => {
+      const context = canvasRef.current?.getContext('2d')
+      if (context) {
+        context.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
+        pixelsRef.current.forEach((color, index) => {
+          if (color === TRANSPARENT) return
+          context.fillStyle = color
+          context.fillRect(
+            index % CANVAS_SIZE,
+            Math.floor(index / CANVAS_SIZE),
+            1,
+            1,
+          )
+        })
+      }
+      updatePan(panRef.current, zoomRef.current)
+    })
+    return () => window.cancelAnimationFrame(animationFrame)
+  }, [isImmersive])
+
+  useEffect(() => {
+    onImmersiveChange?.(isImmersive)
+  }, [isImmersive, onImmersiveChange])
+
+  useEffect(() => () => onImmersiveChange?.(false), [onImmersiveChange])
 
   useEffect(() => {
     if (!isImmersive) {
@@ -716,9 +942,11 @@ export function PixelCanvas({
       '',
     )
 
-    const closeFromHistory = () => setIsImmersive(false)
+    const closeFromHistory = () => {
+      if (!window.history.state?.bitscrawlImmersiveCanvas) setIsImmersive(false)
+    }
     const closeFromKeyboard = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsImmersive(false)
+      if (event.key === 'Escape' && !window.history.state?.bitscrawlModal) setIsImmersive(false)
     }
 
     window.addEventListener('popstate', closeFromHistory)
@@ -764,15 +992,6 @@ export function PixelCanvas({
     setIsImmersive(false)
   }, [roundId])
 
-  useEffect(
-    () => () => {
-      if (flushTimerRef.current !== undefined) {
-        window.clearTimeout(flushTimerRef.current)
-      }
-    },
-    [],
-  )
-
   const activeToolDetails =
     toolButtons.find(({ tool }) => tool === activeTool) ?? toolButtons[0]
   const immersiveTimeLabel =
@@ -782,7 +1001,7 @@ export function PixelCanvas({
           .toString()
           .padStart(2, '0')}`
 
-  return (
+  const editor = (
     <section
       aria-label={isImmersive ? 'Teljes képernyős pixelvászon' : undefined}
       aria-labelledby={isImmersive ? undefined : 'pixel-editor-title'}
@@ -790,13 +1009,17 @@ export function PixelCanvas({
     >
       {isImmersive ? (
         <div className="immersive-canvas-heading">
-          <span>
-            {canDraw ? 'Szó' : 'Élő rajz'}
-            {canDraw ? <strong>{chosenWord ?? '—'}</strong> : null}
-          </span>
-          <span>
-            Idő <strong>{immersiveTimeLabel}</strong>
-          </span>
+          {localDrawing ? (
+            <span>{editorText.freeDrawing}</span>
+          ) : (
+            <>
+              <span>
+                {canDraw ? 'Szó' : 'Élő rajz'}
+                {canDraw ? <strong>{chosenWord ?? '—'}</strong> : null}
+              </span>
+              <span>Idő <strong>{immersiveTimeLabel}</strong></span>
+            </>
+          )}
           <button onClick={exitImmersiveMode} type="button">
             Bezárás
           </button>
@@ -818,34 +1041,46 @@ export function PixelCanvas({
       {canDraw ? (
         <div className="pixel-toolbar" aria-label="Rajzeszközök">
           <div className="tool-buttons">
-            {toolButtons.map(({ icon, label, tool }) => (
+            {toolButtons.filter(({ tool }) => tool !== 'select').map(({ icon, label, spriteRow, tool }) => (
               <button
                 aria-label={label}
                 aria-pressed={activeTool === tool}
+                className={spriteRow === undefined ? 'tool-icon-button' : 'tool-sprite-button'}
                 key={tool}
                 onClick={() => selectDrawingTool(tool)}
+                style={spriteRow === undefined ? undefined : toolSpriteStyle(spriteRow)}
                 title={label}
                 type="button"
               >
-                <img alt="" aria-hidden="true" src={`/icons/tools/${icon}.svg`} />
+                {icon ? <img alt="" aria-hidden="true" src={icon} /> : null}
               </button>
             ))}
             <button
               aria-label="Visszavonás"
+              className="tool-sprite-button"
               disabled={!canUndo}
               onClick={undoLastStep}
+              style={toolSpriteStyle(6)}
               title="Visszavonás"
               type="button"
-            >
-              <img alt="" aria-hidden="true" src="/icons/tools/undo.svg" />
-            </button>
+            />
             <button
               aria-label="Teljes vászon törlése"
+              className="tool-sprite-button"
               onClick={clearCanvas}
+              style={toolSpriteStyle(5)}
               title="Teljes vászon törlése"
               type="button"
+            />
+            <button
+              aria-label="Kijelölés"
+              aria-pressed={activeTool === 'select'}
+              className="tool-icon-button"
+              onClick={() => selectDrawingTool('select')}
+              title="Kijelölés"
+              type="button"
             >
-              <img alt="" aria-hidden="true" src="/icons/tools/clear.svg" />
+              <img alt="" aria-hidden="true" src="/icons/tools/select.svg" />
             </button>
           </div>
           <div
@@ -872,19 +1107,19 @@ export function PixelCanvas({
         </div>
       ) : null}
 
-      <div className="canvas-zoom-controls" aria-label="Vászon nagyítása">
-        <span>Nagyító</span>
+      <div className="canvas-view-controls" aria-label="Vászon nézetének vezérlése">
         <button
           aria-label="Kicsinyítés"
+          className="canvas-zoom-button"
           disabled={zoom <= MIN_ZOOM}
           onClick={() => stepZoom(-1)}
           type="button"
         >
           −
         </button>
-        <output aria-live="polite">{Math.round(zoom * 100)}%</output>
         <button
           aria-label="Nagyítás"
+          className="canvas-zoom-button"
           disabled={zoom >= maximumZoom()}
           onClick={() => stepZoom(1)}
           type="button"
@@ -892,15 +1127,9 @@ export function PixelCanvas({
           +
         </button>
         <button
-          disabled={zoom === MIN_ZOOM}
-          onClick={() => changeZoom(MIN_ZOOM)}
-          type="button"
-        >
-          100%
-        </button>
-        <button
           aria-label="Mozgatás"
           aria-pressed={isPanMode}
+          className="canvas-pan-button"
           disabled={zoom === MIN_ZOOM}
           onClick={() => setIsPanMode((current) => !current)}
           title="Mozgatás"
@@ -910,19 +1139,13 @@ export function PixelCanvas({
         </button>
         <button
           aria-pressed={showGrid}
+          className="canvas-grid-button"
           onClick={() => setShowGrid((current) => !current)}
           type="button"
         >
           Rács
         </button>
-        <button
-          aria-pressed={showCoordinates}
-          onClick={() => setShowCoordinates((current) => !current)}
-          type="button"
-        >
-          Koordináták
-        </button>
-        <button onClick={enterImmersiveMode} type="button">
+        <button className="canvas-immersive-button" onClick={enterImmersiveMode} type="button">
           Teljes nézet
         </button>
       </div>
@@ -934,58 +1157,68 @@ export function PixelCanvas({
               <button
                 aria-expanded={areImmersiveToolsOpen}
                 aria-label="Rajzeszközök"
-                className="immersive-tool-toggle"
+                aria-pressed={areImmersiveToolsOpen}
+                className={`immersive-tool-toggle ${activeToolDetails.spriteRow === undefined ? 'tool-icon-button' : 'tool-sprite-button'}`}
                 onClick={() => {
                   setAreImmersiveToolsOpen((current) => !current)
                   setIsImmersivePaletteOpen(false)
                 }}
+                style={activeToolDetails.spriteRow === undefined ? undefined : toolSpriteStyle(activeToolDetails.spriteRow)}
                 title={activeToolDetails.label}
                 type="button"
               >
-                <img
-                  alt=""
-                  aria-hidden="true"
-                  src={`/icons/tools/${activeToolDetails.icon}.svg`}
-                />
+                {activeToolDetails.icon ? <img alt="" aria-hidden="true" src={activeToolDetails.icon} /> : null}
               </button>
               {areImmersiveToolsOpen ? (
                 <div className="immersive-tool-menu" aria-label="Rajzeszköz választása">
-                  {toolButtons.map(({ icon, label, tool }) => (
+                  {toolButtons.map(({ icon, label, spriteRow, tool }) => (
                     <button
                       aria-label={label}
                       aria-pressed={activeTool === tool}
+                      className={spriteRow === undefined ? 'tool-icon-button' : 'tool-sprite-button'}
                       key={tool}
                       onClick={() => {
                         selectDrawingTool(tool)
                         setAreImmersiveToolsOpen(false)
                       }}
+                      style={spriteRow === undefined ? undefined : toolSpriteStyle(spriteRow)}
                       title={label}
                       type="button"
                     >
-                      <img
-                        alt=""
-                        aria-hidden="true"
-                        src={`/icons/tools/${icon}.svg`}
-                      />
+                      {icon ? <img alt="" aria-hidden="true" src={icon} /> : null}
                     </button>
                   ))}
                   <button
-                    aria-label="Visszavonás"
-                    disabled={!canUndo}
-                    onClick={undoLastStep}
-                    title="Visszavonás"
+                    aria-label="Vászon mozgatása"
+                    aria-pressed={isPanMode}
+                    className="tool-icon-button"
+                    disabled={zoom === MIN_ZOOM}
+                    onClick={() => {
+                      selectPanTool()
+                      setAreImmersiveToolsOpen(false)
+                    }}
+                    title="Vászon mozgatása"
                     type="button"
                   >
-                    <img alt="" aria-hidden="true" src="/icons/tools/undo.svg" />
+                    <img alt="" aria-hidden="true" src="/icons/tools/pan.svg" />
                   </button>
                   <button
+                    aria-label="Visszavonás"
+                    className="tool-sprite-button"
+                    disabled={!canUndo}
+                    onClick={undoLastStep}
+                    style={toolSpriteStyle(6)}
+                    title="Visszavonás"
+                    type="button"
+                  />
+                  <button
                     aria-label="Teljes vászon törlése"
+                    className="tool-sprite-button"
                     onClick={clearCanvas}
+                    style={toolSpriteStyle(5)}
                     title="Teljes vászon törlése"
                     type="button"
-                  >
-                    <img alt="" aria-hidden="true" src="/icons/tools/clear.svg" />
-                  </button>
+                  />
                 </div>
               ) : null}
             </div>
@@ -1049,14 +1282,6 @@ export function PixelCanvas({
               +
             </button>
             <button
-              aria-label="100%"
-              disabled={zoom === MIN_ZOOM}
-              onClick={() => changeZoom(MIN_ZOOM)}
-              type="button"
-            >
-              1:1
-            </button>
-            <button
               aria-label="Mozgatás"
               aria-pressed={isPanMode}
               disabled={zoom === MIN_ZOOM}
@@ -1074,14 +1299,6 @@ export function PixelCanvas({
             >
               #
             </button>
-            <button
-              aria-label="Koordináták"
-              aria-pressed={showCoordinates}
-              onClick={() => setShowCoordinates((current) => !current)}
-              type="button"
-            >
-              1–32
-            </button>
           </div>
         </aside>
       ) : null}
@@ -1090,35 +1307,33 @@ export function PixelCanvas({
         <div
           className={`pixel-canvas-surface${showGrid ? ' show-grid' : ''}`}
           style={{
-            height: `${CANVAS_SURFACE_RATIO * zoom * 100}%`,
+            height: isImmersive
+              ? `min(${CANVAS_SURFACE_RATIO * zoom * 100}cqw, ${CANVAS_SURFACE_RATIO * zoom * 100}cqh)`
+              : `${CANVAS_SURFACE_RATIO * zoom * 100}%`,
             left: `${pan.x * 100}%`,
             top: `${pan.y * 100}%`,
-            width: `${CANVAS_SURFACE_RATIO * zoom * 100}%`,
+            width: isImmersive
+              ? `min(${CANVAS_SURFACE_RATIO * zoom * 100}cqw, ${CANVAS_SURFACE_RATIO * zoom * 100}cqh)`
+              : `${CANVAS_SURFACE_RATIO * zoom * 100}%`,
           }}
         >
-          {showCoordinates ? (
-            <>
-              <div
-                aria-hidden="true"
-                className="pixel-coordinate-ruler is-horizontal"
-              >
-                {PIXEL_COORDINATES.map((coordinate) => (
-                  <span key={coordinate}>{coordinate}</span>
-                ))}
-              </div>
-              <div
-                aria-hidden="true"
-                className="pixel-coordinate-ruler is-vertical"
-              >
-                {PIXEL_COORDINATES.map((coordinate) => (
-                  <span key={coordinate}>{coordinate}</span>
-                ))}
-              </div>
-            </>
+          {selectedArea ? (
+            <div
+              aria-hidden="true"
+              className="pixel-selection-outline"
+              style={{
+                height: `${((selectedArea.bottom - selectedArea.top + 1) / CANVAS_SIZE) * 100}%`,
+                left: `${((selectedArea.left + selectionOffset.x) / CANVAS_SIZE) * 100}%`,
+                top: `${((selectedArea.top + selectionOffset.y) / CANVAS_SIZE) * 100}%`,
+                width: `${((selectedArea.right - selectedArea.left + 1) / CANVAS_SIZE) * 100}%`,
+              }}
+            />
           ) : null}
           <canvas
             aria-label={canDraw ? 'Rajzolható 32×32 pixeles vászon' : 'Élő pixelrajz'}
             className={`drawing-canvas${isPanMode ? ' is-pan-mode' : ''}${
+              activeTool === 'select' ? ' is-selection-mode' : ''
+            }${
               isPanningRef.current ? ' is-panning' : ''
             }`}
             height={CANVAS_SIZE}
@@ -1140,6 +1355,10 @@ export function PixelCanvas({
               }
               if (shapeGestureRef.current) {
                 cancelShape()
+                return
+              }
+              if (selectionGestureRef.current || selectionMoveGestureRef.current) {
+                cancelSelectionGesture()
                 return
               }
               finishStroke()
@@ -1196,6 +1415,20 @@ export function PixelCanvas({
                 return
               }
 
+              if (activeTool === 'select') {
+                if (selectedArea && pointInSelection(point, selectedArea)) {
+                  selectionMoveGestureRef.current = {
+                    bounds: selectedArea,
+                    current: point,
+                    start: point,
+                  }
+                } else {
+                  selectionGestureRef.current = { current: point, start: point }
+                  setSelectedArea(selectionBounds(point, point))
+                }
+                return
+              }
+
               activeStrokeRef.current = new Map()
               isDrawingRef.current = true
               drawTo(point)
@@ -1222,6 +1455,16 @@ export function PixelCanvas({
 
               if (canDraw && shapeGestureRef.current) {
                 previewShape(pointFromEvent(event))
+                return
+              }
+
+              if (canDraw && selectionGestureRef.current) {
+                previewSelection(pointFromEvent(event))
+                return
+              }
+
+              if (canDraw && selectionMoveGestureRef.current) {
+                previewSelectionMove(pointFromEvent(event))
                 return
               }
 
@@ -1260,6 +1503,17 @@ export function PixelCanvas({
                 return
               }
 
+              if (canDraw && selectionGestureRef.current) {
+                previewSelection(pointFromEvent(event))
+                selectionGestureRef.current = null
+                return
+              }
+
+              if (canDraw && selectionMoveGestureRef.current) {
+                finishSelectionMove(pointFromEvent(event))
+                return
+              }
+
               if (!canDraw || !isDrawingRef.current) return
               finishStroke()
             }}
@@ -1274,4 +1528,6 @@ export function PixelCanvas({
       </p>
     </section>
   )
+
+  return isImmersive ? createPortal(editor, document.body) : editor
 }

@@ -1,6 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { RoundMessage } from '../lib/game'
 import type { RoomPlayer } from '../lib/lobby'
+import { parseAvatarPixels } from '../lib/profile'
+import { ProfilePreviewButton } from './ProfilePreviewButton'
 
 type GuessResult = {
   is_correct: boolean
@@ -9,6 +11,7 @@ type GuessResult = {
 
 type RoundChatProps = {
   currentUserId: string
+  isImmersive: boolean
   isDrawer: boolean
   messages: RoundMessage[]
   onError: (error: unknown) => void
@@ -19,6 +22,7 @@ type RoundChatProps = {
 
 export function RoundChat({
   currentUserId,
+  isImmersive,
   isDrawer,
   messages,
   onError,
@@ -36,6 +40,12 @@ export function RoundChat({
         message.kind === 'correct' &&
         message.sender_user_id === currentUserId,
     )
+  const canSubmitGuess = !isDrawer && !hasGuessedCorrectly
+  const panelClassName = [
+    'guess-panel',
+    canSubmitGuess ? 'is-guessing' : '',
+    isImmersive ? 'is-immersive' : '',
+  ].filter(Boolean).join(' ')
 
   useEffect(() => {
     setGuess('')
@@ -60,12 +70,10 @@ export function RoundChat({
     }
   }
 
-  const playerName = (userId: string) =>
-    players.find((player) => player.user_id === userId)?.display_name ??
-    'Játékos'
+  const playerProfile = (userId: string) => players.find((player) => player.user_id === userId)
 
   return (
-    <section className="guess-panel" aria-labelledby="round-chat-title">
+    <section className={panelClassName} aria-labelledby="round-chat-title">
       <div className="round-chat-heading">
         <div>
           <p className="round-label">Csak a szerver ellenőrzi</p>
@@ -81,15 +89,19 @@ export function RoundChat({
         {messages.length === 0 ? (
           <p className="empty-chat">Még senki sem fejtette meg.</p>
         ) : (
-          messages.map((message) => (
-            <p
+          messages.map((message) => {
+            const sender = playerProfile(message.sender_user_id)
+            const senderName = sender?.display_name ?? 'Játékos'
+            return <p
               className="round-message correct-message"
               key={message.id}
             >
-              <strong>{playerName(message.sender_user_id)}</strong>
+              <ProfilePreviewButton className="chat-profile-trigger" name={senderName} pixels={parseAvatarPixels(sender?.avatar_pixels ?? null)}>
+                <strong>{senderName}</strong>
+              </ProfilePreviewButton>
               <span>kitalálta a szót! ✓</span>
             </p>
-          ))
+          })
         )}
       </div>
 
@@ -114,8 +126,19 @@ export function RoundChat({
             type="text"
             value={guess}
           />
-          <button disabled={isSubmitting || !guess.trim()} type="submit">
-            {isSubmitting ? 'Küldés…' : 'Tipp küldése'}
+          <button
+            aria-label={isSubmitting ? 'Tipp küldése folyamatban' : 'Tipp küldése'}
+            disabled={isSubmitting || !guess.trim()}
+            type="submit"
+          >
+            {isSubmitting ? (
+              'Küldés…'
+            ) : (
+              <>
+                <span className="guess-submit-long">Tipp küldése</span>
+                <span aria-hidden="true" className="guess-submit-short">Küldés</span>
+              </>
+            )}
           </button>
         </form>
       )}

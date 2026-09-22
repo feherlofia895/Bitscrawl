@@ -8,7 +8,17 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "test:editor": "node --test scripts/verify-editor.mjs",
+    "test:round-duration:local": "node --test scripts/verify-round-duration-local.mjs",
+    "test:round-duration:live": "node --env-file=.env.local scripts/verify-round-duration-live.mjs",
+    "test:palette-hide:local": "node --test scripts/verify-palette-hide-local.mjs",
+    "test:pwa": "node --test scripts/verify-pwa.mjs",
+    "test:weekly-drawing:local": "node --test scripts/verify-weekly-drawing-local.mjs",
+    "test:drawing-safety": "node --test scripts/verify-drawing-safety.mjs",
     "test:leave-room": "node --env-file=.env.local scripts/verify-leave-room.mjs",
+    "test:bug-reports": "node --env-file=.env.local scripts/verify-bug-reports.mjs",
+    "test:four-player": "node --env-file=.env.local scripts/verify-four-player-game.mjs",
+    "test:three-player": "node --env-file=.env.local scripts/verify-four-player-game.mjs 3",
     "test:palette-modes": "node --env-file=.env.local scripts/verify-palette-modes.mjs",
     "deploy": "npm run build && wrangler pages deploy dist --project-name bitscrawl --branch main"
   },
@@ -18,6 +28,7 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
@@ -25,6 +36,6 @@
     "oxlint": "^1.75.0",
     "typescript": "~6.0.2",
     "vite": "^8.2.0",
-    "wrangler": "4.120.0"
+    "wrangler": "4.135.0"
   }
 }
