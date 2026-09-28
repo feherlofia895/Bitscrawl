@@ -2,8 +2,10 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import {
   loadProfileAvatarLikeState,
+  loadPublicProfileStats,
   setProfileAvatarLike,
   type ProfileAvatarLikeState,
+  type PublicProfileStats,
 } from '../lib/profile'
 import { ProfileAvatar } from './ProfileAvatar'
 
@@ -22,6 +24,7 @@ export function ProfilePreviewButton({
 }) {
   const [open, setOpen] = useState(false)
   const [likeState, setLikeState] = useState<ProfileAvatarLikeState | null>(null)
+  const [publicStats, setPublicStats] = useState<PublicProfileStats | null>(null)
   const [likePending, setLikePending] = useState(false)
   const [likeFeedback, setLikeFeedback] = useState('')
   const triggerRef = useRef<HTMLButtonElement>(null)
@@ -62,11 +65,18 @@ export function ProfilePreviewButton({
     let cancelled = false
     setLikeFeedback('')
     setLikeState(null)
-    void loadProfileAvatarLikeState(name)
-      .then(state => { if (!cancelled) setLikeState(state) })
-      .catch(error => {
-        if (!cancelled) setLikeFeedback(error instanceof Error ? error.message : 'A kedvelések nem tölthetők be.')
-      })
+    setPublicStats(null)
+    void Promise.allSettled([
+      loadProfileAvatarLikeState(name),
+      loadPublicProfileStats(name),
+    ]).then(([likeResult, statsResult]) => {
+      if (cancelled) return
+      if (likeResult.status === 'fulfilled') setLikeState(likeResult.value)
+      if (statsResult.status === 'fulfilled') setPublicStats(statsResult.value)
+      if (likeResult.status === 'rejected' && statsResult.status === 'rejected') {
+        setLikeFeedback('A profilstatisztikák most nem tölthetők be.')
+      }
+    })
     return () => { cancelled = true }
   }, [name, open, pixels])
 
@@ -119,7 +129,15 @@ export function ProfilePreviewButton({
             <strong>{likeState?.likeCount ?? 0}</strong>
           </button>
           <h2 id="profile-preview-title">{name}</h2>
-          {receivedLikes !== undefined ? <p className="profile-preview-likes"><strong>{receivedLikes}</strong> hírfolyamos kedvelés</p> : null}
+          <div className="profile-preview-stats" aria-label="Játékos statisztikák">
+            <span><strong>{receivedLikes ?? publicStats?.receivedLikeCount ?? 0}</strong> rajzfali lájk</span>
+            <span><strong>{publicStats?.trophyCount ?? 0}</strong> trófea</span>
+          </div>
+          {(publicStats?.trophyCount ?? 0) > 0 ? (
+            <p className="profile-preview-medals" aria-label="Dobogós érmek">
+              🥇 {publicStats?.goldCount ?? 0} · 🥈 {publicStats?.silverCount ?? 0} · 🥉 {publicStats?.bronzeCount ?? 0}
+            </p>
+          ) : null}
           {!pixels ? <p className="profile-preview-empty">Még nincs megrajzolt profilképe.</p> : null}
           {likeFeedback ? <p aria-live="polite" className="profile-avatar-like-feedback">{likeFeedback}</p> : null}
           <button className="profile-preview-close" onClick={close} ref={closeRef} type="button">Bezárás</button>

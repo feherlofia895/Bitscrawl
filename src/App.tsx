@@ -27,6 +27,7 @@ import { WeeklyDraw } from './components/WeeklyDraw'
 import { ProfileAvatar } from './components/ProfileAvatar'
 import { ProfilePreviewButton } from './components/ProfilePreviewButton'
 import { ProfilePanel } from './components/ProfilePanel'
+import { Scoreboard } from './components/Scoreboard'
 import { RoomChat } from './components/RoomChat'
 import { RoundChat } from './components/RoundChat'
 import { RoundTimer } from './components/RoundTimer'
@@ -81,10 +82,10 @@ import { checkSupabaseConnection } from './lib/supabase'
 import { loadOwnProfile, parseAvatarPixels, type PlayerProfile } from './lib/profile'
 
 type BackendStatus = 'checking' | 'online' | 'reconnecting' | 'offline'
-type HomeView = 'main' | 'play' | 'editor' | 'challenge' | 'gallery' | 'create' | 'join' | 'settings' | 'profile'
+type HomeView = 'main' | 'play' | 'editor' | 'challenge' | 'gallery' | 'scoreboard' | 'create' | 'join' | 'settings' | 'profile'
 
 const homeViews = new Set<HomeView>([
-  'main', 'play', 'editor', 'challenge', 'gallery', 'create', 'join', 'settings', 'profile',
+  'main', 'play', 'editor', 'challenge', 'gallery', 'scoreboard', 'create', 'join', 'settings', 'profile',
 ])
 
 const homeViewParents: Record<Exclude<HomeView, 'main'>, HomeView> = {
@@ -92,6 +93,7 @@ const homeViewParents: Record<Exclude<HomeView, 'main'>, HomeView> = {
   editor: 'main',
   challenge: 'main',
   gallery: 'main',
+  scoreboard: 'main',
   create: 'play',
   join: 'play',
   settings: 'main',
@@ -1023,6 +1025,16 @@ function App() {
           </span>
           <span>Bitscrawl</span>
         </a>
+        <button
+          aria-label="Beállítások"
+          className="topbar-settings-button"
+          disabled={Boolean(lobby) || homeView === 'settings'}
+          onClick={() => openHomeView('settings')}
+          title={lobby ? 'A beállítások a szobából kilépés után nyithatók meg.' : 'Beállítások'}
+          type="button"
+        >
+          <span aria-hidden="true">⚙</span>
+        </button>
         <div className="topbar-statuses">
           <span
             className="backend-badge"
@@ -1470,6 +1482,8 @@ function App() {
         <WeeklyDraw mode="challenge" onBack={closeHomeView} onOpenChallenge={() => openHomeView('challenge')} />
       ) : homeView === 'gallery' ? (
         <WeeklyDraw mode="gallery" onBack={closeHomeView} onOpenChallenge={() => openHomeView('challenge')} />
+      ) : homeView === 'scoreboard' ? (
+        <Scoreboard onBack={closeHomeView} />
       ) : (
         <>
           <section className="hero" id="top">
@@ -1533,28 +1547,28 @@ function App() {
                   <h2 id="lobby-title">Mit szeretnél?</h2>
                 </div>
                 <div className="home-menu-actions">
+                  <button className="ui-drawn-button ui-button-1" onClick={() => openHomeView('scoreboard')} type="button">
+                    Dicsőségfal
+                  </button>
                   <button
-                    className="ui-drawn-button ui-button-1"
+                    className="ui-drawn-button ui-button-2"
                     onClick={() => openHomeView('play')}
                     type="button"
                   >
                     {editorText.play}
                   </button>
                   <button
-                    className="ui-drawn-button ui-button-2"
+                    className="ui-drawn-button ui-button-3"
                     onClick={() => openHomeView('challenge')}
                     type="button"
                   >
                     Kihívás
                   </button>
-                  <button className="ui-drawn-button ui-button-3" onClick={() => openHomeView('editor')} type="button">
-                    {editorText.editor}
-                  </button>
                   <button className="ui-drawn-button ui-button-4" onClick={() => openHomeView('gallery')} type="button">
                     Galéria
                   </button>
-                  <button className="ui-drawn-button ui-button-5" onClick={() => openHomeView('settings')} type="button">
-                    Beállítások
+                  <button className="ui-drawn-button ui-button-5" onClick={() => openHomeView('editor')} type="button">
+                    {editorText.editor}
                   </button>
                 </div>
               </>

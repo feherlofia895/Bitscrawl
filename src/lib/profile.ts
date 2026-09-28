@@ -7,9 +7,14 @@ import { getWeeklyUser } from './weekly'
 
 export type PlayerProfile = {
   avatarPixels: string[] | null
+  avatarLikes: number
+  bronzeCount: number
   displayName: string
   feedPostCount: number
+  goldCount: number
   receivedLikes: number
+  silverCount: number
+  trophyCount: number
 }
 
 export type ProfileAvatarSaveResult = {
@@ -21,6 +26,15 @@ export type ProfileAvatarLikeState = {
   canLike: boolean
   likeCount: number
   liked: boolean
+}
+
+export type PublicProfileStats = {
+  avatarLikeCount: number
+  bronzeCount: number
+  goldCount: number
+  receivedLikeCount: number
+  silverCount: number
+  trophyCount: number
 }
 
 const validAvatarColors = new Set(['transparent', ...editorPalette32.map(color => color.hex)])
@@ -53,6 +67,10 @@ function avatarLikeEndpointIsMissing(error: { code?: string; message?: string })
   return error.code === 'PGRST202' ||
     Boolean(error.message?.includes('get_profile_avatar_like_state')) ||
     Boolean(error.message?.includes('set_profile_avatar_like'))
+}
+
+function publicProfileStatsEndpointIsMissing(error: { code?: string; message?: string }) {
+  return error.code === 'PGRST202' || Boolean(error.message?.includes('get_public_profile_stats'))
 }
 
 export function parseAvatarPixels(value: Json | null): string[] | null {
@@ -97,17 +115,51 @@ export async function loadOwnProfile(): Promise<{ profile: PlayerProfile | null;
   }
 
   if (error) throw profileError(error)
-  const feedStats = data
-    ? await loadOwnFeedStats().catch(() => ({ postCount: 0, receivedLikeCount: 0 }))
-    : { postCount: 0, receivedLikeCount: 0 }
+  const [feedStats, publicStats] = data
+    ? await Promise.all([
+        loadOwnFeedStats().catch(() => null),
+        loadPublicProfileStats(data.display_name).catch(() => null),
+      ])
+    : [{ postCount: 0, receivedLikeCount: 0 }, null]
   return {
     profile: data ? {
       avatarPixels: parseAvatarPixels(data.avatar_pixels) ?? loadLocalAvatar(user.id),
+      avatarLikes: publicStats?.avatarLikeCount ?? 0,
+      bronzeCount: publicStats?.bronzeCount ?? 0,
       displayName: data.display_name,
-      feedPostCount: feedStats.postCount,
-      receivedLikes: feedStats.receivedLikeCount,
+      feedPostCount: feedStats?.postCount ?? 0,
+      goldCount: publicStats?.goldCount ?? 0,
+      receivedLikes: feedStats?.receivedLikeCount ?? publicStats?.receivedLikeCount ?? 0,
+      silverCount: publicStats?.silverCount ?? 0,
+      trophyCount: publicStats?.trophyCount ?? 0,
     } : null,
     user,
+  }
+}
+
+export async function loadPublicProfileStats(name: string): Promise<PublicProfileStats> {
+  const { data, error } = await supabase.rpc('get_public_profile_stats', {
+    target_profile_name: name,
+  })
+  if (error && publicProfileStatsEndpointIsMissing(error)) {
+    return {
+      avatarLikeCount: 0,
+      bronzeCount: 0,
+      goldCount: 0,
+      receivedLikeCount: 0,
+      silverCount: 0,
+      trophyCount: 0,
+    }
+  }
+  if (error) throw profileError(error)
+  const stats = data[0]
+  return {
+    avatarLikeCount: Math.max(0, stats?.avatar_like_count ?? 0),
+    bronzeCount: Math.max(0, stats?.bronze_count ?? 0),
+    goldCount: Math.max(0, stats?.gold_count ?? 0),
+    receivedLikeCount: Math.max(0, stats?.received_like_count ?? 0),
+    silverCount: Math.max(0, stats?.silver_count ?? 0),
+    trophyCount: Math.max(0, stats?.trophy_count ?? 0),
   }
 }
 

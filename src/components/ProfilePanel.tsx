@@ -183,9 +183,14 @@ export function ProfilePanel({ onBack, onProfileChange }: {
               </div>
               <p>{user.email}</p>
               {isModerator ? <p className="profile-admin-note">A Rajzfal és a kihívásgalériák képeit és kommentjeit moderálhatod.</p> : null}
-              <div className="profile-feed-stats" aria-label="Hírfolyam statisztikák">
-                <span><strong>{profile?.receivedLikes ?? 0}</strong> kapott kedvelés</span>
-                <span><strong>{profile?.feedPostCount ?? 0}</strong> közzétett kép</span>
+              <div className="profile-achievements">
+                <h3>Elért eredmények:</h3>
+                <div className="profile-feed-stats" aria-label="Profil statisztikák">
+                  <span><strong>{profile?.receivedLikes ?? 0}</strong> rajzfali lájk</span>
+                  <span><strong>{profile?.avatarLikes ?? 0}</strong> profilkép-lájk</span>
+                  <span><strong>{profile?.trophyCount ?? 0}</strong> trófea</span>
+                  <span><strong>{profile?.feedPostCount ?? 0}</strong> közzétett kép</span>
+                </div>
               </div>
             </div>
             <button disabled={busy} onClick={() => void handleSignOut()} type="button">Kilépés</button>

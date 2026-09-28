@@ -425,6 +425,53 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      finalize_weekly_challenge: {
+        Args: { target_challenge_id: number }
+        Returns: {
+          already_finalized: boolean
+          awards_count: number
+          challenge_id: number
+          total_vote_points: number
+        }[]
+      }
+      get_lifetime_scoreboard: {
+        Args: { requested_limit?: number }
+        Returns: {
+          avatar_pixels: Json | null
+          bonus_points: number
+          bronze_count: number
+          challenges_entered: number
+          display_name: string
+          gold_count: number
+          score_rank: number
+          silver_count: number
+          total_points: number
+          vote_points: number
+        }[]
+      }
+      get_weekly_hall_of_fame: {
+        Args: { requested_limit?: number }
+        Returns: {
+          avatar_pixels: Json | null
+          awarded_at: string
+          challenge_prompt: string
+          display_name: string
+          placement: number
+          points: number
+          week_key: string
+        }[]
+      }
+      get_public_profile_stats: {
+        Args: { target_profile_name: string }
+        Returns: {
+          avatar_like_count: number
+          bronze_count: number
+          gold_count: number
+          received_like_count: number
+          silver_count: number
+          trophy_count: number
+        }[]
+      }
       is_app_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
