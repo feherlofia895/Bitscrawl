@@ -3032,9 +3032,27 @@ button,
 .gallery-comment-edit { display: grid; gap: 6px; margin-top: 7px; }
 .gallery-comment-edit textarea { width: 100%; min-height: 64px; padding: 7px; resize: vertical; color: var(--ink); background: white; border: 2px solid var(--ink); font: inherit; }
 .gallery-comment-edit > div { display: flex; justify-content: flex-end; gap: 6px; }
+.gallery-comment-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.gallery-comment-like-button {
+  min-width: 58px;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 5px 8px;
+  color: var(--ink);
+  background: var(--yellow);
+  border: 1px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  font: 900 .66rem/1 var(--pixel-font);
+}
+.gallery-comment-like-button > span { color: var(--red); font: 900 1rem/1 Arial, sans-serif; }
+.gallery-comment-like-button[aria-pressed='true'] { color: var(--paper); background: var(--red); }
+.gallery-comment-like-button[aria-pressed='true'] > span { color: var(--paper); }
+.gallery-comment-like-button:disabled { cursor: not-allowed; filter: grayscale(.3); opacity: .72; }
 .gallery-comment-edit button,
 .gallery-comment-edit-button { min-height: 32px; padding: 5px 8px; color: var(--ink); background: var(--yellow); border: 1px solid var(--ink); font-size: .68rem; }
-.gallery-comment-edit-button { margin-top: 6px; }
 .gallery-comment-form > div { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .gallery-comment-form button { min-height: 38px; padding: 7px 12px; color: var(--ink); background: var(--mint); border: 2px solid var(--ink); }
 .gallery-comments-empty,

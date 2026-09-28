@@ -1,7 +1,7 @@
 import type { Json } from '../types/database'
 import { editorPalette32 } from './palette'
 import { supabase } from './supabase'
-import type { GalleryComment, GallerySort } from './galleryComments'
+import { hydrateCommentLikes, type GalleryComment, type GallerySort } from './galleryComments'
 
 export const FEED_PAGE_SIZE = 6
 export const FEED_DAILY_POST_LIMIT = 3
@@ -159,10 +159,10 @@ export async function setDailyFeedLike(postId: number, enabled: boolean) {
 export async function loadDailyFeedComments(postIds: number[]) {
   const { data, error } = await supabase.rpc('get_daily_feed_comments', { target_post_ids: postIds })
   if (error) throw feedError(error)
-  return data.map(comment => ({
+  return hydrateCommentLikes('feed', data.map(comment => ({
     ...comment,
     authorAvatar: parseAvatar(comment.author_avatar),
-  })) as GalleryComment[]
+  })))
 }
 
 export async function addDailyFeedComment(postId: number, content: string) {

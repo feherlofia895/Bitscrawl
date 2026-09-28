@@ -371,7 +371,7 @@ export function DailyFeed({
               type="button"
             >❤</button>
           </div>
-          <GalleryComments artworkAuthor={post.author_name} busy={busy} comments={post.comments} isSignedIn={Boolean(user && account)} onSubmit={content => handleComment(post.post_id, content)} onUpdate={handleCommentUpdate} />
+          <GalleryComments artworkAuthor={post.author_name} busy={busy} comments={post.comments} isSignedIn={Boolean(user && account)} onSubmit={content => handleComment(post.post_id, content)} onUpdate={handleCommentUpdate} reactionKind="feed" />
         </article>)}</div>
         <GalleryPagination currentPage={page} onPageChange={changePage} totalItems={totalCount} />
       </> : <p className="weekly-empty">Még nincs kép a Rajzfalon. Lehetsz te az első!</p>}

@@ -425,6 +425,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_comment_like_states: {
+        Args: { target_comment_ids: number[]; target_kind: string }
+        Returns: {
+          comment_id: number
+          has_liked: boolean
+          like_count: number
+        }[]
+      }
+      set_comment_like: {
+        Args: { like_enabled: boolean; target_comment_id: number; target_kind: string }
+        Returns: {
+          active_like_count: number
+          liked: boolean
+        }[]
+      }
       advance_competition_game: {
         Args: { target_round_id: number }
         Returns: {

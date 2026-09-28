@@ -2,6 +2,8 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   GALLERY_COMMENT_PAGE_SIZE,
+  setCommentLike,
+  type CommentReactionKind,
   type GalleryComment,
   type GalleryCommentPage,
 } from '../lib/galleryComments'
@@ -21,6 +23,7 @@ export function GalleryComments({
   loadComments,
   onSubmit,
   onUpdate,
+  reactionKind = 'gallery',
 }: {
   busy: boolean
   comments?: GalleryComment[]
@@ -30,6 +33,7 @@ export function GalleryComments({
   loadComments?: (page: number) => Promise<GalleryCommentPage>
   onSubmit: (content: string) => Promise<void>
   onUpdate: (commentId: number, content: string) => Promise<void>
+  reactionKind?: CommentReactionKind
 }) {
   const [content, setContent] = useState('')
   const [open, setOpen] = useState(false)
@@ -39,6 +43,8 @@ export function GalleryComments({
   const [loadError, setLoadError] = useState('')
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editingContent, setEditingContent] = useState('')
+  const [reactionPendingId, setReactionPendingId] = useState<number | null>(null)
+  const [reactionError, setReactionError] = useState('')
   const titleId = useId()
   const triggerRef = useRef<HTMLButtonElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
@@ -122,6 +128,22 @@ export function GalleryComments({
     }
   }
 
+  const toggleReaction = async (comment: GalleryComment) => {
+    if (!isSignedIn || reactionPendingId !== null) return
+    setReactionPendingId(comment.comment_id)
+    setReactionError('')
+    try {
+      const next = await setCommentLike(reactionKind, comment.comment_id, !comment.has_liked)
+      setComments(current => current.map(item => item.comment_id === comment.comment_id
+        ? { ...item, has_liked: next.liked, like_count: next.likeCount }
+        : item))
+    } catch (error) {
+      setReactionError(error instanceof Error ? error.message : 'A kommentlájkot nem sikerült menteni.')
+    } finally {
+      setReactionPendingId(null)
+    }
+  }
+
   return <section className="gallery-comments">
     <button aria-expanded={open} aria-haspopup="dialog" className="gallery-comments-toggle" onClick={() => setOpen(true)} ref={triggerRef} type="button">
       Kommentek ({totalCount})
@@ -153,9 +175,23 @@ export function GalleryComments({
               {editingId === comment.comment_id ? <form className="gallery-comment-edit" onSubmit={event => { event.preventDefault(); void update() }}>
                 <label><span className="visually-hidden">Komment szerkesztése</span><textarea maxLength={280} onChange={event => setEditingContent(event.target.value)} rows={3} value={editingContent} /></label>
                 <div><button disabled={busy} onClick={() => { setEditingId(null); setEditingContent('') }} type="button">Mégse</button><button disabled={busy || !editingContent.trim()} type="submit">Mentés</button></div>
-              </form> : <><p>{comment.content}</p>{comment.is_own ? <button className="gallery-comment-edit-button" disabled={busy} onClick={() => { setEditingId(comment.comment_id); setEditingContent(comment.content) }} type="button">Szerkesztés</button> : null}</>}
+              </form> : <><p>{comment.content}</p><div className="gallery-comment-actions">
+                <button
+                  aria-label={comment.has_liked ? 'Kommentlájk visszavonása' : 'Komment lájkolása'}
+                  aria-pressed={comment.has_liked}
+                  className="gallery-comment-like-button"
+                  disabled={!isSignedIn || busy || reactionPendingId !== null}
+                  onClick={() => void toggleReaction(comment)}
+                  title={!isSignedIn ? 'Lájkoláshoz jelentkezz be.' : undefined}
+                  type="button"
+                >
+                  <span aria-hidden="true">♥</span> <strong>{comment.like_count}</strong>
+                </button>
+                {comment.is_own ? <button className="gallery-comment-edit-button" disabled={busy} onClick={() => { setEditingId(comment.comment_id); setEditingContent(comment.content) }} type="button">Szerkesztés</button> : null}
+              </div></>}
             </li>)}</ol> : <p className="gallery-comments-empty">Még nincs komment. Legyél te az első!</p>}
             {loadError ? <p className="gallery-comments-empty">{loadError} <button disabled={commentLoading} onClick={() => void loadPage(1, true)} type="button">Újrapróbálom</button></p> : null}
+            {reactionError ? <p aria-live="polite" className="gallery-comments-empty">{reactionError}</p> : null}
             {loadComments && comments.length < totalCount ? <button disabled={commentLoading} onClick={() => void loadPage(Math.floor(comments.length / GALLERY_COMMENT_PAGE_SIZE) + 1, false)} type="button">{commentLoading ? 'Betöltés…' : 'További korábbi kommentek'}</button> : null}
             {isSignedIn ? <form className="gallery-comment-form" onSubmit={event => { event.preventDefault(); void submit() }}>
               <label><span className="visually-hidden">Új komment</span><textarea maxLength={280} onChange={event => setContent(event.target.value)} placeholder="Na mi van?" rows={3} value={content} /></label>
