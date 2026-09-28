@@ -11,7 +11,6 @@ import {
   setWeeklyProfile,
   setWeeklyVote,
   signInWeeklyAccount,
-  signOutWeeklyAccount,
   submitWeeklyEntry,
   type WeeklyAccountState,
   type WeeklyChallenge,
@@ -25,7 +24,9 @@ import { WeeklyArtwork } from './WeeklyArtwork'
 import { ArtworkPreview } from './ArtworkPreview'
 import { MonthlyDraw } from './MonthlyDraw'
 import { DailyFeed } from './DailyFeed'
+import { CurrentChallengesSummary } from './CurrentChallengesSummary'
 import { GalleryComments } from './GalleryComments'
+import { ChallengePeriodNavigation, GalleryNavigation } from './GalleryNavigation'
 import { GalleryPagination } from './GalleryPagination'
 import {
   addGalleryComment,
@@ -35,6 +36,7 @@ import {
 } from '../lib/galleryComments'
 import { createDrawingSaveQueue } from '../lib/drawingSaveQueue'
 import { clearChallengeDraft, loadChallengeDraft, saveChallengeDraft } from '../lib/challengeDrafts'
+import { loadMonthlyChallenges, type MonthlyChallenge } from '../lib/monthly'
 
 const blankAccount: WeeklyAccountState = {
   draftPixels: null,
@@ -56,7 +58,7 @@ function createDiscoverySeed() {
   return Math.floor(Math.random() * 0x100000000) >>> 0
 }
 
-function WeeklyDrawContent({ mode, onBack, onSelectFeed, onSelectMonthly }: { mode: 'challenge' | 'gallery'; onBack: () => void; onSelectFeed: () => void; onSelectMonthly: () => void }) {
+function WeeklyDrawContent({ currentMonthlyChallenge, currentWeeklyChallenge, mode, onBack, onOpenMonthlyChallenge, onOpenWeeklyChallenge, onSelectFeed, onSelectMonthly }: { currentMonthlyChallenge: MonthlyChallenge | null; currentWeeklyChallenge: WeeklyChallenge | null; mode: 'challenge' | 'gallery'; onBack: () => void; onOpenMonthlyChallenge: () => void; onOpenWeeklyChallenge: () => void; onSelectFeed: () => void; onSelectMonthly: () => void }) {
   const [challenges, setChallenges] = useState<WeeklyChallenge[]>([])
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [gallery, setGallery] = useState<WeeklyGalleryEntry[]>([])
@@ -114,6 +116,11 @@ function WeeklyDrawContent({ mode, onBack, onSelectFeed, onSelectMonthly }: { mo
   }
 
   const challenge = challenges.find(item => item.challenge_id === selectedId) ?? null
+  const challengeLabelById = new Map(
+    [...challenges]
+      .sort((first, second) => first.starts_at.localeCompare(second.starts_at))
+      .map((item, index) => [item.challenge_id, `${index + 1}. hét - ${item.prompt}`]),
+  )
   const isActive = challenge?.challenge_status === 'active'
 
   const refresh = useCallback(async (
@@ -276,22 +283,6 @@ function WeeklyDrawContent({ mode, onBack, onSelectFeed, onSelectMonthly }: { mo
     }
   }
 
-  const handleSignOut = async () => {
-    setBusy(true)
-    try {
-      if (!(await flushDraft())) return
-      await signOutWeeklyAccount()
-      setUser(null)
-      setAccount(blankAccount)
-      setLoadedChallengeId(selectedId)
-      setStatus('Kijelentkeztél.')
-    } catch (error) {
-      setStatus(errorMessage(error))
-    } finally {
-      setBusy(false)
-    }
-  }
-
   const handleDrawingChange = useCallback((pixels: string[]) => {
     pixelsRef.current = pixels
     setStatus('Mentés folyamatban…')
@@ -404,13 +395,12 @@ function WeeklyDrawContent({ mode, onBack, onSelectFeed, onSelectMonthly }: { mo
         </div>
         <button disabled={busy} onClick={() => void leavePage(onBack)} type="button">Vissza a főmenübe</button>
       </header>
-      <nav className="challenge-period-switch" aria-label="Kihívás időtartama">
-        <button aria-pressed="true" type="button">{mode === 'gallery' ? 'Heti galéria' : 'Heti kihívás'}</button>
-        <button disabled={busy} onClick={() => void leavePage(onSelectMonthly)} type="button">{mode === 'gallery' ? 'Havi galéria' : 'Havi kihívás'}</button>
-        {mode === 'gallery' ? <button disabled={busy} onClick={() => void leavePage(onSelectFeed)} type="button">Hírfolyam</button> : null}
-      </nav>
+      {mode === 'challenge' ? <nav className="challenge-period-switch" aria-label="Kihívás időtartama">
+        <button aria-pressed="true" type="button">Heti kihívás</button>
+        <button disabled={busy} onClick={() => void leavePage(onSelectMonthly)} type="button">Havi kihívás</button>
+      </nav> : null}
 
-      {challenge ? (
+      {mode === 'challenge' && challenge ? (
         <section className="weekly-challenge-card">
           <div>
             <span className={`weekly-status weekly-status-${challenge.challenge_status}`}>
@@ -424,12 +414,14 @@ function WeeklyDrawContent({ mode, onBack, onSelectFeed, onSelectMonthly }: { mo
             <label className="field weekly-picker">
               <span>Hetek</span>
               <select disabled={loading} onChange={event => void chooseChallenge(Number(event.target.value))} value={challenge.challenge_id}>
-                {challenges.map(item => <option key={item.challenge_id} value={item.challenge_id}>{item.week_key} · {item.prompt}</option>)}
+                {challenges.map(item => <option key={item.challenge_id} value={item.challenge_id}>{challengeLabelById.get(item.challenge_id)}</option>)}
               </select>
             </label>
           ) : null}
         </section>
       ) : null}
+
+      {mode === 'gallery' ? <CurrentChallengesSummary monthlyChallenge={currentMonthlyChallenge} onOpenMonthly={onOpenMonthlyChallenge} onOpenWeekly={onOpenWeeklyChallenge} weeklyChallenge={currentWeeklyChallenge ?? challenge} /> : null}
 
       {!loading && accountReady && !user ? (
         <section className="weekly-account-card">
@@ -458,12 +450,6 @@ function WeeklyDrawContent({ mode, onBack, onSelectFeed, onSelectMonthly }: { mo
             <button className="primary-button" disabled={busy || displayName.trim().length < 2} onClick={() => void handleProfile()} type="button">Név mentése</button>
           </div>
         </section>
-      ) : !loading && accountReady ? (
-        <div className="weekly-user-bar">
-          <span>Belépve: <strong>{account.profileName}</strong></span>
-          <span>Szavazatok: <strong>{account.votesUsed}/3</strong></span>
-          <button disabled={busy} onClick={() => void handleSignOut()} type="button">Kilépés</button>
-        </div>
       ) : null}
 
       {!loading && challenge && !accountReady ? <section className="weekly-account-card"><div><h2>A mentett rajz nem töltődött be</h2><p>A szerkesztőt addig nem nyitjuk meg, hogy a meglévő rajzod biztonságban maradjon.</p></div><button disabled={busy} onClick={() => void chooseChallenge(challenge.challenge_id)} type="button">Betöltés újra</button></section> : null}
@@ -497,6 +483,28 @@ function WeeklyDrawContent({ mode, onBack, onSelectFeed, onSelectMonthly }: { mo
       {mode === 'gallery' ? <section className="weekly-gallery" aria-labelledby="weekly-gallery-title">
         <div className="weekly-section-heading">
           <div><p className="step-label">Közösség</p><h2 id="weekly-gallery-title">Galéria</h2></div>
+          <div className="gallery-heading-controls">
+            <GalleryNavigation
+              busy={busy}
+              onSelectChallenges={() => undefined}
+              onSelectWall={() => void leavePage(onSelectFeed)}
+              view="challenges"
+            />
+          </div>
+        </div>
+        <div className="gallery-subcontrols">
+          {user && accountReady && account.profileName ? <p className="gallery-vote-count">Szavazatok: <strong>{account.votesUsed}/3</strong></p> : null}
+          <div className="gallery-challenge-filters">
+            <ChallengePeriodNavigation busy={busy} onSelectMonthly={() => void leavePage(onSelectMonthly)} onSelectWeekly={() => undefined} period="weekly" />
+            {challenges.length > 1 && challenge ? (
+              <label className="field weekly-picker gallery-week-picker">
+                <span>Hét kiválasztása</span>
+                <select disabled={loading} onChange={event => void chooseChallenge(Number(event.target.value))} value={challenge.challenge_id}>
+                  {challenges.map(item => <option key={item.challenge_id} value={item.challenge_id}>{challengeLabelById.get(item.challenge_id)}</option>)}
+                </select>
+              </label>
+            ) : null}
+          </div>
           <label className="field weekly-sort"><span>Sorrend</span><select disabled={loading} onChange={event => void handleGallerySort(event.target.value as GallerySort)} value={sort}><option value="likes">Legkedveltebb</option><option value="discovery">Felfedezés</option><option value="newest">Legújabb</option></select></label>
         </div>
         {gallery.length ? <>
@@ -517,7 +525,7 @@ function WeeklyDrawContent({ mode, onBack, onSelectFeed, onSelectMonthly }: { mo
               <GalleryComments artworkAuthor={entry.author_name} busy={busy} commentCount={entry.comment_count} isSignedIn={Boolean(user && account.profileName)} loadComments={page => loadGalleryCommentsForEntry('weekly', entry.entry_id, page, selectedId ?? undefined)} onSubmit={content => handleComment(entry.entry_id, content)} onUpdate={handleCommentUpdate} />
             </article>
           ))}</div>
-          <GalleryPagination currentPage={galleryPage} onPageChange={page => void handleGalleryPage(page)} totalItems={galleryTotal} />
+          <GalleryPagination currentPage={galleryPage} onPageChange={handleGalleryPage} totalItems={galleryTotal} />
         </> : <p className="weekly-empty">Ezen a héten még nincs nevezés. Lehetsz te az első!</p>}
       </section> : null}
 
@@ -527,12 +535,45 @@ function WeeklyDrawContent({ mode, onBack, onSelectFeed, onSelectMonthly }: { mo
   )
 }
 
-export function WeeklyDraw({ mode, onBack }: { mode: 'challenge' | 'gallery'; onBack: () => void }) {
+export function WeeklyDraw({ mode, onBack, onOpenChallenge }: { mode: 'challenge' | 'gallery'; onBack: () => void; onOpenChallenge: () => void }) {
   const [period, setPeriod] = useState<'weekly' | 'monthly' | 'feed'>('weekly')
+  const [currentWeeklyChallenge, setCurrentWeeklyChallenge] = useState<WeeklyChallenge | null>(null)
+  const [currentMonthlyChallenge, setCurrentMonthlyChallenge] = useState<MonthlyChallenge | null>(null)
+
+  useEffect(() => {
+    if (mode !== 'gallery') return
+    let cancelled = false
+    void Promise.allSettled([loadWeeklyChallenges(), loadMonthlyChallenges()]).then(([weeklyResult, monthlyResult]) => {
+      if (cancelled) return
+      if (weeklyResult.status === 'fulfilled') {
+        setCurrentWeeklyChallenge(
+          weeklyResult.value.find(item => item.challenge_status === 'active')
+          ?? weeklyResult.value.find(item => item.challenge_status === 'upcoming')
+          ?? weeklyResult.value[0]
+          ?? null,
+        )
+      }
+      if (monthlyResult.status === 'fulfilled') {
+        setCurrentMonthlyChallenge(
+          monthlyResult.value.find(item => item.challenge_status === 'drawing')
+          ?? monthlyResult.value.find(item => item.challenge_status === 'voting')
+          ?? monthlyResult.value.find(item => item.challenge_status === 'upcoming')
+          ?? monthlyResult.value[0]
+          ?? null,
+        )
+      }
+    })
+    return () => { cancelled = true }
+  }, [mode])
+
   if (mode === 'gallery' && period === 'feed') {
-    return <DailyFeed onBack={onBack} onSelectMonthly={() => setPeriod('monthly')} onSelectWeekly={() => setPeriod('weekly')} />
+    return <DailyFeed onBack={onBack} onSelectWeekly={() => setPeriod('weekly')} />
+  }
+  const openChallenge = (nextPeriod: 'weekly' | 'monthly') => {
+    setPeriod(nextPeriod)
+    onOpenChallenge()
   }
   return period === 'monthly'
-    ? <MonthlyDraw mode={mode} onBack={onBack} onSelectFeed={() => setPeriod('feed')} onSelectWeekly={() => setPeriod('weekly')} />
-    : <WeeklyDrawContent mode={mode} onBack={onBack} onSelectFeed={() => setPeriod('feed')} onSelectMonthly={() => setPeriod('monthly')} />
+    ? <MonthlyDraw currentMonthlyChallenge={currentMonthlyChallenge} currentWeeklyChallenge={currentWeeklyChallenge} mode={mode} onBack={onBack} onOpenMonthlyChallenge={() => openChallenge('monthly')} onOpenWeeklyChallenge={() => openChallenge('weekly')} onSelectFeed={() => setPeriod('feed')} onSelectWeekly={() => setPeriod('weekly')} />
+    : <WeeklyDrawContent currentMonthlyChallenge={currentMonthlyChallenge} currentWeeklyChallenge={currentWeeklyChallenge} mode={mode} onBack={onBack} onOpenMonthlyChallenge={() => openChallenge('monthly')} onOpenWeeklyChallenge={() => openChallenge('weekly')} onSelectFeed={() => setPeriod('feed')} onSelectMonthly={() => setPeriod('monthly')} />
 }

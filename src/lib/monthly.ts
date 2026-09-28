@@ -17,6 +17,7 @@ export type MonthlyChallenge = {
   prompt: string
   server_now: string
   starts_at: string
+  submission_ends_at?: string
   voting_starts_at: string
 }
 

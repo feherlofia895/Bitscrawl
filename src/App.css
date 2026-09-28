@@ -2659,7 +2659,6 @@ button,
 
 .weekly-header,
 .weekly-section-heading,
-.weekly-user-bar,
 .weekly-submitted,
 .weekly-challenge-card {
   display: flex;
@@ -2731,14 +2730,6 @@ button,
 .weekly-date { color: var(--muted); font-size: .9rem; }
 .weekly-picker { width: min(320px, 100%); }
 
-.weekly-user-bar {
-  flex-wrap: wrap;
-  padding: 12px 16px;
-  background: var(--yellow);
-  border: 2px solid var(--ink);
-}
-
-.weekly-user-bar button { margin-left: auto; }
 .weekly-editor { display: grid; gap: 16px; }
 .weekly-editor > .drawing-panel { margin-inline: auto; }
 .weekly-sort { min-width: 190px; }
@@ -2883,6 +2874,73 @@ button,
 .weekly-entry-author strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .challenge-period-switch { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 18px 0; }
 .challenge-period-switch button[aria-pressed='true'] { background: var(--yellow); }
+.gallery-heading-controls {
+  display: flex;
+  align-items: end;
+  justify-content: flex-end;
+  gap: 12px;
+  min-width: min(100%, 300px);
+}
+.gallery-view-navigation {
+  width: min(100%, 300px);
+}
+.gallery-view-tabs,
+.gallery-period-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.gallery-period-tabs {
+  width: min(100%, 190px);
+}
+.gallery-view-navigation button,
+.gallery-period-tabs button {
+  min-height: 36px;
+  padding: 6px 9px;
+  color: var(--ink);
+  background-color: transparent;
+  background-image: url('/ui/menu-button-1.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  border: 0;
+  font: 900 .68rem/1.15 var(--pixel-font);
+  image-rendering: pixelated;
+}
+.gallery-view-tabs button[aria-pressed='true'] {
+  background-image: url('/ui/menu-button-yellow-1.png');
+}
+.gallery-period-tabs button {
+  background-image: url('/ui/menu-button-small-mint.png');
+}
+.gallery-period-tabs button[aria-pressed='true'] {
+  background-image: url('/ui/menu-button-small-green.png');
+}
+.gallery-view-navigation button:hover:not(:disabled),
+.gallery-period-tabs button:hover:not(:disabled) { filter: brightness(1.06); }
+.gallery-view-navigation button:active:not(:disabled),
+.gallery-period-tabs button:active:not(:disabled) { transform: translate(1px, 1px); }
+.gallery-subcontrols {
+  display: flex;
+  align-items: end;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-top: 14px;
+  padding-top: 13px;
+  border-top: 2px solid color-mix(in srgb, var(--ink) 72%, transparent);
+}
+.gallery-challenge-filters {
+  display: grid;
+  width: min(100%, 320px);
+  gap: 10px;
+}
+.gallery-challenge-filters .gallery-period-tabs,
+.gallery-week-picker { width: 100%; }
+.gallery-vote-count {
+  align-self: center;
+  margin: 0 auto 0 0;
+  font-weight: 700;
+}
 .weekly-entry button[aria-pressed='true'] { background: var(--yellow); }
 .gallery-comments {
   display: grid;
@@ -3104,6 +3162,19 @@ button,
   .weekly-section-heading > button,
   .weekly-picker,
   .weekly-sort { width: 100%; }
+  .gallery-heading-controls {
+    align-items: stretch;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+  }
+  .gallery-view-navigation { width: 100%; }
+  .gallery-subcontrols {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .gallery-challenge-filters { width: 100%; }
+  .gallery-period-tabs { width: 100%; }
   .feed-composer-actions,
   .feed-composer-actions > button,
   .feed-publish-button { width: 100%; }
@@ -4159,6 +4230,59 @@ canvas.player-avatar {
   image-rendering: pixelated;
 }
 
+.current-challenges-card {
+  display: grid;
+  gap: 8px;
+  padding: 12px 18px 14px;
+  background: transparent;
+  border: 12px solid transparent;
+  border-image: url('/ui/menu-window-yellow.png') 16 fill stretch;
+  image-rendering: pixelated;
+}
+
+.current-challenges-card h2 {
+  margin: 0;
+  font-family: var(--display-font);
+  font-size: clamp(1.05rem, 2.2vw, 1.3rem);
+  line-height: 1.15;
+}
+
+.current-challenges-card ul {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding-left: 22px;
+  line-height: 1.35;
+}
+
+.current-challenges-card li {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) 118px;
+  align-items: center;
+  gap: 12px;
+}
+
+.current-challenges-card li::before {
+  content: '•';
+  font-weight: 900;
+}
+
+.current-challenges-card p { margin: 0; }
+.current-challenges-card span { color: var(--muted); }
+
+.current-challenges-card button {
+  min-height: 34px;
+  padding: 6px 10px;
+  color: var(--ink);
+  background: transparent url('/ui/menu-button-small-green.png') center / 100% 100% no-repeat;
+  border: 0;
+  font: 900 .68rem/1.15 var(--pixel-font);
+  image-rendering: pixelated;
+}
+
+.current-challenges-card button:hover { filter: brightness(1.06); }
+.current-challenges-card button:active { transform: translate(1px, 1px); }
+
 .weekly-account-card,
 .weekly-submitted {
   background: transparent;
@@ -4183,7 +4307,6 @@ canvas.player-avatar {
 
 .weekly-header button,
 .weekly-auth-form button,
-.weekly-user-bar button,
 .weekly-section-heading > button,
 .weekly-entry > button {
   min-height: 50px;

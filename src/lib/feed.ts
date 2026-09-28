@@ -4,6 +4,7 @@ import { supabase } from './supabase'
 import type { GalleryComment, GallerySort } from './galleryComments'
 
 export const FEED_PAGE_SIZE = 6
+export const FEED_DAILY_POST_LIMIT = 3
 export const FEED_DESCRIPTION_MAX_LENGTH = 160
 export const FEED_DESCRIPTION_MAX_LINES = 3
 
@@ -46,13 +47,13 @@ const validColors = new Set(['transparent', ...editorPalette32.map(color => colo
 
 const messages: Record<string, string> = {
   FEED_DRAWING_INVALID: 'A megosztáshoz készíts egy érvényes, nem üres 32×32-es rajzot.',
-  FEED_DAILY_LIMIT: 'Ma már két képet tettél közzé. Töröld az egyiket, ha újat szeretnél feltölteni.',
+  FEED_DAILY_LIMIT: `Ma már ${FEED_DAILY_POST_LIMIT} képet tettél közzé. Töröld az egyiket, ha újat szeretnél feltölteni.`,
   FEED_DESCRIPTION_INVALID: 'A képleírás legfeljebb 160 karakter és maximum 3 sor lehet.',
   FEED_OWN_LIKE_FORBIDDEN: 'A saját rajzodat nem kedvelheted.',
-  FEED_PAGE_INVALID: 'Ez a hírfolyamoldal nem érhető el.',
-  FEED_SORT_INVALID: 'Ez a hírfolyam-rendezés nem érhető el.',
-  FEED_POST_NOT_OWN: 'Csak a saját mai hírfolyamképedet módosíthatod vagy törölheted.',
-  FEED_POST_NOT_FOUND: 'Ez a hírfolyam-bejegyzés már nem érhető el.',
+  FEED_PAGE_INVALID: 'Ez a Rajzfal-oldal nem érhető el.',
+  FEED_SORT_INVALID: 'Ez a Rajzfal-rendezés nem érhető el.',
+  FEED_POST_NOT_OWN: 'Csak a saját Rajzfal-képedet módosíthatod vagy törölheted.',
+  FEED_POST_NOT_FOUND: 'Ez a Rajzfal-bejegyzés már nem érhető el.',
   GALLERY_COMMENT_INVALID: 'A komment 1–280 karakter hosszú lehet.',
   GALLERY_COMMENT_NOT_OWN: 'Csak a saját kommentedet szerkesztheted.',
   GALLERY_COMMENT_RATE_LIMIT: 'Várj két másodpercet a következő komment előtt.',
@@ -63,7 +64,7 @@ const messages: Record<string, string> = {
 function feedError(error: unknown) {
   const raw = typeof error === 'object' && error !== null && 'message' in error
     ? String(error.message)
-    : 'A hírfolyam művelete nem sikerült.'
+    : 'A Rajzfal művelete nem sikerült.'
   const code = Object.keys(messages).find(key => raw.includes(key))
   return new Error(code ? messages[code] : raw)
 }
@@ -102,7 +103,7 @@ export async function loadDailyFeed(page: number, sort: GallerySort = 'newest', 
     error = fallback.error
   }
   if (error) throw feedError(error)
-  if (!data) throw new Error('A hírfolyam most nem érhető el.')
+  if (!data) throw new Error('A Rajzfal most nem érhető el.')
 
   const postIds = data.map(post => post.post_id)
   const comments = postIds.length ? await loadDailyFeedComments(postIds) : []

@@ -238,10 +238,15 @@ test('daily feed limits posts by Budapest day and protects likes, comments and p
     users[0], 'select public.publish_daily_feed_post($1::jsonb)', [JSON.stringify(drawing(colors[0]))],
   )
   assert.notEqual(secondOwnPostId, firstPostId)
+  const [{ publish_daily_feed_post: thirdOwnPostId }] = await asUser(
+    users[0], 'select public.publish_daily_feed_post($1::jsonb)', [JSON.stringify(drawing(colors[2]))],
+  )
+  assert.notEqual(thirdOwnPostId, secondOwnPostId)
   await assert.rejects(
     asUser(users[0], 'select public.publish_daily_feed_post($1::jsonb)', [JSON.stringify(drawing(colors[2]))]),
     /FEED_DAILY_LIMIT/,
   )
+  await asUser(users[0], 'select public.delete_own_daily_feed_post($1)', [thirdOwnPostId])
   const [{ publish_daily_feed_post: editedOwnPostId }] = await asUser(
     users[0],
     'select public.publish_daily_feed_post($1::jsonb, $2, $3)',
@@ -357,14 +362,20 @@ test('daily feed limits posts by Budapest day and protects likes, comments and p
   )
   assert.notEqual(replacementPostId, firstPostId)
   await db.query('update public.feed_posts set post_date = post_date - 1 where user_id = $1', [users[0]])
+  const changedPixels = drawing(colors[5])
+  await asUser(users[0], 'select public.publish_daily_feed_post($1::jsonb, $2, $3)', [JSON.stringify(changedPixels), replacementPostId, 'Yesterday edited'])
+  const afterEdit = await asUser(users[0], 'select * from public.get_daily_feed(6, 0)')
+  assert.deepEqual(afterEdit.find(post => post.post_id === replacementPostId).pixels, changedPixels)
+  assert.equal(afterEdit.find(post => post.post_id === replacementPostId).description, 'Yesterday edited')
   await asUser(users[0], 'select public.publish_daily_feed_post($1::jsonb)', [JSON.stringify(drawing(colors[2]))])
   await asUser(users[0], 'select public.publish_daily_feed_post($1::jsonb)', [JSON.stringify(drawing(colors[3]))])
+  await asUser(users[0], 'select public.publish_daily_feed_post($1::jsonb)', [JSON.stringify(drawing(colors[5]))])
   await assert.rejects(
     asUser(users[0], 'select public.publish_daily_feed_post($1::jsonb)', [JSON.stringify(drawing(colors[4]))]),
     /FEED_DAILY_LIMIT/,
   )
   const [nextDayStats] = await asUser(users[0], 'select * from public.get_own_feed_stats()')
-  assert.equal(nextDayStats.post_count, 4)
+  assert.equal(nextDayStats.post_count, 5)
 })
 
 test('global lobby authenticates presence, exposes only safe profile fields and persists rate-limited chat', async () => {

@@ -4,6 +4,7 @@ import { emptyDrawing } from '../lib/drawing'
 import {
   addDailyFeedComment,
   deleteOwnDailyFeedPost,
+  FEED_DAILY_POST_LIMIT,
   FEED_DESCRIPTION_MAX_LENGTH,
   FEED_DESCRIPTION_MAX_LINES,
   limitFeedDescription,
@@ -18,6 +19,7 @@ import {
 } from '../lib/feed'
 import { getWeeklyUser } from '../lib/weekly'
 import { GalleryComments } from './GalleryComments'
+import { GalleryNavigation } from './GalleryNavigation'
 import { GalleryPagination } from './GalleryPagination'
 import { ConfirmModal } from './ConfirmModal'
 import { PixelCanvas } from './PixelCanvas'
@@ -35,7 +37,7 @@ function createDiscoverySeed() {
 }
 
 function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message : 'A hírfolyam művelete nem sikerült.'
+  return error instanceof Error ? error.message : 'A Rajzfal művelete nem sikerült.'
 }
 
 function dateLabel(value: string) {
@@ -68,11 +70,9 @@ function saveLocalDraft(userId: string, pixels: string[], description: string) {
 
 export function DailyFeed({
   onBack,
-  onSelectMonthly,
   onSelectWeekly,
 }: {
   onBack: () => void
-  onSelectMonthly: () => void
   onSelectWeekly: () => void
 }) {
   const [posts, setPosts] = useState<DailyFeedPost[]>([])
@@ -89,7 +89,7 @@ export function DailyFeed({
   const [description, setDescription] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<DailyFeedPost | null>(null)
   const [revision, setRevision] = useState(0)
-  const [status, setStatus] = useState('A hírfolyam betöltése…')
+  const [status, setStatus] = useState('A Rajzfal betöltése…')
   const pixelsRef = useRef(emptyDrawing())
   const sortRef = useRef<GallerySort>('newest')
   const discoverySeedRef = useRef(discoverySeed)
@@ -116,7 +116,7 @@ export function DailyFeed({
   useEffect(() => {
     let cancelled = false
     void refresh(1).then(() => {
-      if (!cancelled) setStatus('A hírfolyam naprakész.')
+      if (!cancelled) setStatus('A Rajzfal naprakész.')
     }).catch(error => {
       if (!cancelled) setStatus(errorMessage(error))
     }).finally(() => {
@@ -130,7 +130,7 @@ export function DailyFeed({
     setPage(nextPage)
     try {
       await refresh(nextPage, user)
-      setStatus('A hírfolyamoldal betöltve.')
+      setStatus('A Rajzfal oldala betöltve.')
     } catch (error) {
       setStatus(errorMessage(error))
     } finally {
@@ -148,7 +148,7 @@ export function DailyFeed({
     setLoading(true)
     try {
       await refresh(1, user)
-      setStatus('A hírfolyam rendezése frissült.')
+      setStatus('A Rajzfal rendezése frissült.')
     } catch (error) {
       setStatus(errorMessage(error))
     } finally {
@@ -180,7 +180,7 @@ export function DailyFeed({
       setDescription('')
       pixelsRef.current = emptyDrawing()
       setRevision(value => value + 1)
-      setStatus(editingPostId ? 'A képed frissítve.' : 'A mai képed megjelent a hírfolyamban!')
+      setStatus(editingPostId ? 'A képed frissítve.' : 'A mai képed megjelent a Rajzfalon!')
     } catch (error) {
       setStatus(errorMessage(error))
     } finally {
@@ -189,14 +189,14 @@ export function DailyFeed({
   }
 
   const startNewPost = () => {
-    if (!user || (account?.todayPostCount ?? 0) >= 2) return
+    if (!user || (account?.todayPostCount ?? 0) >= FEED_DAILY_POST_LIMIT) return
     const draft = loadLocalDraft(user.id)
     pixelsRef.current = draft?.pixels ?? emptyDrawing()
     setDescription(draft?.description ?? '')
     setEditingPostId(null)
     setRevision(value => value + 1)
     setEditorOpen(true)
-    setStatus(`Ma még ${2 - (account?.todayPostCount ?? 0)} képet tehetsz közzé.`)
+    setStatus(`Ma még ${FEED_DAILY_POST_LIMIT - (account?.todayPostCount ?? 0)} képet tehetsz közzé.`)
   }
 
   const startEditingPost = (post: DailyFeedPost) => {
@@ -279,32 +279,26 @@ export function DailyFeed({
     <header className="weekly-header">
       <div>
         <p className="step-label">Közösségi rajzok</p>
-        <h1 id="daily-feed-title">Hírfolyam</h1>
-        <p>Naponta két saját 32×32-es képet tehetsz közzé.</p>
+        <h1 id="daily-feed-title">Rajzfal</h1>
+        <p>Naponta három saját 32×32-es képet tehetsz közzé.</p>
       </div>
       <button disabled={busy} onClick={onBack} type="button">Vissza a főmenübe</button>
     </header>
 
-    <nav className="challenge-period-switch" aria-label="Galéria típusa">
-      <button disabled={busy} onClick={onSelectWeekly} type="button">Heti galéria</button>
-      <button disabled={busy} onClick={onSelectMonthly} type="button">Havi galéria</button>
-      <button aria-pressed="true" type="button">Hírfolyam</button>
-    </nav>
-
     {!loading && !user ? <section className="weekly-account-card">
-      <div><p className="step-label">Bejelentkezés szükséges</p><h2>A hírfolyam csak belépés után látható</h2><p>Belépéshez vagy regisztrációhoz nyisd meg a profilodat a jobb felső sarokban.</p></div>
+      <div><p className="step-label">Bejelentkezés szükséges</p><h2>A Rajzfal csak belépés után látható</h2><p>Belépéshez vagy regisztrációhoz nyisd meg a profilodat a jobb felső sarokban.</p></div>
     </section> : null}
 
     {user && account ? <><section className={`feed-composer${editorOpen ? ' is-editor-open' : ''}`}>
       <div className="feed-composer-heading">
         <div>
           <p className="step-label">A mai képed</p>
-          <h2>Ma {account.todayPostCount}/2 képet tettél közzé</h2>
-          <p>{account.todayPostCount >= 2 ? 'A két napi hely betelt. Töröld az egyik saját képet, ha újat szeretnél feltölteni.' : `Még ${2 - account.todayPostCount} képet oszthatsz meg ma.`}</p>
+          <h2>Ma {account.todayPostCount}/{FEED_DAILY_POST_LIMIT} képet tettél közzé</h2>
+          <p>{account.todayPostCount >= FEED_DAILY_POST_LIMIT ? 'A három napi hely betelt. Töröld az egyik saját képet, ha újat szeretnél feltölteni.' : `Még ${FEED_DAILY_POST_LIMIT - account.todayPostCount} képet oszthatsz meg ma.`}</p>
         </div>
         <div className="feed-composer-actions">
           {editorOpen ? <button disabled={busy} onClick={() => setEditorOpen(false)} type="button">Rajzoló bezárása</button> : null}
-          <button className="primary-button" disabled={busy || account.todayPostCount >= 2} onClick={startNewPost} type="button">Új kép rajzolása</button>
+          <button className="primary-button" disabled={busy || account.todayPostCount >= FEED_DAILY_POST_LIMIT} onClick={startNewPost} type="button">Új kép rajzolása</button>
         </div>
       </div>
       <div className="profile-feed-stats">
@@ -342,12 +336,17 @@ export function DailyFeed({
 
     <section className="weekly-gallery" aria-labelledby="feed-gallery-title">
       <div className="weekly-section-heading">
-        <div><p className="step-label">Közösségi rajzok</p><h2 id="feed-gallery-title">Hírfolyam</h2></div>
+        <div><p className="step-label">Közösségi rajzok</p><h2 id="feed-gallery-title">Rajzfal</h2></div>
+        <div className="gallery-heading-controls">
+          <GalleryNavigation busy={busy} onSelectChallenges={onSelectWeekly} onSelectWall={() => undefined} view="wall" />
+        </div>
+      </div>
+      <div className="gallery-subcontrols">
         <label className="field weekly-sort"><span>Sorrend</span><select disabled={loading} onChange={event => void handleSort(event.target.value as GallerySort)} value={sort}><option value="newest">Legújabb</option><option value="likes">Legkedveltebb</option><option value="discovery">Felfedezés</option></select></label>
       </div>
       {posts.length ? <>
         <div className="weekly-gallery-grid">{posts.map(post => <article className="weekly-entry feed-entry" key={post.post_id}>
-          <ArtworkPreview label={`${post.author_name} hírfolyamképe`} pixels={post.pixels} />
+          <ArtworkPreview label={`${post.author_name} rajzfalképe`} pixels={post.pixels} />
           <div className="weekly-entry-meta">
             <ProfilePreviewButton className="weekly-entry-author" name={post.author_name} pixels={post.authorAvatar} receivedLikes={post.author_received_likes}>
               <ProfileAvatar label={`${post.author_name} profilképe`} pixels={post.authorAvatar} />
@@ -374,8 +373,8 @@ export function DailyFeed({
           </div>
           <GalleryComments artworkAuthor={post.author_name} busy={busy} comments={post.comments} isSignedIn={Boolean(user && account)} onSubmit={content => handleComment(post.post_id, content)} onUpdate={handleCommentUpdate} />
         </article>)}</div>
-        <GalleryPagination currentPage={page} onPageChange={nextPage => void changePage(nextPage)} totalItems={totalCount} />
-      </> : <p className="weekly-empty">Még nincs kép a hírfolyamban. Lehetsz te az első!</p>}
+        <GalleryPagination currentPage={page} onPageChange={changePage} totalItems={totalCount} />
+      </> : <p className="weekly-empty">Még nincs kép a Rajzfalon. Lehetsz te az első!</p>}
     </section>
     <p className="status-message weekly-message" aria-live="polite">{status}</p>
     {deleteTarget ? <ConfirmModal

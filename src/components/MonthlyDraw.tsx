@@ -17,7 +17,7 @@ import {
   registerWeeklyAccount,
   setWeeklyProfile,
   signInWeeklyAccount,
-  signOutWeeklyAccount,
+  type WeeklyChallenge,
 } from '../lib/weekly'
 import { PixelCanvas } from './PixelCanvas'
 import { ProfileAvatar } from './ProfileAvatar'
@@ -25,7 +25,9 @@ import { ProfilePreviewButton } from './ProfilePreviewButton'
 import { WeeklyArtwork } from './WeeklyArtwork'
 import { ArtworkPreview } from './ArtworkPreview'
 import { GalleryComments } from './GalleryComments'
+import { ChallengePeriodNavigation, GalleryNavigation } from './GalleryNavigation'
 import { GalleryPagination } from './GalleryPagination'
+import { CurrentChallengesSummary } from './CurrentChallengesSummary'
 import {
   addGalleryComment,
   loadGalleryCommentsForEntry,
@@ -63,13 +65,21 @@ function createDiscoverySeed() {
 }
 
 export function MonthlyDraw({
+  currentMonthlyChallenge,
+  currentWeeklyChallenge,
   mode,
   onBack,
+  onOpenMonthlyChallenge,
+  onOpenWeeklyChallenge,
   onSelectFeed,
   onSelectWeekly,
 }: {
+  currentMonthlyChallenge: MonthlyChallenge | null
+  currentWeeklyChallenge: WeeklyChallenge | null
   mode: 'challenge' | 'gallery'
   onBack: () => void
+  onOpenMonthlyChallenge: () => void
+  onOpenWeeklyChallenge: () => void
   onSelectFeed: () => void
   onSelectWeekly: () => void
 }) {
@@ -282,22 +292,6 @@ export function MonthlyDraw({
     finally { setBusy(false) }
   }
 
-  const handleSignOut = async () => {
-    setBusy(true)
-    try {
-      if (!(await flushDrawing())) return
-      await signOutWeeklyAccount()
-      setUser(null)
-      setAccount(blankAccount)
-      setLoadedChallengeId(selectedId)
-      setStatus('Kijelentkeztél.')
-    } catch (error) {
-      setStatus(errorMessage(error))
-    } finally {
-      setBusy(false)
-    }
-  }
-
   const handleDrawingChange = useCallback((pixels: string[]) => {
     pixelsRef.current = pixels
     setStatus('Mentés folyamatban…')
@@ -396,16 +390,17 @@ export function MonthlyDraw({
       <div><p className="step-label">Havi közösségi kihívás</p><h1 id="monthly-title">{mode === 'challenge' ? 'Kihívás' : 'Galéria'}</h1><p>Egy teljes hónap egy nagyobb pixelrajzra.</p></div>
       <button disabled={busy} onClick={() => void leavePage(onBack)} type="button">Vissza a főmenübe</button>
     </header>
-    <nav className="challenge-period-switch" aria-label="Kihívás időtartama">
-      <button disabled={busy} onClick={() => void leavePage(onSelectWeekly)} type="button">{mode === 'gallery' ? 'Heti galéria' : 'Heti kihívás'}</button>
-      <button aria-pressed="true" type="button">{mode === 'gallery' ? 'Havi galéria' : 'Havi kihívás'}</button>
-      {mode === 'gallery' ? <button disabled={busy} onClick={() => void leavePage(onSelectFeed)} type="button">Hírfolyam</button> : null}
-    </nav>
+    {mode === 'challenge' ? <nav className="challenge-period-switch" aria-label="Kihívás időtartama">
+      <button disabled={busy} onClick={() => void leavePage(onSelectWeekly)} type="button">Heti kihívás</button>
+      <button aria-pressed="true" type="button">Havi kihívás</button>
+    </nav> : null}
 
-    {challenge ? <section className="weekly-challenge-card">
+    {mode === 'challenge' && challenge ? <section className="weekly-challenge-card">
       <div><span className={`weekly-status weekly-status-${challenge.challenge_status}`}>{statusLabel}</span><h2>{challenge.prompt}</h2><p>{challenge.description}</p><p className="weekly-date">Rajzolás: {dateLabel(challenge.starts_at)} – {dateLabel(challenge.voting_starts_at)}<br />Szavazás vége: {dateLabel(challenge.ends_at)}</p></div>
       {challenges.length > 1 ? <label className="field weekly-picker"><span>Hónapok</span><select disabled={loading} onChange={event => void chooseChallenge(Number(event.target.value))} value={challenge.challenge_id}>{challenges.map(item => <option key={item.challenge_id} value={item.challenge_id}>{item.month_key} · {item.prompt}</option>)}</select></label> : null}
     </section> : null}
+
+    {mode === 'gallery' ? <CurrentChallengesSummary monthlyChallenge={currentMonthlyChallenge ?? challenge} onOpenMonthly={onOpenMonthlyChallenge} onOpenWeekly={onOpenWeeklyChallenge} weeklyChallenge={currentWeeklyChallenge} /> : null}
 
     {!loading && accountReady && !user ? <section className="weekly-account-card"><div><p className="step-label">Fiók</p><h2>{authMode === 'login' ? 'Jelentkezz be a rajzoláshoz' : 'Készíts játékosfiókot'}</h2><p>A havi rajz mentéséhez és a szavazáshoz fiók szükséges.</p></div><div className="weekly-auth-form">
       {authMode === 'register' ? <label className="field"><span>Megjelenített név</span><input maxLength={16} onChange={event => setDisplayName(event.target.value)} value={displayName} /></label> : null}
@@ -413,7 +408,7 @@ export function MonthlyDraw({
       <label className="field"><span>Jelszó</span><input minLength={6} onChange={event => setPassword(event.target.value)} type="password" value={password} /></label>
       <button className="primary-button" disabled={busy || !email || password.length < 6 || (authMode === 'register' && displayName.trim().length < 2)} onClick={() => void handleAuth()} type="button">{authMode === 'login' ? 'Belépés' : 'Regisztráció'}</button>
       <button disabled={busy} onClick={() => setAuthMode(current => current === 'login' ? 'register' : 'login')} type="button">{authMode === 'login' ? 'Még nincs fiókom' : 'Már van fiókom'}</button>
-    </div></section> : user && !loading && accountReady && !account.profileName ? <section className="weekly-account-card"><div><h2>Válassz megjelenített nevet</h2></div><div className="weekly-auth-form"><label className="field"><span>Megjelenített név</span><input maxLength={16} onChange={event => setDisplayName(event.target.value)} value={displayName} /></label><button className="primary-button" disabled={busy || displayName.trim().length < 2} onClick={() => void handleProfile()} type="button">Név mentése</button></div></section> : user && accountReady && account.profileName ? <div className="weekly-user-bar"><span>Belépve: <strong>{account.profileName}</strong></span><span>Szavazatok: <strong>{account.votesUsed}/3</strong></span><button disabled={busy} onClick={() => void handleSignOut()} type="button">Kilépés</button></div> : null}
+    </div></section> : user && !loading && accountReady && !account.profileName ? <section className="weekly-account-card"><div><h2>Válassz megjelenített nevet</h2></div><div className="weekly-auth-form"><label className="field"><span>Megjelenített név</span><input maxLength={16} onChange={event => setDisplayName(event.target.value)} value={displayName} /></label><button className="primary-button" disabled={busy || displayName.trim().length < 2} onClick={() => void handleProfile()} type="button">Név mentése</button></div></section> : null}
 
     {!loading && challenge && !accountReady ? <section className="weekly-account-card"><div><h2>A mentett rajz nem töltődött be</h2><p>A szerkesztőt addig nem nyitjuk meg, hogy a meglévő rajzod biztonságban maradjon.</p></div><button disabled={busy} onClick={() => void chooseChallenge(challenge.challenge_id)} type="button">Betöltés újra</button></section> : null}
 
@@ -421,7 +416,20 @@ export function MonthlyDraw({
 
     {mode === 'challenge' && !isDrawing && account.submittedAt && account.entryPixels ? <section className="weekly-submitted"><WeeklyArtwork label="A havi rajzod" pixels={account.entryPixels} /><div><p className="step-label">{statusLabel}</p><h2>A beküldött rajzod biztonságban van</h2><p>A szavazási időszak kezdetétől a havi rajz már nem módosítható.</p></div></section> : null}
 
-    {mode === 'gallery' ? <section className="weekly-gallery"><div className="weekly-section-heading"><div><p className="step-label">Havi közösség</p><h2>Havi galéria</h2></div><label className="field weekly-sort"><span>Sorrend</span><select disabled={loading} onChange={event => void handleGallerySort(event.target.value as GallerySort)} value={sort}><option value="likes">Legkedveltebb</option><option value="discovery">Felfedezés</option><option value="newest">Legújabb</option></select></label></div>{gallery.length ? <><div className="weekly-gallery-grid">{gallery.map(entry => <article className={`weekly-entry${entry.is_winner ? ' is-winner' : ''}`} key={entry.entry_id}>{entry.is_winner ? <span className="weekly-winner">Havi győztes</span> : null}<ArtworkPreview label={`${entry.author_name} havi rajza`} pixels={entry.pixels} /><div className="weekly-entry-meta"><ProfilePreviewButton className="weekly-entry-author" name={entry.author_name} pixels={entry.authorAvatar}><ProfileAvatar label={`${entry.author_name} profilképe`} pixels={entry.authorAvatar} /><strong>{entry.author_name}</strong></ProfilePreviewButton><span>{entry.vote_count} szavazat</span></div><button aria-pressed={entry.has_voted} disabled={busy || loading || !accountReady || !user || !isVoting || entry.is_own || (!entry.has_voted && account.votesUsed >= 3)} onClick={() => void handleVote(entry)} type="button">{entry.is_own ? 'A te rajzod' : entry.has_voted ? 'Szavazat visszavonása' : 'Szavazok'}</button>{isDrawing ? null : <GalleryComments artworkAuthor={entry.author_name} busy={busy} commentCount={entry.comment_count} isSignedIn={Boolean(user && account.profileName)} loadComments={page => loadGalleryCommentsForEntry('monthly', entry.entry_id, page, selectedId ?? undefined)} onSubmit={content => handleComment(entry.entry_id, content)} onUpdate={handleCommentUpdate} />}</article>)}</div><GalleryPagination currentPage={galleryPage} onPageChange={page => void handleGalleryPage(page)} totalItems={galleryTotal} /></> : <p className="weekly-empty">Ehhez a hónaphoz még nincs beküldött rajz.</p>}</section> : null}
+    {mode === 'gallery' ? <section className="weekly-gallery">
+      <div className="weekly-section-heading">
+        <div><p className="step-label">Havi közösség</p><h2>Havi galéria</h2></div>
+        <div className="gallery-heading-controls">
+          <GalleryNavigation busy={busy} onSelectChallenges={() => undefined} onSelectWall={() => void leavePage(onSelectFeed)} view="challenges" />
+        </div>
+      </div>
+      <div className="gallery-subcontrols">
+        {user && accountReady && account.profileName ? <p className="gallery-vote-count">Szavazatok: <strong>{account.votesUsed}/3</strong></p> : null}
+        <ChallengePeriodNavigation busy={busy} onSelectMonthly={() => undefined} onSelectWeekly={() => void leavePage(onSelectWeekly)} period="monthly" />
+        <label className="field weekly-sort"><span>Sorrend</span><select disabled={loading} onChange={event => void handleGallerySort(event.target.value as GallerySort)} value={sort}><option value="likes">Legkedveltebb</option><option value="discovery">Felfedezés</option><option value="newest">Legújabb</option></select></label>
+      </div>
+      {gallery.length ? <><div className="weekly-gallery-grid">{gallery.map(entry => <article className={`weekly-entry${entry.is_winner ? ' is-winner' : ''}`} key={entry.entry_id}>{entry.is_winner ? <span className="weekly-winner">Havi győztes</span> : null}<ArtworkPreview label={`${entry.author_name} havi rajza`} pixels={entry.pixels} /><div className="weekly-entry-meta"><ProfilePreviewButton className="weekly-entry-author" name={entry.author_name} pixels={entry.authorAvatar}><ProfileAvatar label={`${entry.author_name} profilképe`} pixels={entry.authorAvatar} /><strong>{entry.author_name}</strong></ProfilePreviewButton><span>{entry.vote_count} szavazat</span></div><button aria-pressed={entry.has_voted} disabled={busy || loading || !accountReady || !user || !isVoting || entry.is_own || (!entry.has_voted && account.votesUsed >= 3)} onClick={() => void handleVote(entry)} type="button">{entry.is_own ? 'A te rajzod' : entry.has_voted ? 'Szavazat visszavonása' : 'Szavazok'}</button>{isDrawing ? null : <GalleryComments artworkAuthor={entry.author_name} busy={busy} commentCount={entry.comment_count} isSignedIn={Boolean(user && account.profileName)} loadComments={page => loadGalleryCommentsForEntry('monthly', entry.entry_id, page, selectedId ?? undefined)} onSubmit={content => handleComment(entry.entry_id, content)} onUpdate={handleCommentUpdate} />}</article>)}</div><GalleryPagination currentPage={galleryPage} onPageChange={handleGalleryPage} totalItems={galleryTotal} /></> : <p className="weekly-empty">Ehhez a hónaphoz még nincs beküldött rajz.</p>}
+    </section> : null}
     <p className="status-message weekly-message" aria-live="polite">{status}</p>
   </section>
 }

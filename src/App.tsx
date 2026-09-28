@@ -1467,9 +1467,9 @@ function App() {
       ) : homeView === 'editor' ? (
         <DrawingEditor onBack={closeHomeView} onDirtyChange={setEditorDirty} onStorageChange={setEditorStorageAvailable} />
       ) : homeView === 'challenge' ? (
-        <WeeklyDraw mode="challenge" onBack={closeHomeView} />
+        <WeeklyDraw mode="challenge" onBack={closeHomeView} onOpenChallenge={() => openHomeView('challenge')} />
       ) : homeView === 'gallery' ? (
-        <WeeklyDraw mode="gallery" onBack={closeHomeView} />
+        <WeeklyDraw mode="gallery" onBack={closeHomeView} onOpenChallenge={() => openHomeView('challenge')} />
       ) : (
         <>
           <section className="hero" id="top">

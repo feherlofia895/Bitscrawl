@@ -8,6 +8,7 @@ import type { EditorPaletteSize } from '../lib/palette'
 import { basePalette } from '../lib/palette'
 import { loadOwnProfile, saveProfileAvatar } from '../lib/profile'
 import {
+  FEED_DAILY_POST_LIMIT,
   FEED_DESCRIPTION_MAX_LENGTH,
   FEED_DESCRIPTION_MAX_LINES,
   limitFeedDescription,
@@ -173,8 +174,8 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
           .catch(error => ({
             account: null,
             error: error instanceof Error && /get_daily_feed_account_state|schema cache/i.test(error.message)
-              ? 'A Hírfolyam adatbázis-frissítése még nincs telepítve.'
-              : 'A Hírfolyam most nem érhető el.',
+              ? 'A Rajzfal adatbázis-frissítése még nincs telepítve.'
+              : 'A Rajzfal most nem érhető el.',
           })),
         loadOwnEditorGallery()
           .then(slots => ({ slots, error: null as string | null }))
@@ -230,7 +231,7 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
     try {
       if (target === 'feed') {
         await publishDailyFeedPost(snapshot, null, feedDescription)
-        setStatus('A rajzod megjelent a Hírfolyamban!')
+        setStatus('A rajzod megjelent a Rajzfalon!')
       } else if (target === 'weekly' && shareState.weekly) {
         await submitWeeklyEntry(shareState.weekly.id, snapshot)
         setStatus(`A rajzod bekerült a heti kihívásba: ${shareState.weekly.prompt}.`)
@@ -449,7 +450,7 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
                 <label className="editor-feed-description">
                   <span>Képleírás <small>(nem kötelező)</small></span>
                   <textarea
-                    disabled={sharing || shareState.feedPostCount >= 2}
+                    disabled={sharing || shareState.feedPostCount >= FEED_DAILY_POST_LIMIT}
                     maxLength={FEED_DESCRIPTION_MAX_LENGTH}
                     onChange={event => setFeedDescription(limitFeedDescription(event.target.value))}
                     placeholder="Legfeljebb három rövid sor…"
@@ -458,8 +459,8 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
                   />
                   <small>{feedDescription.length}/{FEED_DESCRIPTION_MAX_LENGTH} karakter · legfeljebb {FEED_DESCRIPTION_MAX_LINES} sor</small>
                 </label>
-                <button disabled={sharing || Boolean(shareState.feedUnavailableMessage) || shareState.feedPostCount >= 2} onClick={() => void shareDrawing('feed')} type="button">
-                  {shareState.feedUnavailableMessage ? 'Hírfolyam – frissítésre vár' : shareState.feedPostCount >= 2 ? 'A mai két kép már megosztva' : `Megosztás a Hírfolyamban (${shareState.feedPostCount}/2)`}
+                <button disabled={sharing || Boolean(shareState.feedUnavailableMessage) || shareState.feedPostCount >= FEED_DAILY_POST_LIMIT} onClick={() => void shareDrawing('feed')} type="button">
+                  {shareState.feedUnavailableMessage ? 'Rajzfal – frissítésre vár' : shareState.feedPostCount >= FEED_DAILY_POST_LIMIT ? 'A mai három kép már megosztva' : `Megosztás a Rajzfalon (${shareState.feedPostCount}/${FEED_DAILY_POST_LIMIT})`}
                 </button>
                 <button disabled={sharing || !shareState.weekly || shareState.weekly.submitted || !challengePaletteReady} onClick={() => void shareDrawing('weekly')} type="button">
                   {shareState.weekly ? shareState.weekly.submitted ? 'Heti nevezés már beküldve' : `Heti kihívás: ${shareState.weekly.prompt}` : 'Nincs aktív heti kihívás'}

@@ -132,6 +132,40 @@ test('monthly gallery keeps comments hidden until voting starts', async () => {
   assert.match(source, /isDrawing \? null : <GalleryComments/)
 })
 
+test('gallery pagination returns to the gallery heading after the requested page loads', async () => {
+  const source = await readFile(new URL('../src/components/GalleryPagination.tsx', import.meta.url), 'utf8')
+  assert.match(source, /await onPageChange\(nextPage\)/)
+  assert.match(source, /closest\('\.weekly-gallery'\)/)
+  assert.match(source, /scrollIntoView\(\{ behavior: pageScrollBehavior\(\), block: 'start' \}\)/)
+  assert.match(source, /bitscrawl-reduce-motion/)
+})
+
+test('gallery navigation groups the drawing wall and challenge periods compactly', async () => {
+  const [navigationSource, weeklySource, monthlySource, feedSource, cssSource] = await Promise.all([
+    readFile(new URL('../src/components/GalleryNavigation.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/WeeklyDraw.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/MonthlyDraw.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/DailyFeed.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/App.css', import.meta.url), 'utf8'),
+  ])
+
+  assert.match(navigationSource, />Rajzfal<\/button>/)
+  assert.match(navigationSource, />Kihívásgaléria<\/button>/)
+  assert.match(navigationSource, /export function ChallengePeriodNavigation/)
+  assert.match(navigationSource, />Heti<\/button>/)
+  assert.match(navigationSource, />Havi<\/button>/)
+  assert.match(weeklySource, /period="weekly"/)
+  assert.match(monthlySource, /period="monthly"/)
+  assert.match(feedSource, /view="wall"/)
+  assert.match(cssSource, /\.gallery-view-navigation\s*\{[\s\S]*width:\s*min\(100%, 300px\)/)
+  assert.match(cssSource, /\.gallery-view-navigation button,\s*\.gallery-period-tabs button\s*\{[\s\S]*menu-button-1\.png/)
+  assert.match(cssSource, /\.gallery-view-tabs button\[aria-pressed='true'\][\s\S]*menu-button-yellow-1\.png/)
+  assert.match(cssSource, /\.gallery-period-tabs button\s*\{[\s\S]*menu-button-small-mint\.png/)
+  assert.match(cssSource, /\.gallery-period-tabs button\[aria-pressed='true'\][\s\S]*menu-button-small-green\.png/)
+  assert.match(cssSource, /\.gallery-subcontrols\s*\{[\s\S]*border-top:/)
+  assert.match(cssSource, /font:\s*900 \.68rem/)
+})
+
 test('the editor uses one share menu for the feed and both challenge entries', async () => {
   const [editorSource, gallerySource, feedSource, cssSource, canvasSource] = await Promise.all([
     readFile(new URL('../src/components/DrawingEditor.tsx', import.meta.url), 'utf8'),
@@ -155,9 +189,9 @@ test('the editor uses one share menu for the feed and both challenge entries', a
   assert.match(editorSource, />\s*Beállítás profilképnek\s*<\/button>/)
   assert.match(editorSource, /Biztosan beállítod ezt a rajzot profilképnek\? A mostani profilképed elveszik/)
   assert.match(editorSource, /A kihívások a 12 színű palettát fogadják/)
-  assert.match(editorSource, /A Hírfolyam adatbázis-frissítése még nincs telepítve/)
-  assert.match(editorSource, /shareState\.feedPostCount >= 2/)
-  assert.match(editorSource, /Megosztás a Hírfolyamban \(\$\{shareState\.feedPostCount\}\/2\)/)
+  assert.match(editorSource, /A Rajzfal adatbázis-frissítése még nincs telepítve/)
+  assert.match(editorSource, /shareState\.feedPostCount >= FEED_DAILY_POST_LIMIT/)
+  assert.match(editorSource, /Megosztás a Rajzfalon \(\$\{shareState\.feedPostCount\}\/\$\{FEED_DAILY_POST_LIMIT\}\)/)
   assert.match(editorSource, /Saját galéria \(\{shareState\.gallerySlots\.length\}\/2\)/)
   assert.match(editorSource, /saveOwnEditorGallerySlot\(slotIndex, snapshot, paletteSize\)/)
   assert.match(editorSource, /deleteOwnEditorGallerySlot\(slotIndex\)/)
@@ -170,8 +204,9 @@ test('the editor uses one share menu for the feed and both challenge entries', a
   assert.match(editorSource, /galleryAction === 'save' \? 'Rajz mentése' : 'Rajz betöltése'/)
   assert.match(cssSource, /\.editor-own-gallery-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,/)
   assert.match(gallerySource, /'weekly' \| 'monthly' \| 'feed'/)
-  assert.match(gallerySource, />Hírfolyam<\/button>/)
-  assert.match(feedSource, /todayPostCount}\/2 képet tettél közzé/)
+  assert.match(gallerySource, /view="challenges"/)
+  assert.match(feedSource, /view="wall"/)
+  assert.match(feedSource, /todayPostCount}\/\{FEED_DAILY_POST_LIMIT\} képet tettél közzé/)
   assert.match(feedSource, /deleteOwnDailyFeedPost\(post\.post_id\)/)
   assert.match(feedSource, /a napi hely azonnal felszabadul/)
   assert.match(feedSource, /FEED_DESCRIPTION_MAX_LENGTH/)
