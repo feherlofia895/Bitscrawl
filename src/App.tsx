@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { PixelCanvas } from './components/PixelCanvas'
+import { mergeCompetitionDrawEvents } from './lib/competitionDrawingStream'
 import { DrawingEditor } from './components/DrawingEditor'
 import { RoundDurationControl } from './components/RoundDurationControl'
 import { editorText } from './lib/editorText'
@@ -513,17 +514,19 @@ function App() {
     if (!activeCompetitionRoundId) return
     try {
       const requestedRoundId = activeCompetitionRoundId
+      const requestedStatus = competitionRoundStatusRef.current
       const updates = await loadCompetitionDrawEvents(
         requestedRoundId,
         competitionDrawEventCursorRef.current,
       )
-      if (activeCompetitionRoundIdRef.current !== requestedRoundId || updates.length === 0) return
+      if (activeCompetitionRoundIdRef.current !== requestedRoundId ||
+          competitionRoundStatusRef.current !== requestedStatus || updates.length === 0) return
       const nextCursor = latestId(updates)
       if (nextCursor === null ||
           (competitionDrawEventCursorRef.current !== null &&
             nextCursor <= competitionDrawEventCursorRef.current)) return
       competitionDrawEventCursorRef.current = nextCursor
-      setCompetitionDrawEvents(current => mergeRecentById(current, updates, 500))
+      setCompetitionDrawEvents(current => mergeCompetitionDrawEvents(current, updates))
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Nem frissült a versenyrajz.')
     }

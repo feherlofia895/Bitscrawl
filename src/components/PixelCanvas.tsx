@@ -10,6 +10,7 @@ import type { DrawEvent, PixelChange } from '../lib/game'
 import { colorsForPalette, type PaletteSize } from '../lib/palette'
 import { clampSelectionOffset, movePixelSelection } from '../lib/drawing'
 import { editorText } from '../lib/editorText'
+import { createPixelSendQueue } from '../lib/pixelSendQueue'
 
 const CANVAS_SIZE = 32
 const TRANSPARENT = 'transparent'
@@ -281,7 +282,8 @@ export function PixelCanvas({
   const pendingChangesRef = useRef(new Map<string, PixelChange>())
   const flushTimerRef = useRef<number | undefined>(undefined)
   const flushPendingChangesRef = useRef<() => void>(() => undefined)
-  const sendQueueRef = useRef<Promise<unknown>>(Promise.resolve())
+  const sendQueueRef = useRef<ReturnType<typeof createPixelSendQueue> | null>(null)
+  if (!sendQueueRef.current) sendQueueRef.current = createPixelSendQueue()
   const isDrawingRef = useRef(false)
   const isPanningRef = useRef(false)
   const panGestureRef = useRef<PanGesture | null>(null)
@@ -447,17 +449,19 @@ export function PixelCanvas({
     for (let index = 0; index < changes.length; index += 64) {
       const chunk = changes.slice(index, index + 64)
       const sendingRoundId = roundId
-      sendQueueRef.current = sendQueueRef.current
-        .then(() => onSubmitRef.current(chunk))
-        .catch((error) => {
+      void sendQueueRef.current?.enqueue({
+        changes: chunk,
+        submit: onSubmitRef.current,
+        onError: (error, retryChanges) => {
           if (roundIdRef.current === sendingRoundId) {
-            chunk.forEach(change => {
+            retryChanges.forEach(change => {
               const key = pixelKey(change)
               if (!pendingChangesRef.current.has(key)) pendingChangesRef.current.set(key, change)
             })
           }
           onErrorRef.current(error)
-        })
+        },
+      })
     }
   }
 
@@ -826,6 +830,7 @@ export function PixelCanvas({
       : Array<string>(CANVAS_SIZE * CANVAS_SIZE).fill(TRANSPARENT)
     appliedEventIdsRef.current.clear()
     pendingChangesRef.current.clear()
+    sendQueueRef.current?.reset()
     undoHistoryRef.current = []
     activeStrokeRef.current = null
     shapeGestureRef.current = null

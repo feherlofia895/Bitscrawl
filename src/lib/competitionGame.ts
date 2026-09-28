@@ -1,6 +1,7 @@
 import type { Database, Json } from '../types/database'
 import type { PixelChange } from './game'
 import { ensurePlayerSession, supabase } from './supabase'
+import { loadCompetitionDrawingStream } from './competitionDrawingStream'
 
 export type CompetitionRoundView = {
   chosen_word: string
@@ -99,13 +100,15 @@ export async function loadCompetitionDrawEvents(
 ): Promise<CompetitionDrawEvent[]> {
   try {
     await ensurePlayerSession()
-    const { data, error } = await supabase.rpc('get_competition_draw_updates', {
-      after_event_id: afterEventId,
-      requested_limit: 500,
-      target_round_id: roundId,
-    })
-    if (error) throw error
-    return data.map(event => ({ ...event, changes: event.changes as PixelChange[] }))
+    return await loadCompetitionDrawingStream(async (cursor, limit) => {
+      const { data, error } = await supabase.rpc('get_competition_draw_updates', {
+        after_event_id: cursor,
+        requested_limit: limit,
+        target_round_id: roundId,
+      })
+      if (error) throw error
+      return data.map(event => ({ ...event, changes: event.changes as PixelChange[] }))
+    }, afterEventId)
   } catch (error) {
     throw readableCompetitionError(error)
   }
