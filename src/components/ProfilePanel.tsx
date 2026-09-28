@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { emptyDrawing } from '../lib/drawing'
+import { useModeratorAccess } from '../hooks/useModeratorAccess'
 import { loadOwnProfile, saveProfileAvatar, type PlayerProfile } from '../lib/profile'
 import {
   registerWeeklyAccount,
@@ -35,6 +36,7 @@ export function ProfilePanel({ onBack, onProfileChange }: {
   const [avatarEditorOpen, setAvatarEditorOpen] = useState(false)
   const [status, setStatus] = useState('Profil betöltése…')
   const [clearAction, setClearAction] = useState<(() => void) | null>(null)
+  const isModerator = useModeratorAccess(user?.id)
 
   const refresh = useCallback(async () => {
     const next = await loadOwnProfile()
@@ -175,8 +177,12 @@ export function ProfilePanel({ onBack, onProfileChange }: {
             <ProfileAvatar label={`${profile?.displayName ?? 'Játékos'} profilképe`} pixels={avatarPixels} />
             <div>
               <p className="step-label">Belépve</p>
-              <h2>{profile?.displayName ?? user.email ?? 'Játékos'}</h2>
+              <div className="profile-name-row">
+                <h2>{profile?.displayName ?? user.email ?? 'Játékos'}</h2>
+                {isModerator ? <span className="profile-admin-badge">Admin</span> : null}
+              </div>
               <p>{user.email}</p>
+              {isModerator ? <p className="profile-admin-note">A Rajzfal és a kihívásgalériák képeit és kommentjeit moderálhatod.</p> : null}
               <div className="profile-feed-stats" aria-label="Hírfolyam statisztikák">
                 <span><strong>{profile?.receivedLikes ?? 0}</strong> kapott kedvelés</span>
                 <span><strong>{profile?.feedPostCount ?? 0}</strong> közzétett kép</span>

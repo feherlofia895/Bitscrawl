@@ -307,6 +307,8 @@ async function loadComponent(file, imports, hooks) {
       saveChallengeDraft: () => true,
     },
     '../lib/weekly': { getWeeklyUser: async () => ({ id: 'audit-user', user_metadata: { display_name: 'Audit' } }) },
+    '../lib/moderation': { moderateDeleteContent: async () => true },
+    '../hooks/useModeratorAccess': { useModeratorAccess: () => false },
     './PixelCanvas': { PixelCanvas: 'PixelCanvas' },
     './GalleryPagination': { GALLERY_PAGE_SIZE: 6, GalleryPagination: 'Pagination' },
     ...imports,

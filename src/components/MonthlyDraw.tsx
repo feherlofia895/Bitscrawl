@@ -36,6 +36,10 @@ import {
 } from '../lib/galleryComments'
 import { createDrawingSaveQueue } from '../lib/drawingSaveQueue'
 import { clearChallengeDraft, loadChallengeDraft, saveChallengeDraft } from '../lib/challengeDrafts'
+import { moderateDeleteContent } from '../lib/moderation'
+import { useModeratorAccess } from '../hooks/useModeratorAccess'
+import { ConfirmModal } from './ConfirmModal'
+import { AdminArtworkReactions } from './AdminArtworkReactions'
 
 const blankAccount: MonthlyAccountState = {
   entryId: null,
@@ -100,6 +104,7 @@ export function MonthlyDraw({
   const [sort, setSort] = useState<GallerySort>('likes')
   const [discoverySeed, setDiscoverySeed] = useState(createDiscoverySeed)
   const [loadedChallengeId, setLoadedChallengeId] = useState<number | null>(null)
+  const [moderationTarget, setModerationTarget] = useState<MonthlyGalleryEntry | null>(null)
   const pixelsRef = useRef(emptyDrawing())
   const mountedRef = useRef(true)
   const loadVersionRef = useRef(0)
@@ -109,6 +114,7 @@ export function MonthlyDraw({
   const galleryPageRef = useRef(galleryPage)
   const gallerySortRef = useRef(sort)
   const discoverySeedRef = useRef(discoverySeed)
+  const isModerator = useModeratorAccess(user?.id)
   userIdRef.current = user?.id ?? null
   selectedIdRef.current = selectedId
   galleryPageRef.current = galleryPage
@@ -346,6 +352,31 @@ export function MonthlyDraw({
     } finally { setBusy(false) }
   }
 
+  const handleCommentDelete = async (commentId: number) => {
+    setBusy(true)
+    try {
+      await moderateDeleteContent('gallery-comment', commentId)
+      if (selectedId) await refresh(selectedId, isDrawing, user)
+      setStatus('A komment moderátorként törölve.')
+    } catch (error) {
+      setStatus(errorMessage(error))
+      throw error
+    } finally { setBusy(false) }
+  }
+
+  const handleModerationDelete = async (entry: MonthlyGalleryEntry) => {
+    setBusy(true)
+    try {
+      await moderateDeleteContent('monthly-entry', entry.entry_id)
+      galleryPageRef.current = 1
+      setGalleryPage(1)
+      if (selectedId) await refresh(selectedId, isDrawing, user)
+      setStatus('A havi nevezés moderátorként eltávolítva a galériából.')
+    } catch (error) {
+      setStatus(errorMessage(error))
+    } finally { setBusy(false) }
+  }
+
   const handleGalleryPage = async (nextPage: number) => {
     if (!selectedId || nextPage === galleryPage) return
     galleryPageRef.current = nextPage
@@ -428,8 +459,16 @@ export function MonthlyDraw({
         <ChallengePeriodNavigation busy={busy} onSelectMonthly={() => undefined} onSelectWeekly={() => void leavePage(onSelectWeekly)} period="monthly" />
         <label className="field weekly-sort"><span>Sorrend</span><select disabled={loading} onChange={event => void handleGallerySort(event.target.value as GallerySort)} value={sort}><option value="likes">Legkedveltebb</option><option value="discovery">Felfedezés</option><option value="newest">Legújabb</option></select></label>
       </div>
-      {gallery.length ? <><div className="weekly-gallery-grid">{gallery.map(entry => <article className={`weekly-entry${entry.is_winner ? ' is-winner' : ''}`} key={entry.entry_id}>{entry.is_winner ? <span className="weekly-winner">Havi győztes</span> : null}<ArtworkPreview label={`${entry.author_name} havi rajza`} pixels={entry.pixels} /><div className="weekly-entry-meta"><ProfilePreviewButton className="weekly-entry-author" name={entry.author_name} pixels={entry.authorAvatar}><ProfileAvatar label={`${entry.author_name} profilképe`} pixels={entry.authorAvatar} /><strong>{entry.author_name}</strong></ProfilePreviewButton><span>{entry.vote_count} szavazat</span></div><button aria-pressed={entry.has_voted} disabled={busy || loading || !accountReady || !user || !isVoting || entry.is_own || (!entry.has_voted && account.votesUsed >= 3)} onClick={() => void handleVote(entry)} type="button">{entry.is_own ? 'A te rajzod' : entry.has_voted ? 'Szavazat visszavonása' : 'Szavazok'}</button>{isDrawing ? null : <GalleryComments artworkAuthor={entry.author_name} busy={busy} commentCount={entry.comment_count} isSignedIn={Boolean(user && account.profileName)} loadComments={page => loadGalleryCommentsForEntry('monthly', entry.entry_id, page, selectedId ?? undefined)} onSubmit={content => handleComment(entry.entry_id, content)} onUpdate={handleCommentUpdate} />}</article>)}</div><GalleryPagination currentPage={galleryPage} onPageChange={handleGalleryPage} totalItems={galleryTotal} /></> : <p className="weekly-empty">Ehhez a hónaphoz még nincs beküldött rajz.</p>}
+      {gallery.length ? <><div className="weekly-gallery-grid">{gallery.map(entry => <article className={`weekly-entry${entry.is_winner ? ' is-winner' : ''}`} key={entry.entry_id}>{entry.is_winner ? <span className="weekly-winner">Havi győztes</span> : null}<ArtworkPreview label={`${entry.author_name} havi rajza`} pixels={entry.pixels} /><div className="weekly-entry-meta"><ProfilePreviewButton className="weekly-entry-author" name={entry.author_name} pixels={entry.authorAvatar}><ProfileAvatar label={`${entry.author_name} profilképe`} pixels={entry.authorAvatar} /><strong>{entry.author_name}</strong></ProfilePreviewButton><div className="entry-reaction-summary"><span>{entry.vote_count} szavazat</span>{isModerator ? <AdminArtworkReactions count={entry.vote_count} key={`${entry.entry_id}:${entry.vote_count}`} kind="monthly-entry" targetId={entry.entry_id} /> : null}</div></div>{isModerator ? <button className="moderation-entry-button" disabled={busy} onClick={() => setModerationTarget(entry)} type="button">Admin: kép eltávolítása</button> : null}<button aria-pressed={entry.has_voted} disabled={busy || loading || !accountReady || !user || !isVoting || entry.is_own || (!entry.has_voted && account.votesUsed >= 3)} onClick={() => void handleVote(entry)} type="button">{entry.is_own ? 'A te rajzod' : entry.has_voted ? 'Szavazat visszavonása' : 'Szavazok'}</button>{isDrawing ? null : <GalleryComments artworkAuthor={entry.author_name} busy={busy} canModerate={isModerator} commentCount={entry.comment_count} isSignedIn={Boolean(user && account.profileName)} loadComments={page => loadGalleryCommentsForEntry('monthly', entry.entry_id, page, selectedId ?? undefined)} onDelete={handleCommentDelete} onSubmit={content => handleComment(entry.entry_id, content)} onUpdate={handleCommentUpdate} />}</article>)}</div><GalleryPagination currentPage={galleryPage} onPageChange={handleGalleryPage} totalItems={galleryTotal} /></> : <p className="weekly-empty">Ehhez a hónaphoz még nincs beküldött rajz.</p>}
     </section> : null}
     <p className="status-message weekly-message" aria-live="polite">{status}</p>
+    {moderationTarget ? <ConfirmModal
+      confirmLabel="Kép eltávolítása"
+      isBusy={busy}
+      message={`${moderationTarget.author_name} nevezése eltűnik a havi galériából, és többé nem lehet rá szavazni.`}
+      onCancel={() => setModerationTarget(null)}
+      onConfirm={() => { const target = moderationTarget; setModerationTarget(null); void handleModerationDelete(target) }}
+      title="Moderátorként eltávolítod ezt a képet?"
+    /> : null}
   </section>
 }

@@ -12,6 +12,7 @@
     "test:editor-gallery": "node --test scripts/verify-editor-gallery-flow.mjs",
     "test:gallery-controls": "node --test scripts/verify-gallery-controls.mjs",
     "test:comment-likes": "node --test scripts/verify-comment-likes-local.mjs scripts/verify-comment-likes-client.mjs",
+    "test:moderation": "node --test scripts/verify-moderation-local.mjs scripts/verify-moderation-client.mjs",
     "test:round-duration:local": "node --test scripts/verify-round-duration-local.mjs",
     "test:round-duration:live": "node --env-file=.env.local scripts/verify-round-duration-live.mjs",
     "test:palette-hide:local": "node --test scripts/verify-palette-hide-local.mjs",

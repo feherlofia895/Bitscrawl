@@ -9,6 +9,7 @@ import {
 } from '../lib/galleryComments'
 import { ProfileAvatar } from './ProfileAvatar'
 import { ProfilePreviewButton } from './ProfilePreviewButton'
+import { ConfirmModal } from './ConfirmModal'
 
 function dateLabel(value: string) {
   return new Intl.DateTimeFormat('hu-HU', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value))
@@ -18,19 +19,23 @@ export function GalleryComments({
   busy,
   comments: providedComments,
   commentCount,
+  canModerate = false,
   isSignedIn,
   artworkAuthor,
   loadComments,
   onSubmit,
+  onDelete,
   onUpdate,
   reactionKind = 'gallery',
 }: {
   busy: boolean
+  canModerate?: boolean
   comments?: GalleryComment[]
   commentCount?: number
   isSignedIn: boolean
   artworkAuthor: string
   loadComments?: (page: number) => Promise<GalleryCommentPage>
+  onDelete?: (commentId: number) => Promise<void>
   onSubmit: (content: string) => Promise<void>
   onUpdate: (commentId: number, content: string) => Promise<void>
   reactionKind?: CommentReactionKind
@@ -43,6 +48,7 @@ export function GalleryComments({
   const [loadError, setLoadError] = useState('')
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editingContent, setEditingContent] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState<GalleryComment | null>(null)
   const [reactionPendingId, setReactionPendingId] = useState<number | null>(null)
   const [reactionError, setReactionError] = useState('')
   const titleId = useId()
@@ -128,6 +134,22 @@ export function GalleryComments({
     }
   }
 
+  const deleteComment = async () => {
+    if (!deleteTarget || !onDelete) return
+    const targetId = deleteTarget.comment_id
+    setDeleteTarget(null)
+    try {
+      await onDelete(targetId)
+      if (loadCommentsRef.current) await loadPage(1, true)
+      else {
+        setComments(current => current.filter(comment => comment.comment_id !== targetId))
+        setTotalCount(current => Math.max(0, current - 1))
+      }
+    } catch {
+      // The parent displays the translated error and keeps the comment visible.
+    }
+  }
+
   const toggleReaction = async (comment: GalleryComment) => {
     if (!isSignedIn || reactionPendingId !== null) return
     setReactionPendingId(comment.comment_id)
@@ -144,7 +166,7 @@ export function GalleryComments({
     }
   }
 
-  return <section className="gallery-comments">
+  return <><section className="gallery-comments">
     <button aria-expanded={open} aria-haspopup="dialog" className="gallery-comments-toggle" onClick={() => setOpen(true)} ref={triggerRef} type="button">
       Kommentek ({totalCount})
     </button>
@@ -188,6 +210,7 @@ export function GalleryComments({
                   <span aria-hidden="true">♥</span> <strong>{comment.like_count}</strong>
                 </button>
                 {comment.is_own ? <button className="gallery-comment-edit-button" disabled={busy} onClick={() => { setEditingId(comment.comment_id); setEditingContent(comment.content) }} type="button">Szerkesztés</button> : null}
+                {canModerate && onDelete ? <button className="moderation-delete-button" disabled={busy} onClick={() => setDeleteTarget(comment)} type="button">Admin: törlés</button> : null}
               </div></>}
             </li>)}</ol> : <p className="gallery-comments-empty">Még nincs komment. Legyél te az első!</p>}
             {loadError ? <p className="gallery-comments-empty">{loadError} <button disabled={commentLoading} onClick={() => void loadPage(1, true)} type="button">Újrapróbálom</button></p> : null}
@@ -203,4 +226,12 @@ export function GalleryComments({
       document.body,
     ) : null}
   </section>
+  {deleteTarget ? createPortal(<ConfirmModal
+    confirmLabel="Komment törlése"
+    isBusy={busy}
+    message={`A(z) ${deleteTarget.author_name} által írt komment végleg törlődik.`}
+    onCancel={() => setDeleteTarget(null)}
+    onConfirm={() => void deleteComment()}
+    title="Moderátorként törlöd a kommentet?"
+  />, document.body) : null}</>
 }

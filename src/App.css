@@ -2869,6 +2869,31 @@ button,
 
 .weekly-entry-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .weekly-entry-meta span { color: var(--muted); font-size: .86rem; }
+.entry-reaction-summary { display: flex; align-items: flex-end; flex-direction: column; gap: 4px; }
+.admin-artwork-reactions { width: min(100%, 210px); color: var(--ink); font-size: .72rem; }
+.admin-artwork-reactions summary {
+  width: max-content;
+  margin-left: auto;
+  padding: 3px 6px;
+  color: var(--ink);
+  background: #f3a08e;
+  border: 1px solid var(--ink);
+  cursor: pointer;
+  font-family: var(--font-pixel);
+  list-style: none;
+}
+.admin-artwork-reactions summary::-webkit-details-marker { display: none; }
+.admin-artwork-reactions-panel {
+  margin-top: 5px;
+  padding: 7px;
+  background: var(--cream);
+  border: 1px solid var(--ink);
+  box-shadow: 2px 2px 0 rgba(35, 10, 25, .18);
+}
+.admin-artwork-reactions-panel p { margin: 0; }
+.admin-artwork-reactions-panel ul { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.admin-artwork-reactions-panel li { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.admin-artwork-reactions-panel time { color: var(--muted); font-size: .68rem; white-space: nowrap; }
 .weekly-entry-author { display: flex; align-items: center; min-width: 0; gap: 8px; }
 .weekly-entry-author .profile-avatar { flex: 0 0 auto; width: 32px; height: 32px; }
 .weekly-entry-author strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -3052,7 +3077,10 @@ button,
 .gallery-comment-like-button[aria-pressed='true'] > span { color: var(--paper); }
 .gallery-comment-like-button:disabled { cursor: not-allowed; filter: grayscale(.3); opacity: .72; }
 .gallery-comment-edit button,
-.gallery-comment-edit-button { min-height: 32px; padding: 5px 8px; color: var(--ink); background: var(--yellow); border: 1px solid var(--ink); font-size: .68rem; }
+.gallery-comment-edit-button,
+.moderation-delete-button { min-height: 32px; padding: 5px 8px; color: var(--ink); background: var(--yellow); border: 1px solid var(--ink); font-size: .68rem; }
+.moderation-delete-button { background: #f3a08e; }
+.moderation-entry-button { width: 100%; background: #f3a08e; }
 .gallery-comment-form > div { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .gallery-comment-form button { min-height: 38px; padding: 7px 12px; color: var(--ink); background: var(--mint); border: 2px solid var(--ink); }
 .gallery-comments-empty,
@@ -3749,6 +3777,19 @@ canvas.player-avatar {
 .profile-summary-card > button {
   margin-left: auto;
 }
+
+.profile-name-row { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
+.profile-name-row h2 { margin: 0; }
+.profile-admin-badge {
+  padding: 5px 7px;
+  color: var(--paper);
+  background: var(--coral-dark, #7d2d3b);
+  border: 2px solid var(--ink);
+  font: 900 .58rem/1 var(--pixel-font);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+.profile-admin-note { max-width: 52ch; font-size: .82rem; }
 
 .profile-editor-section {
   display: grid;
@@ -4796,6 +4837,10 @@ canvas.player-avatar {
     align-items: flex-start;
     flex-direction: column;
   }
+
+  .entry-reaction-summary { align-items: flex-start; width: 100%; }
+  .admin-artwork-reactions { width: 100%; }
+  .admin-artwork-reactions summary { margin-left: 0; }
 
   .gallery-comments-heading,
   .gallery-comments-heading > div:first-child,

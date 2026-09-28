@@ -425,6 +425,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      is_app_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      moderate_delete_content: {
+        Args: { target_id: number; target_kind: string }
+        Returns: boolean
+      }
+      get_admin_artwork_reactions: {
+        Args: { target_id: number; target_kind: string }
+        Returns: {
+          display_name: string
+          reacted_at: string
+        }[]
+      }
       get_comment_like_states: {
         Args: { target_comment_ids: number[]; target_kind: string }
         Returns: {

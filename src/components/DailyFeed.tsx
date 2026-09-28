@@ -27,6 +27,9 @@ import { ProfileAvatar } from './ProfileAvatar'
 import { ProfilePreviewButton } from './ProfilePreviewButton'
 import { ArtworkPreview } from './ArtworkPreview'
 import type { GallerySort } from '../lib/galleryComments'
+import { moderateDeleteContent } from '../lib/moderation'
+import { useModeratorAccess } from '../hooks/useModeratorAccess'
+import { AdminArtworkReactions } from './AdminArtworkReactions'
 
 const draftPrefix = 'bitscrawl-feed-draft:'
 
@@ -93,6 +96,7 @@ export function DailyFeed({
   const pixelsRef = useRef(emptyDrawing())
   const sortRef = useRef<GallerySort>('newest')
   const discoverySeedRef = useRef(discoverySeed)
+  const isModerator = useModeratorAccess(user?.id)
 
   const refresh = useCallback(async (requestedPage: number, knownUser?: User | null) => {
     const currentUser = knownUser === undefined ? await getWeeklyUser() : knownUser
@@ -211,9 +215,10 @@ export function DailyFeed({
 
   const handleDelete = async (post: DailyFeedPost) => {
     setBusy(true)
-    const deletedToday = account?.postDate === post.post_date
+    const deletedToday = post.is_own && account?.postDate === post.post_date
     try {
-      await deleteOwnDailyFeedPost(post.post_id)
+      if (post.is_own) await deleteOwnDailyFeedPost(post.post_id)
+      else await moderateDeleteContent('feed-post', post.post_id)
       if (deletedToday && user) {
         saveLocalDraft(user.id, post.pixels, post.description)
         pixelsRef.current = [...post.pixels]
@@ -226,7 +231,7 @@ export function DailyFeed({
       await refresh(1, user)
       setStatus(deletedToday
         ? 'A képed törölve. A napi hely felszabadult, a rajzot piszkozatként megtartottuk.'
-        : 'A saját képed törölve.')
+        : post.is_own ? 'A saját képed törölve.' : 'A Rajzfal-kép moderátorként törölve.')
     } catch (error) {
       setStatus(errorMessage(error))
     } finally {
@@ -267,6 +272,20 @@ export function DailyFeed({
       await updateDailyFeedComment(commentId, content)
       await refresh(page, user)
       setStatus('A hozzászólás módosításai elmentve.')
+    } catch (error) {
+      setStatus(errorMessage(error))
+      throw error
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleCommentDelete = async (commentId: number) => {
+    setBusy(true)
+    try {
+      await moderateDeleteContent('feed-comment', commentId)
+      await refresh(page, user)
+      setStatus('A hozzászólás moderátorként törölve.')
     } catch (error) {
       setStatus(errorMessage(error))
       throw error
@@ -352,7 +371,10 @@ export function DailyFeed({
               <ProfileAvatar label={`${post.author_name} profilképe`} pixels={post.authorAvatar} />
               <strong>{post.author_name}</strong>
             </ProfilePreviewButton>
-            <span>{post.like_count} kedvelés</span>
+            <div className="entry-reaction-summary">
+              <span>{post.like_count} kedvelés</span>
+              {isModerator ? <AdminArtworkReactions count={post.like_count} key={`${post.post_id}:${post.like_count}`} kind="feed-post" targetId={post.post_id} /> : null}
+            </div>
           </div>
           <time className="feed-entry-date" dateTime={post.updated_at}>{dateLabel(post.updated_at)}</time>
           {post.description ? <p className="feed-entry-description">{post.description}</p> : null}
@@ -360,7 +382,7 @@ export function DailyFeed({
             {post.is_own ? <>
               <button disabled={busy} onClick={() => startEditingPost(post)} type="button">Szerkesztés</button>
               <button className="feed-delete-button" disabled={busy} onClick={() => setDeleteTarget(post)} type="button">Törlés</button>
-            </> : null}
+            </> : isModerator ? <button className="moderation-delete-button" disabled={busy} onClick={() => setDeleteTarget(post)} type="button">Admin: törlés</button> : null}
             <button
               aria-label={post.is_own ? 'A saját képedet nem kedvelheted' : post.has_liked ? 'Kedvelés visszavonása' : 'Kép kedvelése'}
               aria-pressed={post.has_liked}
@@ -371,7 +393,7 @@ export function DailyFeed({
               type="button"
             >❤</button>
           </div>
-          <GalleryComments artworkAuthor={post.author_name} busy={busy} comments={post.comments} isSignedIn={Boolean(user && account)} onSubmit={content => handleComment(post.post_id, content)} onUpdate={handleCommentUpdate} reactionKind="feed" />
+          <GalleryComments artworkAuthor={post.author_name} busy={busy} canModerate={isModerator} comments={post.comments} isSignedIn={Boolean(user && account)} onDelete={handleCommentDelete} onSubmit={content => handleComment(post.post_id, content)} onUpdate={handleCommentUpdate} reactionKind="feed" />
         </article>)}</div>
         <GalleryPagination currentPage={page} onPageChange={changePage} totalItems={totalCount} />
       </> : <p className="weekly-empty">Még nincs kép a Rajzfalon. Lehetsz te az első!</p>}
@@ -380,14 +402,16 @@ export function DailyFeed({
     {deleteTarget ? <ConfirmModal
       confirmLabel="Kép törlése"
       isBusy={busy}
-      message="A kép a kedveléseivel és a kommentjeivel együtt végleg törlődik. Ha ez egy mai kép, a napi hely azonnal felszabadul."
+      message={deleteTarget.is_own
+        ? 'A kép a kedveléseivel és a kommentjeivel együtt végleg törlődik. Ha ez egy mai kép, a napi hely azonnal felszabadul.'
+        : `${deleteTarget.author_name} képe a kedveléseivel és a kommentjeivel együtt végleg törlődik.`}
       onCancel={() => setDeleteTarget(null)}
       onConfirm={() => {
         const target = deleteTarget
         setDeleteTarget(null)
         void handleDelete(target)
       }}
-      title="Törlöd a saját képedet?"
+      title={deleteTarget.is_own ? 'Törlöd a saját képedet?' : 'Moderátorként törlöd ezt a képet?'}
     /> : null}</> : null}
   </section>
 }
