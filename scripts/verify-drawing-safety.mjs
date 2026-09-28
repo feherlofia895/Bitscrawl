@@ -323,7 +323,9 @@ test('monthly editor stays closed when the saved drawing fails to load', async (
   const hooks = hookRuntime()
   const component = await loadComponent('MonthlyDraw.tsx', {
     '../lib/monthly': {
-      loadMonthlyChallenges: async () => [{ challenge_id: 1, challenge_status: 'drawing', prompt: 'Audit', starts_at: '2026-09-01T00:00:00Z', voting_starts_at: '2026-09-24T00:00:00Z', ends_at: '2026-10-01T00:00:00Z' }],
+      monthlyEntryCanBeEdited: () => true,
+      monthlyNewEntriesOpen: () => true,
+      loadMonthlyChallenges: async () => [{ challenge_id: 1, challenge_status: 'drawing', prompt: 'Audit', starts_at: '2026-09-01T00:00:00Z', voting_starts_at: '2026-09-24T00:00:00Z', submission_ends_at: '2026-09-24T00:00:00Z', ends_at: '2026-10-01T00:00:00Z', server_now: '2026-09-20T00:00:00Z' }],
       loadMonthlyGallery: async () => ({ entries: [], totalCount: 0 }),
       loadMonthlyAccountState: async () => { throw new Error('simulated account load failure') },
     },

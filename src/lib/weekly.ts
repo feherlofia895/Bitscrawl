@@ -81,6 +81,13 @@ export async function getWeeklyUser(): Promise<User | null> {
   return data.user && !data.user.is_anonymous ? data.user : null
 }
 
+export function suggestedProfileName(user: User | null) {
+  const displayName = user?.user_metadata?.display_name
+  if (typeof displayName !== 'string') return ''
+  const trimmedName = displayName.trim()
+  return trimmedName.length >= 2 && trimmedName.length <= 16 ? trimmedName : ''
+}
+
 export async function registerWeeklyAccount(email: string, password: string, displayName: string) {
   await supabase.auth.signOut({ scope: 'local' })
   const { data, error } = await supabase.auth.signUp({

@@ -8,6 +8,7 @@ import {
   setWeeklyProfile,
   signInWeeklyAccount,
   signOutWeeklyAccount,
+  suggestedProfileName,
 } from '../lib/weekly'
 import { ConfirmModal } from './ConfirmModal'
 import { PixelCanvas } from './PixelCanvas'
@@ -43,7 +44,7 @@ export function ProfilePanel({ onBack, onProfileChange }: {
     setUser(next.user)
     setProfile(next.profile)
     onProfileChange(next.profile)
-    setDisplayName(next.profile?.displayName ?? '')
+    setDisplayName(next.profile?.displayName ?? suggestedProfileName(next.user))
     const pixels = next.profile?.avatarPixels ?? emptyDrawing()
     avatarRef.current = pixels
     setAvatarPixels(pixels)
@@ -56,7 +57,11 @@ export function ProfilePanel({ onBack, onProfileChange }: {
     let cancelled = false
     void refresh()
       .then(next => {
-        if (!cancelled) setStatus(next.user ? 'A profilod naprakész.' : 'Jelentkezz be vagy készíts fiókot.')
+        if (!cancelled) setStatus(next.user
+          ? next.profile
+            ? 'A profilod naprakész.'
+            : 'Mentsd el a megjelenített nevedet a profil befejezéséhez.'
+          : 'Jelentkezz be vagy készíts fiókot.')
       })
       .catch(error => { if (!cancelled) setStatus(errorMessage(error)) })
       .finally(() => { if (!cancelled) setLoading(false) })

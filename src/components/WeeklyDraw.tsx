@@ -11,6 +11,7 @@ import {
   setWeeklyProfile,
   setWeeklyVote,
   signInWeeklyAccount,
+  suggestedProfileName,
   submitWeeklyEntry,
   type WeeklyAccountState,
   type WeeklyChallenge,
@@ -153,7 +154,7 @@ function WeeklyDrawContent({ currentMonthlyChallenge, currentWeeklyChallenge, mo
     setAccount(mergedAccount)
     const drawing = mergedAccount.entryPixels ?? mergedAccount.draftPixels ?? emptyDrawing()
     pixelsRef.current = [...drawing]
-    setDisplayName(mergedAccount.profileName ?? '')
+    setDisplayName(mergedAccount.profileName ?? suggestedProfileName(currentUser))
     setLoadedChallengeId(challengeId)
     localDraftStoredRef.current = Boolean(localDraft)
     if (localDraft) saveQueueRef.current?.schedule(challengeId, localDraft.pixels)
@@ -502,7 +503,7 @@ function WeeklyDrawContent({ currentMonthlyChallenge, currentWeeklyChallenge, mo
             localDrawing={{ initialPixels: account.draftPixels ?? emptyDrawing(), onChange: handleDrawingChange }}
             onError={error => setStatus(errorMessage(error))}
             onSubmit={async () => undefined}
-            paletteSize={12}
+            paletteSize={32}
             roundId={challenge?.challenge_id ?? 0}
             serverNow={challenge?.server_now ?? ''}
           />

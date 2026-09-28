@@ -17,7 +17,7 @@ export type MonthlyChallenge = {
   prompt: string
   server_now: string
   starts_at: string
-  submission_ends_at?: string
+  submission_ends_at: string
   voting_starts_at: string
 }
 
@@ -48,9 +48,28 @@ export type MonthlyAccountState = {
   votesUsed: number
 }
 
+function challengeTime(value: string) {
+  const parsed = Date.parse(value)
+  return Number.isFinite(parsed) ? parsed : Number.NaN
+}
+
+export function monthlyNewEntriesOpen(challenge: MonthlyChallenge | null) {
+  if (!challenge) return false
+  const now = challengeTime(challenge.server_now)
+  return now >= challengeTime(challenge.starts_at) && now < challengeTime(challenge.ends_at)
+}
+
+export function monthlyEntryCanBeEdited(
+  challenge: MonthlyChallenge | null,
+  submittedAt: string | null,
+) {
+  if (!monthlyNewEntriesOpen(challenge) || !challenge) return false
+  return !submittedAt || challengeTime(challenge.server_now) < challengeTime(challenge.submission_ends_at)
+}
+
 const messages: Record<string, string> = {
   MONTHLY_DRAWING_INVALID: 'A rajz adatai nem érvényesek.',
-  MONTHLY_DRAWING_LOCKED: 'A havi rajz már lezárult, most a szavazás következik.',
+  MONTHLY_DRAWING_LOCKED: 'A havi nevezés és szerkesztés lezárult.',
   MONTHLY_ENTRY_NOT_FOUND: 'Ez a havi nevezés már nem érhető el.',
   MONTHLY_OWN_VOTE_FORBIDDEN: 'A saját rajzodra nem szavazhatsz.',
   MONTHLY_VOTE_LIMIT: 'Mindhárom havi szavazatodat felhasználtad.',

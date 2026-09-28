@@ -123,7 +123,7 @@ test('competition mode exposes timed rounds, parallel drawing and anonymous voti
 test('the monthly canvas waits for the saved drawing before mounting', async () => {
   const source = await readFile(new URL('../src/components/MonthlyDraw.tsx', import.meta.url), 'utf8')
   assert.match(source, /const accountReady = loadedChallengeId === selectedId/)
-  assert.match(source, /const isDrawing = !loading && accountReady && challenge\?\.challenge_status === 'drawing'/)
+  assert.match(source, /const canEdit = !loading && accountReady && monthlyEntryCanBeEdited\(challenge, account\.submittedAt\)/)
   assert.match(source, /initialPixels: account\.entryPixels \?\? emptyDrawing\(\)/)
 })
 
@@ -188,7 +188,8 @@ test('the editor uses one share menu for the feed and both challenge entries', a
   assert.match(editorSource, /saveProfileAvatar\(snapshot\)/)
   assert.match(editorSource, />\s*Beállítás profilképnek\s*<\/button>/)
   assert.match(editorSource, /Biztosan beállítod ezt a rajzot profilképnek\? A mostani profilképed elveszik/)
-  assert.match(editorSource, /A kihívások a 12 színű palettát fogadják/)
+  assert.match(editorSource, /A heti kihívás és a Rajzfal fogadja a 32 színt/)
+  assert.match(editorSource, /A havi kihívás egyelőre csak a 12 alapszínt engedi/)
   assert.match(editorSource, /A Rajzfal adatbázis-frissítése még nincs telepítve/)
   assert.match(editorSource, /shareState\.feedPostCount >= FEED_DAILY_POST_LIMIT/)
   assert.match(editorSource, /Megosztás a Rajzfalon \(\$\{shareState\.feedPostCount\}\/\$\{FEED_DAILY_POST_LIMIT\}\)/)

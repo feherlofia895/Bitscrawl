@@ -5,6 +5,8 @@ import {
   loadMonthlyAccountState,
   loadMonthlyChallenges,
   loadMonthlyGallery,
+  monthlyEntryCanBeEdited,
+  monthlyNewEntriesOpen,
   saveMonthlyEntry,
   setMonthlyVote,
   submitMonthlyEntry,
@@ -17,6 +19,7 @@ import {
   registerWeeklyAccount,
   setWeeklyProfile,
   signInWeeklyAccount,
+  suggestedProfileName,
   type WeeklyChallenge,
 } from '../lib/weekly'
 import { PixelCanvas } from './PixelCanvas'
@@ -56,12 +59,6 @@ function errorMessage(error: unknown) {
 
 function dateLabel(value: string) {
   return new Intl.DateTimeFormat('hu-HU', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
-}
-
-function profileNameFromUser(user: User | null) {
-  return typeof user?.user_metadata.display_name === 'string'
-    ? user.user_metadata.display_name.trim()
-    : ''
 }
 
 function createDiscoverySeed() {
@@ -148,14 +145,16 @@ export function MonthlyDraw({
 
   const challenge = challenges.find(item => item.challenge_id === selectedId) ?? null
   const accountReady = loadedChallengeId === selectedId
-  const isDrawing = !loading && accountReady && challenge?.challenge_status === 'drawing'
+  const entriesOpen = monthlyNewEntriesOpen(challenge)
+  const canEdit = !loading && accountReady && monthlyEntryCanBeEdited(challenge, account.submittedAt)
+  const isDrawing = challenge?.challenge_status === 'drawing'
   const isVoting = challenge?.challenge_status === 'voting'
 
   const refresh = useCallback(async (
-    challengeId: number,
-    allowLocalDraft: boolean,
+    selectedChallenge: MonthlyChallenge,
     knownUser?: User | null,
   ) => {
+    const challengeId = selectedChallenge.challenge_id
     const loadVersion = ++loadVersionRef.current
     const currentUser = knownUser === undefined ? await getWeeklyUser() : knownUser
     const [nextGalleryPage, nextAccount] = await Promise.all([
@@ -163,7 +162,7 @@ export function MonthlyDraw({
       currentUser ? loadMonthlyAccountState(challengeId) : Promise.resolve(blankAccount),
     ])
     if (loadVersion !== loadVersionRef.current) return false
-    const localDraft = currentUser && allowLocalDraft
+    const localDraft = currentUser && monthlyEntryCanBeEdited(selectedChallenge, nextAccount.submittedAt)
       ? loadChallengeDraft('monthly', currentUser.id, challengeId)
       : null
     const mergedAccount = localDraft
@@ -175,7 +174,7 @@ export function MonthlyDraw({
     setGalleryTotal(nextGalleryPage.totalCount)
     setAccount(mergedAccount)
     pixelsRef.current = [...(mergedAccount.entryPixels ?? emptyDrawing())]
-    setDisplayName(mergedAccount.profileName ?? '')
+    setDisplayName(mergedAccount.profileName ?? suggestedProfileName(currentUser))
     setLoadedChallengeId(challengeId)
     localDraftStoredRef.current = Boolean(localDraft)
     if (localDraft) saveQueueRef.current?.schedule(challengeId, localDraft.pixels)
@@ -196,7 +195,7 @@ export function MonthlyDraw({
         const initial = nextChallenges.find(item => ['drawing', 'voting'].includes(item.challenge_status)) ?? nextChallenges[0]
         if (!initial) return setStatus('Még nincs havi kihívás.')
         setSelectedId(initial.challenge_id)
-        const loaded = await refresh(initial.challenge_id, initial.challenge_status === 'drawing', currentUser)
+        const loaded = await refresh(initial, currentUser)
         if (!cancelled && loaded) setStatus(loaded === 'local'
           ? 'A helyi vázlat visszaállítva. Mentés folyamatban…'
           : 'A havi kihívás naprakész.')
@@ -262,7 +261,8 @@ export function MonthlyDraw({
     setGalleryPage(1)
     try {
       const selectedChallenge = challenges.find(item => item.challenge_id === challengeId)
-      const loaded = await refresh(challengeId, selectedChallenge?.challenge_status === 'drawing')
+      if (!selectedChallenge) throw new Error('A havi kihívás már nem található.')
+      const loaded = await refresh(selectedChallenge)
       if (loaded) setStatus('A kiválasztott hónap betöltve.')
     }
     catch (error) { setStatus(errorMessage(error)) }
@@ -272,17 +272,20 @@ export function MonthlyDraw({
   const handleAuth = async () => {
     setBusy(true)
     try {
-      if (authMode === 'register') await registerWeeklyAccount(email, password, displayName)
-      else await signInWeeklyAccount(email, password)
+      if (authMode === 'register') {
+        const result = await registerWeeklyAccount(email, password, displayName)
+        if (result.confirmationRequired) {
+          setStatus('Elküldtük a megerősítő levelet. Megerősítés után jelentkezz be.')
+          setAuthMode('login')
+          return
+        }
+      } else {
+        await signInWeeklyAccount(email, password)
+      }
       const nextUser = await getWeeklyUser()
       setUser(nextUser)
       setLoadedChallengeId(null)
-      const rememberedName = profileNameFromUser(nextUser)
-      if (rememberedName) {
-        setAccount(current => ({ ...current, profileName: rememberedName }))
-        setDisplayName(rememberedName)
-      }
-      if (selectedId && nextUser) await refresh(selectedId, challenge?.challenge_status === 'drawing', nextUser)
+      if (challenge && nextUser) await refresh(challenge, nextUser)
       setStatus('Sikeresen bejelentkeztél.')
     } catch (error) { setStatus(errorMessage(error)) }
     finally { setBusy(false) }
@@ -292,7 +295,7 @@ export function MonthlyDraw({
     setBusy(true)
     try {
       await setWeeklyProfile(displayName)
-      if (selectedId) await refresh(selectedId, challenge?.challenge_status === 'drawing', user)
+      if (challenge) await refresh(challenge, user)
       setStatus('A megjelenített neved elmentve.')
     } catch (error) { setStatus(errorMessage(error)) }
     finally { setBusy(false) }
@@ -312,7 +315,7 @@ export function MonthlyDraw({
     setBusy(true)
     try {
       await setMonthlyVote(entry.entry_id, !entry.has_voted)
-      if (selectedId) await refresh(selectedId, isDrawing, user)
+      if (challenge) await refresh(challenge, user)
       setStatus(entry.has_voted ? 'A szavazatot visszavontad.' : 'Szavazat elmentve.')
     } catch (error) { setStatus(errorMessage(error)) }
     finally { setBusy(false) }
@@ -324,8 +327,8 @@ export function MonthlyDraw({
     try {
       if (!(await flushDrawing())) return
       await submitMonthlyEntry(selectedId)
-      await refresh(selectedId, true, user)
-      setStatus('A havi rajzod bekerült a nevezések közé. A szavazás kezdetéig tovább szerkesztheted.')
+      if (challenge) await refresh(challenge, user)
+      setStatus('A havi rajzod bekerült a nevezések közé.')
     } catch (error) { setStatus(errorMessage(error)) }
     finally { setBusy(false) }
   }
@@ -356,7 +359,7 @@ export function MonthlyDraw({
     setBusy(true)
     try {
       await moderateDeleteContent('gallery-comment', commentId)
-      if (selectedId) await refresh(selectedId, isDrawing, user)
+      if (challenge) await refresh(challenge, user)
       setStatus('A komment moderátorként törölve.')
     } catch (error) {
       setStatus(errorMessage(error))
@@ -370,7 +373,7 @@ export function MonthlyDraw({
       await moderateDeleteContent('monthly-entry', entry.entry_id)
       galleryPageRef.current = 1
       setGalleryPage(1)
-      if (selectedId) await refresh(selectedId, isDrawing, user)
+      if (challenge) await refresh(challenge, user)
       setStatus('A havi nevezés moderátorként eltávolítva a galériából.')
     } catch (error) {
       setStatus(errorMessage(error))
@@ -383,7 +386,7 @@ export function MonthlyDraw({
     setGalleryPage(nextPage)
     setLoading(true)
     try {
-      await refresh(selectedId, isDrawing, user)
+      if (challenge) await refresh(challenge, user)
       setStatus('A galéria következő oldala betöltve.')
     } catch (error) {
       setStatus(errorMessage(error))
@@ -403,7 +406,7 @@ export function MonthlyDraw({
     setGalleryPage(1)
     setLoading(true)
     try {
-      await refresh(selectedId, isDrawing, user)
+      if (challenge) await refresh(challenge, user)
       setStatus('A galéria rendezése frissült.')
     } catch (error) {
       setStatus(errorMessage(error))
@@ -412,7 +415,8 @@ export function MonthlyDraw({
     }
   }
 
-  const statusLabel = challenge?.challenge_status === 'drawing' ? 'Rajzolási időszak'
+  const statusLabel = challenge?.challenge_status === 'voting' && entriesOpen ? 'Szavazás · új nevezés még nyitva'
+    : challenge?.challenge_status === 'drawing' ? 'Rajzolási időszak'
     : challenge?.challenge_status === 'voting' ? 'Szavazás'
       : challenge?.challenge_status === 'closed' ? 'Lezárva' : 'Hamarosan'
 
@@ -427,7 +431,7 @@ export function MonthlyDraw({
     </nav> : null}
 
     {mode === 'challenge' && challenge ? <section className="weekly-challenge-card">
-      <div><span className={`weekly-status weekly-status-${challenge.challenge_status}`}>{statusLabel}</span><h2>{challenge.prompt}</h2><p>{challenge.description}</p><p className="weekly-date">Rajzolás: {dateLabel(challenge.starts_at)} – {dateLabel(challenge.voting_starts_at)}<br />Szavazás vége: {dateLabel(challenge.ends_at)}</p></div>
+      <div><span className={`weekly-status weekly-status-${challenge.challenge_status}`}>{statusLabel}</span><h2>{challenge.prompt}</h2><p>{challenge.description}</p><p className="weekly-date">Új nevezés: {dateLabel(challenge.starts_at)} – {dateLabel(challenge.ends_at)}<br />Beküldött kép szerkesztése: {dateLabel(challenge.starts_at)} – {dateLabel(challenge.submission_ends_at)}<br />Szavazás: {dateLabel(challenge.voting_starts_at)} – {dateLabel(challenge.ends_at)}</p></div>
       {challenges.length > 1 ? <label className="field weekly-picker"><span>Hónapok</span><select disabled={loading} onChange={event => void chooseChallenge(Number(event.target.value))} value={challenge.challenge_id}>{challenges.map(item => <option key={item.challenge_id} value={item.challenge_id}>{item.month_key} · {item.prompt}</option>)}</select></label> : null}
     </section> : null}
 
@@ -435,17 +439,17 @@ export function MonthlyDraw({
 
     {!loading && accountReady && !user ? <section className="weekly-account-card"><div><p className="step-label">Fiók</p><h2>{authMode === 'login' ? 'Jelentkezz be a rajzoláshoz' : 'Készíts játékosfiókot'}</h2><p>A havi rajz mentéséhez és a szavazáshoz fiók szükséges.</p></div><div className="weekly-auth-form">
       {authMode === 'register' ? <label className="field"><span>Megjelenített név</span><input maxLength={16} onChange={event => setDisplayName(event.target.value)} value={displayName} /></label> : null}
-      <label className="field"><span>E-mail</span><input onChange={event => setEmail(event.target.value)} type="email" value={email} /></label>
-      <label className="field"><span>Jelszó</span><input minLength={6} onChange={event => setPassword(event.target.value)} type="password" value={password} /></label>
+      <label className="field"><span>E-mail</span><input autoComplete="email" onChange={event => setEmail(event.target.value)} type="email" value={email} /></label>
+      <label className="field"><span>Jelszó</span><input autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} minLength={6} onChange={event => setPassword(event.target.value)} type="password" value={password} /></label>
       <button className="primary-button" disabled={busy || !email || password.length < 6 || (authMode === 'register' && displayName.trim().length < 2)} onClick={() => void handleAuth()} type="button">{authMode === 'login' ? 'Belépés' : 'Regisztráció'}</button>
       <button disabled={busy} onClick={() => setAuthMode(current => current === 'login' ? 'register' : 'login')} type="button">{authMode === 'login' ? 'Még nincs fiókom' : 'Már van fiókom'}</button>
     </div></section> : user && !loading && accountReady && !account.profileName ? <section className="weekly-account-card"><div><h2>Válassz megjelenített nevet</h2></div><div className="weekly-auth-form"><label className="field"><span>Megjelenített név</span><input maxLength={16} onChange={event => setDisplayName(event.target.value)} value={displayName} /></label><button className="primary-button" disabled={busy || displayName.trim().length < 2} onClick={() => void handleProfile()} type="button">Név mentése</button></div></section> : null}
 
     {!loading && challenge && !accountReady ? <section className="weekly-account-card"><div><h2>A mentett rajz nem töltődött be</h2><p>A szerkesztőt addig nem nyitjuk meg, hogy a meglévő rajzod biztonságban maradjon.</p></div><button disabled={busy} onClick={() => void chooseChallenge(challenge.challenge_id)} type="button">Betöltés újra</button></section> : null}
 
-    {mode === 'challenge' && isDrawing && user && account.profileName ? <section className="weekly-editor"><div className="weekly-section-heading"><div><p className="step-label">A te havi rajzod</p><h2>Rajzold le: {challenge?.prompt}</h2><p>Minden változtatás automatikusan mentődik.</p></div>{account.submittedAt ? <span className="weekly-status weekly-status-active">Beküldve · még szerkeszthető</span> : <button className="primary-button" disabled={busy || !pixelsRef.current.some(pixel => pixel !== 'transparent')} onClick={() => void handleSubmit()} type="button">Beküldés</button>}</div><PixelCanvas canDraw={!busy} chosenWord={challenge?.prompt ?? null} drawingEndsAt={challenge?.voting_starts_at ?? null} events={[]} localDrawing={{ initialPixels: account.entryPixels ?? emptyDrawing(), onChange: handleDrawingChange }} onError={error => setStatus(errorMessage(error))} onSubmit={handleSubmit} paletteSize={12} roundId={challenge?.challenge_id ?? 0} serverNow={challenge?.server_now ?? ''} /></section> : null}
+    {mode === 'challenge' && canEdit && user && account.profileName ? <section className="weekly-editor"><div className="weekly-section-heading"><div><p className="step-label">A te havi rajzod</p><h2>Rajzold le: {challenge?.prompt}</h2><p>Minden változtatás automatikusan mentődik.</p></div>{account.submittedAt ? <span className="weekly-status weekly-status-active">Beküldve · még szerkeszthető</span> : <button className="primary-button" disabled={busy || !pixelsRef.current.some(pixel => pixel !== 'transparent')} onClick={() => void handleSubmit()} type="button">Beküldés</button>}</div><PixelCanvas canDraw={!busy} chosenWord={challenge?.prompt ?? null} drawingEndsAt={account.submittedAt ? challenge?.submission_ends_at ?? null : challenge?.ends_at ?? null} events={[]} localDrawing={{ initialPixels: account.entryPixels ?? emptyDrawing(), onChange: handleDrawingChange }} onError={error => setStatus(errorMessage(error))} onSubmit={handleSubmit} paletteSize={12} roundId={challenge?.challenge_id ?? 0} serverNow={challenge?.server_now ?? ''} /></section> : null}
 
-    {mode === 'challenge' && !isDrawing && account.submittedAt && account.entryPixels ? <section className="weekly-submitted"><WeeklyArtwork label="A havi rajzod" pixels={account.entryPixels} /><div><p className="step-label">{statusLabel}</p><h2>A beküldött rajzod biztonságban van</h2><p>A szavazási időszak kezdetétől a havi rajz már nem módosítható.</p></div></section> : null}
+    {mode === 'challenge' && !canEdit && account.submittedAt && account.entryPixels ? <section className="weekly-submitted"><WeeklyArtwork label="A havi rajzod" pixels={account.entryPixels} /><div><p className="step-label">{statusLabel}</p><h2>A beküldött rajzod biztonságban van</h2><p>A szerkesztési határidő után a beadott kép már nem módosítható. Az új nevezők a kihívás végéig még beküldhetnek.</p></div></section> : null}
 
     {mode === 'gallery' ? <section className="weekly-gallery">
       <div className="weekly-section-heading">

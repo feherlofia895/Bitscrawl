@@ -77,7 +77,7 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
   const [galleryAction, setGalleryAction] = useState<'load' | 'save' | null>(null)
   const [galleryActionLoading, setGalleryActionLoading] = useState(false)
   const [galleryActionError, setGalleryActionError] = useState<string | null>(null)
-  const [challengePaletteReady, setChallengePaletteReady] = useState(
+  const [monthlyPaletteReady, setMonthlyPaletteReady] = useState(
     () => initial.pixels.every(color => challengeColors.has(color)),
   )
   const [confirmation, setConfirmation] = useState<{
@@ -124,7 +124,7 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
 
   const handleChange = useCallback((pixels: string[]) => {
     pixelsRef.current = pixels
-    setChallengePaletteReady(pixels.every(color => challengeColors.has(color)))
+    setMonthlyPaletteReady(pixels.every(color => challengeColors.has(color)))
     setDirty(true)
     if (persist(pixels, false)) setStatus(text.local)
   }, [persist])
@@ -143,7 +143,7 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
 
   const resetDrawing = () => {
     pixelsRef.current = emptyDrawing()
-    setChallengePaletteReady(true)
+    setMonthlyPaletteReady(true)
     setDirty(false)
     if (persist(pixelsRef.current, true)) setStatus(text.local)
     setRevision(value => value + 1)
@@ -189,7 +189,8 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
         loadMonthlyChallenges(),
       ])
       const weekly = weeklyChallenges.find(challenge => challenge.challenge_status === 'active') ?? null
-      const monthly = monthlyChallenges.find(challenge => challenge.challenge_status === 'drawing') ?? null
+      const monthly = monthlyChallenges.find(challenge =>
+        challenge.challenge_status === 'drawing' || challenge.challenge_status === 'voting') ?? null
       const [weeklyAccount, monthlyAccount] = await Promise.all([
         weekly ? loadWeeklyAccountState(weekly.challenge_id) : Promise.resolve(null),
         monthly ? loadMonthlyAccountState(monthly.challenge_id) : Promise.resolve(null),
@@ -343,7 +344,7 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
     const pixels = [...slot.pixels]
     pixelsRef.current = pixels
     setPaletteSize(slot.paletteSize)
-    setChallengePaletteReady(pixels.every(color => challengeColors.has(color)))
+    setMonthlyPaletteReady(pixels.every(color => challengeColors.has(color)))
     setDirty(true)
     const storedLocally = persist(pixels, false, slot.paletteSize)
     setRevision(value => value + 1)
@@ -462,10 +463,10 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
                 <button disabled={sharing || Boolean(shareState.feedUnavailableMessage) || shareState.feedPostCount >= FEED_DAILY_POST_LIMIT} onClick={() => void shareDrawing('feed')} type="button">
                   {shareState.feedUnavailableMessage ? 'Rajzfal – frissítésre vár' : shareState.feedPostCount >= FEED_DAILY_POST_LIMIT ? 'A mai három kép már megosztva' : `Megosztás a Rajzfalon (${shareState.feedPostCount}/${FEED_DAILY_POST_LIMIT})`}
                 </button>
-                <button disabled={sharing || !shareState.weekly || shareState.weekly.submitted || !challengePaletteReady} onClick={() => void shareDrawing('weekly')} type="button">
+                <button disabled={sharing || !shareState.weekly || shareState.weekly.submitted} onClick={() => void shareDrawing('weekly')} type="button">
                   {shareState.weekly ? shareState.weekly.submitted ? 'Heti nevezés már beküldve' : `Heti kihívás: ${shareState.weekly.prompt}` : 'Nincs aktív heti kihívás'}
                 </button>
-                <button disabled={sharing || !shareState.monthly || shareState.monthly.submitted || !challengePaletteReady} onClick={() => void shareDrawing('monthly')} type="button">
+                <button disabled={sharing || !shareState.monthly || shareState.monthly.submitted || !monthlyPaletteReady} onClick={() => void shareDrawing('monthly')} type="button">
                   {shareState.monthly ? shareState.monthly.submitted ? 'Havi nevezés már beküldve' : `Havi kihívás: ${shareState.monthly.prompt}` : 'Nincs aktív havi kihívás'}
                 </button>
                 <button disabled={sharing} onClick={requestProfileAvatar} type="button">
@@ -499,7 +500,7 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
                   )}
                 </details>
                 {shareState.feedUnavailableMessage ? <small>{shareState.feedUnavailableMessage}</small> : null}
-                {!challengePaletteReady ? <small>A kihívások a 12 színű palettát fogadják. A Hírfolyam a 32 színt is engedi.</small> : null}
+                {!monthlyPaletteReady ? <small>A heti kihívás és a Rajzfal fogadja a 32 színt. A havi kihívás egyelőre csak a 12 alapszínt engedi.</small> : null}
               </>}
               {status !== text.local ? <p className="status-message editor-share-status" role="status">{status}</p> : null}
             </div>

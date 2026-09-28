@@ -433,7 +433,15 @@ test('global lobby authenticates presence, exposes only safe profile fields and 
   assert.equal((await asUser(unprofiledUser, 'select * from public.lobby_messages')).length, 0)
 })
 
-test('monthly challenge keeps entries editable only before the seven-day voting window', async () => {
+test('monthly challenge locks submitted edits but accepts new entries during voting', async () => {
+  await db.query(`
+    update public.monthly_challenges
+    set starts_at = clock_timestamp() - interval '2 days',
+        voting_starts_at = clock_timestamp() + interval '12 hours',
+        submission_ends_at = clock_timestamp() + interval '12 hours',
+        ends_at = clock_timestamp() + interval '7 days 12 hours'
+    where id = $1
+  `, [monthlyChallengeId])
   const [challenge] = await asUser(null, 'select * from public.get_monthly_challenges()', [], { role: 'anon' })
   assert.equal(challenge.prompt, 'Béka')
   assert.equal(challenge.challenge_status, 'drawing')
@@ -486,25 +494,25 @@ test('monthly challenge keeps entries editable only before the seven-day voting 
   )
 
   await db.query(
-    "update public.monthly_challenges set voting_starts_at = clock_timestamp() - interval '1 second', ends_at = clock_timestamp() + interval '1 day' where id = $1",
+    "update public.monthly_challenges set voting_starts_at = clock_timestamp() - interval '1 second', submission_ends_at = clock_timestamp() - interval '1 second', ends_at = clock_timestamp() + interval '1 day' where id = $1",
     [monthlyChallengeId],
   )
   await assert.rejects(
     asUser(users[0], 'select public.save_monthly_entry($1, $2::jsonb)', [monthlyChallengeId, JSON.stringify(drawing(colors[0]))]),
     /MONTHLY_DRAWING_LOCKED/,
   )
-  await assert.rejects(
-    asUser(users[5], 'select public.submit_monthly_entry($1)', [monthlyChallengeId]),
-    /MONTHLY_DRAWING_LOCKED/,
+  await asUser(users[5], 'select public.submit_monthly_entry($1)', [monthlyChallengeId])
+  await asUser(unprofiledUser, 'select public.set_weekly_profile($1)', ['HiddenArtist'])
+  await asUser(
+    unprofiledUser,
+    'select public.save_monthly_entry($1, $2::jsonb)',
+    [monthlyChallengeId, JSON.stringify(drawing(colors[4]))],
   )
-  const [{ id: hiddenMonthlyEntryId }] = (await db.query(
+  const [{ id: lateMonthlyEntryId }] = (await db.query(
     'select id from public.monthly_entries where challenge_id = $1 and user_id = $2',
     [monthlyChallengeId, users[5]],
   )).rows
-  await assert.rejects(
-    asUser(users[2], 'select * from public.set_monthly_vote($1, true)', [hiddenMonthlyEntryId]),
-    /MONTHLY_ENTRY_NOT_FOUND/,
-  )
+  await asUser(users[2], 'select * from public.set_monthly_vote($1, true)', [lateMonthlyEntryId])
   const [{ prosrc: monthlyVoteSource }] = (await db.query(`
     select p.prosrc
     from pg_proc as p join pg_namespace as n on n.oid = p.pronamespace
@@ -512,8 +520,8 @@ test('monthly challenge keeps entries editable only before the seven-day voting 
   `)).rows
   assert.match(monthlyVoteSource, /from public\.profiles[\s\S]*for update/i)
   const gallery = await asUser(users[0], 'select * from public.get_monthly_gallery($1)', [monthlyChallengeId])
-  assert.equal(gallery.length, 5)
-  assert(!gallery.some(entry => entry.author_name === 'Artist6'))
+  assert.equal(gallery.length, 6)
+  assert(gallery.some(entry => entry.author_name === 'Artist6'))
   assert(gallery.every(entry => !('user_id' in entry)))
   const own = gallery.find(entry => entry.is_own)
   const others = gallery.filter(entry => !entry.is_own)
@@ -637,11 +645,11 @@ test('weekly and monthly gallery comments persist without exposing account ids',
   )).rows
   const [{ id: hiddenMonthlyEntryId }] = (await db.query(
     'select id from public.monthly_entries where challenge_id = $1 and user_id = $2',
-    [monthlyChallengeId, users[5]],
+    [monthlyChallengeId, unprofiledUser],
   )).rows
   await asUser(users[2], 'select public.add_gallery_comment($1, $2, $3)', ['monthly', submittedMonthlyEntryId, 'Ez a béka aranyos.'])
   await assert.rejects(
-    asUser(users[2], 'select public.add_gallery_comment($1, $2, $3)', ['monthly', hiddenMonthlyEntryId, 'Rejtett']),
+    asUser(users[3], 'select public.add_gallery_comment($1, $2, $3)', ['monthly', hiddenMonthlyEntryId, 'Rejtett']),
     /MONTHLY_ENTRY_NOT_FOUND/,
   )
   const monthlyComments = await asUser(
@@ -701,7 +709,7 @@ test('challenge galleries and entry comments are paginated and sorted on the ser
     { role: 'anon' },
   )
   assert.equal(monthlyPage.length, 2)
-  assert.equal(Number(monthlyPage[0].total_count), 5)
+  assert.equal(Number(monthlyPage[0].total_count), 6)
   assert(Number(monthlyPage[0].vote_count) <= 3)
 
   const commentedEntry = discovery.find(entry => Number(entry.comment_count) === 2)
