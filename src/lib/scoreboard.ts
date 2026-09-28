@@ -15,7 +15,8 @@ export type ScoreboardEntry = {
 }
 
 export type HallOfFameEntry = {
-  weekKey: string
+  challengeKind: 'weekly' | 'monthly'
+  periodKey: string
   challengePrompt: string
   placement: 1 | 2 | 3
   displayName: string
@@ -45,15 +46,16 @@ export async function loadLifetimeScoreboard(limit = 100): Promise<ScoreboardEnt
   }))
 }
 
-export async function loadWeeklyHallOfFame(limit = 30): Promise<HallOfFameEntry[]> {
-  const { data, error } = await supabase.rpc('get_weekly_hall_of_fame', {
+export async function loadChallengeHallOfFame(limit = 30): Promise<HallOfFameEntry[]> {
+  const { data, error } = await supabase.rpc('get_challenge_hall_of_fame', {
     requested_limit: limit,
   })
 
   if (error) throw error
 
   return (data ?? []).map((entry) => ({
-    weekKey: entry.week_key,
+    challengeKind: entry.challenge_kind as 'weekly' | 'monthly',
+    periodKey: entry.period_key,
     challengePrompt: entry.challenge_prompt,
     placement: Number(entry.placement) as 1 | 2 | 3,
     displayName: entry.display_name,

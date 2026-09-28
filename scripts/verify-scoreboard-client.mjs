@@ -36,26 +36,26 @@ function runtime() {
 test('scoreboard RPC mapping preserves server rank, totals, profile targets and safe avatar validation',async()=>{
   const calls=[]
   const api=await compile('../src/lib/scoreboard.ts',{
-    './supabase':{supabase:{rpc:async(name,args)=>{calls.push([name,args]);return {error:null,data:name==='get_lifetime_scoreboard'?[{score_rank:'4',display_name:'Synthetic',avatar_pixels:'bad',total_points:'8',vote_points:'6',bonus_points:'0',gold_count:'1',silver_count:'0',bronze_count:'0',challenges_entered:'2'}]:[{week_key:'synthetic-week',challenge_prompt:'Synthetic',placement:1,display_name:'Synthetic',avatar_pixels:'bad',points:'8',awarded_at:'2026-01-01'}]}}}},
+    './supabase':{supabase:{rpc:async(name,args)=>{calls.push([name,args]);return {error:null,data:name==='get_lifetime_scoreboard'?[{score_rank:'4',display_name:'Synthetic',avatar_pixels:'bad',total_points:'8',vote_points:'6',bonus_points:'0',gold_count:'1',silver_count:'0',bronze_count:'0',challenges_entered:'2'}]:[{challenge_kind:'monthly',period_key:'2026-09',challenge_prompt:'Synthetic',placement:1,display_name:'Synthetic',avatar_pixels:'bad',points:'8',awarded_at:'2026-10-01'}]}}}},
     './profile':{parseAvatarPixels:value=>Array.isArray(value)?value:null},
   })
   const [entry]=await api.loadLifetimeScoreboard(50)
   assert.deepEqual(entry,{rank:4,displayName:'Synthetic',avatarPixels:null,totalPoints:8,votePoints:6,bonusPoints:0,goldCount:1,silverCount:0,bronzeCount:0,challengesEntered:2})
-  assert.equal((await api.loadWeeklyHallOfFame())[0].points,8)
-  assert.deepEqual(calls,[['get_lifetime_scoreboard',{requested_limit:50}],['get_weekly_hall_of_fame',{requested_limit:30}]])
+  assert.deepEqual(await api.loadChallengeHallOfFame(),[{challengeKind:'monthly',periodKey:'2026-09',challengePrompt:'Synthetic',placement:1,displayName:'Synthetic',avatarPixels:null,points:8,awardedAt:'2026-10-01'}])
+  assert.deepEqual(calls,[['get_lifetime_scoreboard',{requested_limit:50}],['get_challenge_hall_of_fame',{requested_limit:30}]])
 })
 
 test('scoreboard RPC errors are not silently presented as an empty ranking',async()=>{
   const api=await compile('../src/lib/scoreboard.ts',{'./supabase':{supabase:{rpc:async()=>({error:new Error('offline')})}},'./profile':{parseAvatarPixels:()=>null}})
   await assert.rejects(api.loadLifetimeScoreboard(),/offline/)
-  await assert.rejects(api.loadWeeklyHallOfFame(),/offline/)
+  await assert.rejects(api.loadChallengeHallOfFame(),/offline/)
 })
 
 async function board(overrides={}) {
   const rt=runtime()
   const api=await compile('../src/components/Scoreboard.tsx',{
     react:rt.react,'react/jsx-runtime':jsx,'./ProfileAvatar':{ProfileAvatar:'Avatar'},'./ProfilePreviewButton':{ProfilePreviewButton:'Profile'},
-    '../lib/scoreboard':{loadLifetimeScoreboard:async()=>[],loadWeeklyHallOfFame:async()=>[],...overrides},
+    '../lib/scoreboard':{loadLifetimeScoreboard:async()=>[],loadChallengeHallOfFame:async()=>[],...overrides},
     '../lib/weekly':{loadWeeklyChallenges:overrides.loadWeeklyChallenges??(async()=>[])},
   })
   let backs=0
@@ -66,23 +66,27 @@ test('scoreboard displays server dense ranks, chronological week labels and clic
   const entry={rank:4,displayName:'Synthetic',avatarPixels:null,totalPoints:1,goldCount:0,silverCount:0,bronzeCount:0}
   const app=await board({
     loadLifetimeScoreboard:async()=>[entry,{...entry,rank:4,displayName:'Synthetic2'},{...entry,rank:5,displayName:'Synthetic3'}],
-    loadWeeklyHallOfFame:async()=>[{weekKey:'earlier',challengePrompt:'Synthetic',placement:1,displayName:'Winner',avatarPixels:null,points:5}],
+    loadChallengeHallOfFame:async()=>[
+      {challengeKind:'weekly',periodKey:'earlier',challengePrompt:'Synthetic',placement:1,displayName:'Winner',avatarPixels:null,points:5},
+      {challengeKind:'monthly',periodKey:'2026-09',challengePrompt:'Béka',placement:2,displayName:'Monthly',avatarPixels:null,points:4},
+    ],
     loadWeeklyChallenges:async()=>[{week_key:'later',starts_at:'2026-02-01'},{week_key:'earlier',starts_at:'2026-01-01'}],
   })
   assert.match(JSON.stringify(app.render()),/Ranglista betöltése/)
   app.effects();await settle()
   const tree=app.render()
   assert.deepEqual(nodes(tree,n=>n.props?.className==='scoreboard-position').map(n=>n.props.children),[[4,'.'],[4,'.'],[5,'.']])
-  assert.deepEqual(nodes(tree,n=>n.type==='Profile').map(n=>n.props.name),['Winner','Synthetic','Synthetic2','Synthetic3'])
+  assert.deepEqual(nodes(tree,n=>n.type==='Profile').map(n=>n.props.name),['Winner','Monthly','Synthetic','Synthetic2','Synthetic3'])
   assert.match(JSON.stringify(tree),/1\. hét/)
+  assert.match(JSON.stringify(tree),/2026\. szeptember/)
   nodes(tree,n=>n.props?.className==='home-back-button')[0].props.onClick()
   assert.equal(app.backs(),1)
 })
 
 test('scoreboard separates empty, failed and unmounted loads',async()=>{
   const empty=await board();empty.render();empty.effects();await settle()
-  assert.match(JSON.stringify(empty.render()),/első lezárt heti kihívás/)
-  const failure=await board({loadWeeklyHallOfFame:async()=>{throw new Error('offline')}})
+  assert.match(JSON.stringify(empty.render()),/első lezárt heti vagy havi kihívás/)
+  const failure=await board({loadChallengeHallOfFame:async()=>{throw new Error('offline')}})
   failure.render();failure.effects();await settle()
   assert.equal(nodes(failure.render(),n=>n.props?.role==='alert').length,1)
   const request=deferred(),gone=await board({loadLifetimeScoreboard:()=>request.promise})

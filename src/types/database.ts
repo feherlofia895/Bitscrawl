@@ -434,6 +434,15 @@ export type Database = {
           total_vote_points: number
         }[]
       }
+      finalize_monthly_challenge: {
+        Args: { target_challenge_id: number }
+        Returns: {
+          already_finalized: boolean
+          awards_count: number
+          challenge_id: number
+          total_vote_points: number
+        }[]
+      }
       get_lifetime_scoreboard: {
         Args: { requested_limit?: number }
         Returns: {
@@ -459,6 +468,19 @@ export type Database = {
           placement: number
           points: number
           week_key: string
+        }[]
+      }
+      get_challenge_hall_of_fame: {
+        Args: { requested_limit?: number }
+        Returns: {
+          avatar_pixels: Json | null
+          awarded_at: string
+          challenge_kind: string
+          challenge_prompt: string
+          display_name: string
+          period_key: string
+          placement: number
+          points: number
         }[]
       }
       get_public_profile_stats: {

@@ -15,6 +15,7 @@
     "test:moderation": "node --test scripts/verify-moderation-local.mjs scripts/verify-moderation-client.mjs",
     "test:scoreboard": "node --test scripts/verify-scoreboard-local.mjs scripts/verify-scoreboard-client.mjs",
     "test:score-integrity": "node --test scripts/verify-score-integrity-local.mjs",
+    "test:monthly-score": "node --test scripts/verify-monthly-score-local.mjs",
     "test:challenge-rules": "node --test scripts/verify-challenge-rules-local.mjs scripts/verify-challenge-rules-client.mjs",
     "test:round-duration:local": "node --test scripts/verify-round-duration-local.mjs",
     "test:round-duration:live": "node --env-file=.env.local scripts/verify-round-duration-live.mjs",

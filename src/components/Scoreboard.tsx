@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   loadLifetimeScoreboard,
-  loadWeeklyHallOfFame,
+  loadChallengeHallOfFame,
   type HallOfFameEntry,
   type ScoreboardEntry,
 } from '../lib/scoreboard'
@@ -19,6 +19,18 @@ function medalSummary(entry: ScoreboardEntry) {
   return medals.length > 0 ? medals.join(' · ') : 'Még nincs dobogós helyezés'
 }
 
+function periodLabel(entry: HallOfFameEntry, weekLabels: Record<string, string>) {
+  if (entry.challengeKind === 'weekly') return weekLabels[entry.periodKey] ?? entry.periodKey
+
+  const monthStart = new Date(`${entry.periodKey}-01T00:00:00Z`)
+  if (Number.isNaN(monthStart.getTime())) return entry.periodKey
+  return new Intl.DateTimeFormat('hu-HU', {
+    year: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  }).format(monthStart)
+}
+
 export function Scoreboard({ onBack }: { onBack: () => void }) {
   const [entries, setEntries] = useState<ScoreboardEntry[]>([])
   const [hallOfFame, setHallOfFame] = useState<HallOfFameEntry[]>([])
@@ -31,7 +43,7 @@ export function Scoreboard({ onBack }: { onBack: () => void }) {
 
     Promise.all([
       loadLifetimeScoreboard(),
-      loadWeeklyHallOfFame(),
+      loadChallengeHallOfFame(),
       loadWeeklyChallenges().catch(() => []),
     ])
       .then(([scoreboard, podiums, challenges]) => {
@@ -63,7 +75,7 @@ export function Scoreboard({ onBack }: { onBack: () => void }) {
         <div>
           <p className="step-label">Közösségi kihívások</p>
           <h1 id="scoreboard-title">Dicsőségfal</h1>
-          <p>Örökranglista a lezárt heti kihívásokból.</p>
+          <p>Örökranglista a lezárt heti és havi kihívásokból.</p>
         </div>
         <button className="home-back-button" onClick={onBack} type="button">Vissza a főmenübe</button>
       </header>
@@ -76,12 +88,12 @@ export function Scoreboard({ onBack }: { onBack: () => void }) {
       {!isLoading && !errorMessage && hallOfFame.length > 0 ? (
         <section className="hall-of-fame" aria-labelledby="hall-of-fame-title">
           <div className="scoreboard-section-heading">
-            <p className="step-label">A heti kihívások dobogósai</p>
+            <p className="step-label">A kihívások dobogósai</p>
             <h2 id="hall-of-fame-title">A legmenőbbek</h2>
           </div>
           <ol className="hall-of-fame-grid">
             {hallOfFame.map((entry) => (
-              <li className="hall-of-fame-card" data-placement={entry.placement} key={`${entry.weekKey}-${entry.placement}-${entry.displayName}`}>
+              <li className="hall-of-fame-card" data-placement={entry.placement} key={`${entry.challengeKind}-${entry.periodKey}-${entry.placement}-${entry.displayName}`}>
                 <span className="hall-of-fame-medal" aria-label={`${entry.placement}. hely`}>
                   {entry.placement === 1 ? '🥇' : entry.placement === 2 ? '🥈' : '🥉'}
                 </span>
@@ -90,7 +102,7 @@ export function Scoreboard({ onBack }: { onBack: () => void }) {
                   <strong className="hall-of-fame-player-name">{entry.displayName}</strong>
                 </ProfilePreviewButton>
                 <strong>{entry.points} pont</strong>
-                <span>{entry.challengePrompt} · {weekLabels[entry.weekKey] ?? entry.weekKey}</span>
+                <span>{entry.challengePrompt} · {periodLabel(entry, weekLabels)}</span>
               </li>
             ))}
           </ol>
@@ -100,7 +112,7 @@ export function Scoreboard({ onBack }: { onBack: () => void }) {
       {isLoading ? <p className="scoreboard-state" aria-live="polite">Ranglista betöltése…</p> : null}
       {errorMessage ? <p className="scoreboard-state scoreboard-error" role="alert">{errorMessage}</p> : null}
       {!isLoading && !errorMessage && entries.length === 0 ? (
-        <p className="scoreboard-state">Az első lezárt heti kihívás után jelennek meg a pontok.</p>
+        <p className="scoreboard-state">Az első lezárt heti vagy havi kihívás után jelennek meg a pontok.</p>
       ) : null}
 
       {entries.length > 0 ? (

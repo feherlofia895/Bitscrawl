@@ -542,6 +542,11 @@ test('monthly challenge locks submitted edits but accepts new entries during vot
     asUser(users[1], 'select * from public.set_monthly_vote($1, true)', [others[0].entry_id]),
     /MONTHLY_VOTING_CLOSED/,
   )
+  await db.query(
+    'insert into private.app_admins (user_id) values ($1) on conflict (user_id) do nothing',
+    [users[1]],
+  )
+  await asUser(users[1], 'select * from public.finalize_monthly_challenge($1)', [monthlyChallengeId])
   const closedGallery = await asUser(null, 'select * from public.get_monthly_gallery($1)', [monthlyChallengeId], { role: 'anon' })
   assert(closedGallery.some(entry => entry.is_winner))
   await assert.rejects(db.query('delete from public.monthly_challenges where id = $1', [monthlyChallengeId]), /foreign key/)
