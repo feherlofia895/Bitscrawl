@@ -38,7 +38,7 @@ const competitionErrorMessages: Record<string, string> = {
   GAME_MODE_INVALID: 'Ez a szoba nem versenymódban fut.',
   GAME_NOT_FINISHED: 'Az új verseny csak az eredményhirdetés után indítható.',
   GAME_NOT_PLAYING: 'Ez a verseny jelenleg nem fut.',
-  NOT_ENOUGH_PLAYERS: 'A versenymódhoz legalább 3 játékos szükséges.',
+  NOT_ENOUGH_PLAYERS: 'A versenymódhoz legalább 2 játékos szükséges.',
   NOT_ROOM_HOST: 'Csak a szoba hostja indíthatja el a versenyt.',
   PIXEL_CHANGES_INVALID: 'Érvénytelen pixelmódosítás érkezett.',
   ROOM_NOT_FOUND: 'Ez a versenyszoba nem érhető el számodra.',

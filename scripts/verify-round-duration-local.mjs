@@ -172,6 +172,25 @@ test('invalid competition settings cannot leave partial rooms or bypass table co
   await assert.rejects(db.query('update public.rooms set competition_round_count = 6 where id = $1', [room.room_id]), /rooms_competition_round_count_values/)
 })
 
+test('parallel competition starts with two players but not one', async () => {
+  const [room] = await asUser(host,
+    "select * from public.create_room_with_settings('KétfősHost', 90, 'competition', 60, 1)")
+  await assert.rejects(
+    asUser(host, 'select * from public.start_competition_game($1)', [room.room_id]),
+    /NOT_ENOUGH_PLAYERS/,
+  )
+  await asUser(guest, 'select * from public.join_room($1, $2)', [room.room_code, 'KétfősGuest'])
+  const [started] = await asUser(host, 'select * from public.start_competition_game($1)', [room.room_id])
+  assert.equal(started.room_status, 'playing')
+  const [{ entry_count: entryCount }] = (await db.query(`
+    select count(*)::integer as entry_count
+    from private.competition_entries entry
+    join public.competition_rounds round_row on round_row.id = entry.round_id
+    where round_row.room_id = $1
+  `, [room.room_id])).rows
+  assert.equal(entryCount, 2)
+})
+
 test('parallel competition runs drawing, anonymous mutable voting and configured rounds', async () => {
   const [room] = await asUser(host,
     "select * from public.create_room_with_settings('VersenyHost', 90, 'competition', 60, 2)")

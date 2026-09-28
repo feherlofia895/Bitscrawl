@@ -999,7 +999,7 @@ function App() {
   const gameIsFinished = lobby?.room.status === 'finished'
   const roomIsLocked = gameIsPlaying || gameIsFinished
   const roomIsCompetition = lobby?.room.game_mode === 'competition'
-  const minimumPlayers = roomIsCompetition ? 3 : lobby?.room.test_mode ? 1 : 2
+  const minimumPlayers = roomIsCompetition ? 2 : lobby?.room.test_mode ? 1 : 2
   const drawer = lobby?.players.find(
     (player) => player.user_id === roundView?.drawer_user_id,
   )
@@ -1308,7 +1308,7 @@ function App() {
                 </button> : null}
                 <span>
                   {roomIsCompetition
-                    ? 'A versenyhez legalább 3 játékos szükséges.'
+                    ? 'A versenyhez legalább 2 játékos szükséges.'
                     : lobby.room.test_mode
                     ? 'Egyedül korlátlan rajzidővel is elindíthatod a meccset.'
                     : 'Normál módban legalább 2 játékos szükséges.'}
