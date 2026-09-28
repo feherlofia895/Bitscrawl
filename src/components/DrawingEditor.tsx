@@ -73,6 +73,9 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
   const [shareLoading, setShareLoading] = useState(false)
   const [feedDescription, setFeedDescription] = useState('')
   const [shareState, setShareState] = useState<EditorShareState>(emptyShareState)
+  const [galleryAction, setGalleryAction] = useState<'load' | 'save' | null>(null)
+  const [galleryActionLoading, setGalleryActionLoading] = useState(false)
+  const [galleryActionError, setGalleryActionError] = useState<string | null>(null)
   const [challengePaletteReady, setChallengePaletteReady] = useState(
     () => initial.pixels.every(color => challengeColors.has(color)),
   )
@@ -84,11 +87,27 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
   } | null>(null)
   const mountedRef = useRef(true)
   const shareMenuRef = useRef<HTMLDetailsElement>(null)
+  const galleryCloseRef = useRef<HTMLButtonElement>(null)
+  const galleryPreviousFocusRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
     mountedRef.current = true
     return () => { mountedRef.current = false }
   }, [])
+
+  useEffect(() => {
+    if (!galleryAction) return
+    galleryCloseRef.current?.focus()
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !confirmation) {
+        event.preventDefault()
+        setGalleryAction(null)
+        queueMicrotask(() => galleryPreviousFocusRef.current?.focus())
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [confirmation, galleryAction])
 
   const persist = useCallback((pixels: string[], exported: boolean, selectedPalette = paletteSize) => {
     try {
@@ -262,6 +281,31 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
     })
   }
 
+  const closeGalleryAction = () => {
+    setGalleryAction(null)
+    queueMicrotask(() => galleryPreviousFocusRef.current?.focus())
+  }
+
+  const openGalleryAction = async (action: 'load' | 'save') => {
+    galleryPreviousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setGalleryAction(action)
+    setGalleryActionError(null)
+    setGalleryActionLoading(true)
+    try {
+      const slots = await loadOwnEditorGallery()
+      if (!mountedRef.current) return
+      setShareState(current => ({ ...current, gallerySlots: slots, galleryUnavailableMessage: null }))
+    } catch (error) {
+      if (!mountedRef.current) return
+      const message = editorGalleryEndpointIsMissing(error)
+        ? 'A saját galéria adatbázis-frissítése még nincs telepítve.'
+        : error instanceof Error ? error.message : 'A saját galéria most nem érhető el.'
+      setGalleryActionError(message)
+    } finally {
+      if (mountedRef.current) setGalleryActionLoading(false)
+    }
+  }
+
   const saveGallerySlot = async (slotIndex: EditorGallerySlotIndex) => {
     const snapshot = [...pixelsRef.current]
     if (!snapshot.some(color => color !== 'transparent')) {
@@ -273,6 +317,7 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
       await saveOwnEditorGallerySlot(slotIndex, snapshot, paletteSize)
       await refreshShareState()
       setStatus(`A rajzod elmentve a saját galéria ${slotIndex}. helyére.`)
+      setGalleryAction(null)
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'A rajz mentése nem sikerült.')
     } finally {
@@ -303,6 +348,7 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
     setRevision(value => value + 1)
     if (storedLocally) setStatus(`A saját galéria ${slot.slotIndex}. képe betöltve szerkesztésre.`)
     shareMenuRef.current?.removeAttribute('open')
+    setGalleryAction(null)
   }
 
   const requestLoadGallerySlot = (slot: EditorGallerySlot) => {
@@ -383,19 +429,22 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
         <div className="editor-actions">
           <button onClick={onBack} type="button">{text.backPlay}</button>
           <button onClick={startNewDrawing} disabled={exporting} type="button">{text.newDrawing}</button>
-          <label className="field">
-            <span>{text.exportSize}</span>
-            <select value={scale} onChange={event => setScale(Number(event.target.value))}>
-              <option value={1}>{text.original}</option>
-              <option value={8}>{text.enlarged}</option>
-            </select>
-          </label>
-          <button className="primary-button" onClick={() => void downloadPng()} disabled={exporting} type="button">{text.export}</button>
           <details className="editor-share-menu" onToggle={event => {
             if (event.target === event.currentTarget && event.currentTarget.open) void refreshShareState()
           }} ref={shareMenuRef}>
             <summary aria-disabled={exporting || sharing}>Megosztás / nevezés</summary>
             <div className="editor-share-options">
+              <div className="editor-export-options">
+                <strong>Kép mentése</strong>
+                <label className="field">
+                  <span>{text.exportSize}</span>
+                  <select disabled={exporting} value={scale} onChange={event => setScale(Number(event.target.value))}>
+                    <option value={1}>{text.original}</option>
+                    <option value={8}>{text.enlarged}</option>
+                  </select>
+                </label>
+                <button className="primary-button" onClick={() => void downloadPng()} disabled={exporting} type="button">{text.export}</button>
+              </div>
               {shareLoading ? <p>Lehetőségek betöltése…</p> : !shareState.signedIn || !shareState.profileReady ? <p>Ehhez jelentkezz be, és mentsd el a profilodat.</p> : <>
                 <label className="editor-feed-description">
                   <span>Képleírás <small>(nem kötelező)</small></span>
@@ -451,10 +500,10 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
                 {shareState.feedUnavailableMessage ? <small>{shareState.feedUnavailableMessage}</small> : null}
                 {!challengePaletteReady ? <small>A kihívások a 12 színű palettát fogadják. A Hírfolyam a 32 színt is engedi.</small> : null}
               </>}
+              {status !== text.local ? <p className="status-message editor-share-status" role="status">{status}</p> : null}
             </div>
           </details>
         </div>
-        <p className="status-message" role="status">{status}</p>
         <fieldset className="palette-mode-fieldset editor-palette-picker">
           <legend>{text.palette}</legend>
           <div className="palette-mode-buttons">
@@ -473,6 +522,8 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
         drawingEndsAt={null}
         events={[]}
         onError={() => setStatus(text.storageError)}
+        onLoadFromGallery={() => void openGalleryAction('load')}
+        onSaveToGallery={() => void openGalleryAction('save')}
         onSubmit={async () => undefined}
         paletteSize={paletteSize}
         roundId={revision}
@@ -485,6 +536,39 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
           }),
         }}
       />
+      {galleryAction ? (
+        <div className="modal-backdrop editor-gallery-backdrop" onMouseDown={event => {
+          if (event.target === event.currentTarget && !sharing && !confirmation) closeGalleryAction()
+        }}>
+          <section aria-labelledby="editor-gallery-dialog-title" aria-modal="true" className="editor-gallery-dialog" role="dialog">
+            <div className="editor-gallery-dialog-heading">
+              <div>
+                <p className="step-label">Saját galéria</p>
+                <h2 id="editor-gallery-dialog-title">{galleryAction === 'save' ? 'Rajz mentése' : 'Rajz betöltése'}</h2>
+              </div>
+              <button disabled={sharing} onClick={closeGalleryAction} ref={galleryCloseRef} type="button">Bezárás</button>
+            </div>
+            {galleryActionLoading ? <p>Galéria betöltése…</p> : galleryActionError ? <p className="status-message">{galleryActionError}</p> : (
+              <div className="editor-gallery-dialog-grid">
+                {([1, 2] as const).map(slotIndex => {
+                  const slot = shareState.gallerySlots.find(item => item.slotIndex === slotIndex)
+                  return (
+                    <article className="editor-own-gallery-slot" key={slotIndex}>
+                      <strong>{slotIndex}. hely</strong>
+                      {slot ? <WeeklyArtwork label={`A saját galéria ${slotIndex}. képe`} pixels={slot.pixels} /> : <div className="editor-own-gallery-empty">Üres hely</div>}
+                      {galleryAction === 'save' ? (
+                        <button disabled={sharing} onClick={() => requestSaveGallerySlot(slotIndex, Boolean(slot))} type="button">{slot ? 'Felülírás' : 'Ide mentem'}</button>
+                      ) : (
+                        <button disabled={sharing || !slot} onClick={() => slot && requestLoadGallerySlot(slot)} type="button">{slot ? 'Betöltés' : 'Üres hely'}</button>
+                      )}
+                    </article>
+                  )
+                })}
+              </div>
+            )}
+          </section>
+        </div>
+      ) : null}
       {confirmation ? (
         <ConfirmModal
           title={confirmation.title}

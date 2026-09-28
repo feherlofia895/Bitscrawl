@@ -22,6 +22,7 @@ export function isValidDrawingPixels(value: unknown): value is string[] {
 
 export type PixelSelection = { left: number; top: number; right: number; bottom: number }
 export type PixelOffset = { x: number; y: number }
+export type PixelSelectionTransform = 'rotate-clockwise' | 'flip-horizontal' | 'flip-vertical'
 
 export function emptyDrawing(): string[] {
   return Array<string>(DRAWING_SIZE * DRAWING_SIZE).fill(TRANSPARENT_PIXEL)
@@ -55,6 +56,64 @@ export function movePixelSelection(
   }
 
   return { offset, pixels: moved }
+}
+
+export function transformPixelSelection(
+  pixels: readonly string[],
+  bounds: PixelSelection,
+  transform: PixelSelectionTransform,
+) {
+  if (pixels.length !== DRAWING_SIZE * DRAWING_SIZE) throw new Error('DRAWING_INVALID')
+
+  const width = bounds.right - bounds.left + 1
+  const height = bounds.bottom - bounds.top + 1
+  const isRotation = transform === 'rotate-clockwise'
+  const transformedWidth = isRotation ? height : width
+  const transformedHeight = isRotation ? width : height
+  const centerX = (bounds.left + bounds.right) / 2
+  const centerY = (bounds.top + bounds.bottom) / 2
+  const left = Math.max(
+    0,
+    Math.min(DRAWING_SIZE - transformedWidth, Math.round(centerX - (transformedWidth - 1) / 2)),
+  )
+  const top = Math.max(
+    0,
+    Math.min(DRAWING_SIZE - transformedHeight, Math.round(centerY - (transformedHeight - 1) / 2)),
+  )
+  const transformed = [...pixels]
+
+  for (let y = bounds.top; y <= bounds.bottom; y += 1) {
+    for (let x = bounds.left; x <= bounds.right; x += 1) {
+      transformed[y * DRAWING_SIZE + x] = TRANSPARENT_PIXEL
+    }
+  }
+
+  for (let localY = 0; localY < height; localY += 1) {
+    for (let localX = 0; localX < width; localX += 1) {
+      let transformedX = localX
+      let transformedY = localY
+      if (transform === 'rotate-clockwise') {
+        transformedX = height - 1 - localY
+        transformedY = localX
+      } else if (transform === 'flip-horizontal') {
+        transformedX = width - 1 - localX
+      } else {
+        transformedY = height - 1 - localY
+      }
+      transformed[(top + transformedY) * DRAWING_SIZE + left + transformedX] =
+        pixels[(bounds.top + localY) * DRAWING_SIZE + bounds.left + localX]
+    }
+  }
+
+  return {
+    bounds: {
+      left,
+      top,
+      right: left + transformedWidth - 1,
+      bottom: top + transformedHeight - 1,
+    },
+    pixels: transformed,
+  }
 }
 
 export type DrawingDraft = {

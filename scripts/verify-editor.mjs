@@ -6,6 +6,7 @@ import {
   movePixelSelection,
   parseDrawingDraft,
   rasterizeDrawing,
+  transformPixelSelection,
 } from '../src/lib/drawing.ts'
 import { basePalette, editorPalette32 } from '../src/lib/palette.ts'
 
@@ -80,6 +81,8 @@ test('the regular toolbar omits its duplicate pan hand and enlarges the drawn co
   assert.match(css, /\.tool-buttons button\[aria-pressed='true'\]\s*\{[^}]*background-color:\s*var\(--mint\)/)
   assert.match(css, /@media \(max-width:\s*560px\)[\s\S]*?\.tool-buttons\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*42px\)/)
   assert.match(regularToolbar, /Teljes vászon törlése[\s\S]*?aria-label="Kijelölés"/)
+  assert.match(regularToolbar, /onClick=\{handleClearClick\}[\s\S]*?onPointerUp=\{handleClearPointerUp\}/)
+  assert.match(canvasSource, /onLostPointerCapture=\{\(event\) => \{[\s\S]*?finishStroke\(\)/)
 })
 
 test('empty drawings do not share mutable data', () => {
@@ -112,7 +115,7 @@ test('competition mode exposes timed rounds, parallel drawing and anonymous voti
   assert.match(appSource, /submitCompetitionPixelChanges\(competitionRoundView\.round_id, changes\)/)
   assert.match(appSource, /finishCompetitionDrawing\(competitionRoundView\.round_id\)/)
   assert.match(appSource, /finishCompetitionVoting\(competitionRoundView\.round_id\)/)
-  assert.match(appSource, /minimumPlayers = roomIsCompetition \? 3/)
+  assert.match(appSource, /minimumPlayers = roomIsCompetition \? 2/)
   assert.match(gallerySource, /isOwn \|\| votePending/)
   assert.match(gallerySource, /A szavazatodat az idő lejártáig módosíthatod/)
 })
@@ -130,13 +133,20 @@ test('monthly gallery keeps comments hidden until voting starts', async () => {
 })
 
 test('the editor uses one share menu for the feed and both challenge entries', async () => {
-  const [editorSource, gallerySource, feedSource, cssSource] = await Promise.all([
+  const [editorSource, gallerySource, feedSource, cssSource, canvasSource] = await Promise.all([
     readFile(new URL('../src/components/DrawingEditor.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/components/WeeklyDraw.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/components/DailyFeed.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/App.css', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/PixelCanvas.tsx', import.meta.url), 'utf8'),
   ])
   assert.match(editorSource, /<summary[^>]*>Megosztás \/ nevezés<\/summary>/)
+  const shareMenuIndex = editorSource.indexOf('<details className="editor-share-menu"')
+  const exportActionIndex = editorSource.indexOf('onClick={() => void downloadPng()}')
+  assert.ok(shareMenuIndex >= 0 && exportActionIndex > shareMenuIndex)
+  assert.match(editorSource, /<div className="editor-export-options">[\s\S]*?<strong>Kép mentése<\/strong>[\s\S]*?text\.export/)
+  assert.match(editorSource, /status !== text\.local \? <p className="status-message editor-share-status"/)
+  assert.doesNotMatch(editorSource, /<\/details>[\s\S]*?<\/div>\s*<p className="status-message" role="status">\{status\}<\/p>/)
   assert.match(editorSource, /event\.target === event\.currentTarget && event\.currentTarget\.open/)
   assert.match(editorSource, /shareDrawing\('feed'\)/)
   assert.match(editorSource, /shareDrawing\('weekly'\)/)
@@ -153,6 +163,11 @@ test('the editor uses one share menu for the feed and both challenge entries', a
   assert.match(editorSource, /deleteOwnEditorGallerySlot\(slotIndex\)/)
   assert.match(editorSource, /A mentett kép a vásznon lévő rajz helyére kerül/)
   assert.match(editorSource, /<WeeklyArtwork[^>]*pixels=\{slot\.pixels\}/)
+  assert.match(editorSource, /onLoadFromGallery=\{\(\) => void openGalleryAction\('load'\)\}/)
+  assert.match(editorSource, /onSaveToGallery=\{\(\) => void openGalleryAction\('save'\)\}/)
+  assert.match(canvasSource, />Mentés<\/button>/)
+  assert.match(canvasSource, />Betöltés<\/button>/)
+  assert.match(editorSource, /galleryAction === 'save' \? 'Rajz mentése' : 'Rajz betöltése'/)
   assert.match(cssSource, /\.editor-own-gallery-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,/)
   assert.match(gallerySource, /'weekly' \| 'monthly' \| 'feed'/)
   assert.match(gallerySource, />Hírfolyam<\/button>/)
@@ -325,4 +340,70 @@ test('selection movement is overlap-safe and stops at the canvas edge', () => {
   assert.equal(result.pixels[31 * 32 + 31], '#e29958')
   assert.equal(result.pixels[30 * 32 + 29], 'transparent')
   assert.equal(result.pixels[30 * 32 + 30], 'transparent')
+})
+
+test('a non-square selection rotates clockwise and swaps its bounds', () => {
+  const pixels = emptyDrawing()
+  const colors = ['#d3493b', '#e29958', '#67ba62', '#33567e', '#f6e8b1', '#7b3f83']
+  colors.forEach((color, index) => {
+    const x = 1 + (index % 3)
+    const y = 2 + Math.floor(index / 3)
+    pixels[y * 32 + x] = color
+  })
+
+  const result = transformPixelSelection(
+    pixels,
+    { left: 1, top: 2, right: 3, bottom: 3 },
+    'rotate-clockwise',
+  )
+
+  assert.deepEqual(result.bounds, { left: 2, top: 2, right: 3, bottom: 4 })
+  assert.deepEqual([
+    result.pixels[2 * 32 + 2], result.pixels[2 * 32 + 3],
+    result.pixels[3 * 32 + 2], result.pixels[3 * 32 + 3],
+    result.pixels[4 * 32 + 2], result.pixels[4 * 32 + 3],
+  ], [colors[3], colors[0], colors[4], colors[1], colors[5], colors[2]])
+  assert.equal(result.pixels[2 * 32 + 1], 'transparent')
+})
+
+test('a selection mirrors independently from left to right and top to bottom', () => {
+  const pixels = emptyDrawing()
+  const colors = ['#d3493b', '#e29958', '#67ba62', '#33567e', '#f6e8b1', '#7b3f83']
+  colors.forEach((color, index) => {
+    const x = 4 + (index % 3)
+    const y = 5 + Math.floor(index / 3)
+    pixels[y * 32 + x] = color
+  })
+  const bounds = { left: 4, top: 5, right: 6, bottom: 6 }
+
+  const horizontal = transformPixelSelection(pixels, bounds, 'flip-horizontal')
+  assert.deepEqual(horizontal.bounds, bounds)
+  assert.deepEqual([
+    horizontal.pixels[5 * 32 + 4], horizontal.pixels[5 * 32 + 5], horizontal.pixels[5 * 32 + 6],
+    horizontal.pixels[6 * 32 + 4], horizontal.pixels[6 * 32 + 5], horizontal.pixels[6 * 32 + 6],
+  ], [colors[2], colors[1], colors[0], colors[5], colors[4], colors[3]])
+
+  const vertical = transformPixelSelection(pixels, bounds, 'flip-vertical')
+  assert.deepEqual(vertical.bounds, bounds)
+  assert.deepEqual([
+    vertical.pixels[5 * 32 + 4], vertical.pixels[5 * 32 + 5], vertical.pixels[5 * 32 + 6],
+    vertical.pixels[6 * 32 + 4], vertical.pixels[6 * 32 + 5], vertical.pixels[6 * 32 + 6],
+  ], [colors[3], colors[4], colors[5], colors[0], colors[1], colors[2]])
+})
+
+test('a rotated selection remains fully inside the canvas edge', () => {
+  const pixels = emptyDrawing()
+  pixels[28 * 32 + 30] = '#d3493b'
+  pixels[31 * 32 + 31] = '#e29958'
+  const result = transformPixelSelection(
+    pixels,
+    { left: 30, top: 28, right: 31, bottom: 31 },
+    'rotate-clockwise',
+  )
+
+  assert.deepEqual(result.bounds, { left: 28, top: 29, right: 31, bottom: 30 })
+  assert.equal(result.pixels[29 * 32 + 31], '#d3493b')
+  assert.equal(result.pixels[30 * 32 + 28], '#e29958')
+  assert.equal(result.pixels[28 * 32 + 30], 'transparent')
+  assert.equal(result.pixels[31 * 32 + 31], 'transparent')
 })

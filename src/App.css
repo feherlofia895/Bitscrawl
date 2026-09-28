@@ -1315,6 +1315,7 @@ footer {
 
 .pixel-editor.is-immersive > .pixel-toolbar,
 .pixel-editor.is-immersive > .canvas-view-controls,
+.pixel-editor.is-immersive > .selection-transform-controls,
 .pixel-editor.is-immersive > .canvas-navigation-hint {
   display: none;
 }
@@ -1420,6 +1421,17 @@ footer {
   gap: 6px;
 }
 
+.immersive-selection-controls {
+  display: grid;
+  gap: 6px;
+}
+
+.immersive-selection-controls button {
+  font-family: var(--display-font);
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
 .immersive-zoom-controls button {
   font-family: var(--pixel-font);
   font-size: 0.58rem;
@@ -1470,6 +1482,8 @@ footer {
   width: 46px;
   min-height: 46px;
   padding: 9px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   place-items: center;
   color: var(--ink);
   background: var(--paper);
@@ -1593,6 +1607,8 @@ footer {
   min-width: 58px;
 }
 
+.canvas-view-controls .canvas-gallery-button { min-width: 76px; }
+
 .canvas-view-controls .canvas-immersive-button {
   min-width: 100px;
   margin-left: auto;
@@ -1606,6 +1622,36 @@ footer {
   cursor: not-allowed;
   opacity: 0.45;
   box-shadow: none;
+}
+
+.selection-transform-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+  width: min(100%, 680px);
+  margin: 0 auto 10px;
+  padding: 7px;
+  background: color-mix(in srgb, var(--mint) 30%, var(--paper));
+  border: 2px solid var(--ink);
+}
+
+.selection-transform-controls span {
+  padding: 0 3px;
+  font-family: var(--pixel-font);
+  font-size: 0.62rem;
+  font-weight: 900;
+}
+
+.selection-transform-controls button {
+  min-height: 34px;
+  padding: 5px 9px;
+  color: var(--ink);
+  background: var(--paper);
+  box-shadow: 2px 2px 0 var(--ink);
+  font-family: var(--pixel-font);
+  font-size: 0.59rem;
+  font-weight: 900;
 }
 
 .pixel-canvas-frame {
@@ -3083,7 +3129,8 @@ button,
   min-width: 0;
 }
 
-.editor-actions select {
+.editor-actions select,
+.editor-export-options select {
   width: 100%;
   min-height: 44px;
   padding: 8px;
@@ -3131,6 +3178,77 @@ button,
 .editor-share-options small { margin: 0; line-height: 1.4; }
 .editor-share-options button { min-height: 46px; padding: 8px 11px; background: var(--yellow); }
 .editor-share-options button:disabled { opacity: .55; }
+
+.editor-export-options {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(130px, .8fr);
+  align-items: end;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--ink);
+}
+
+.editor-export-options > strong {
+  grid-column: 1 / -1;
+  font: 900 .7rem/1.2 var(--pixel-font);
+}
+
+.editor-export-options .field { min-width: 0; }
+.editor-export-options .primary-button { width: 100%; }
+
+.editor-share-status {
+  padding: 8px 10px;
+  border-left: 4px solid var(--blue);
+}
+
+.editor-gallery-backdrop { z-index: 2200; }
+
+.editor-gallery-dialog {
+  display: grid;
+  gap: 16px;
+  width: min(620px, 100%);
+  max-height: min(700px, calc(100dvh - 36px));
+  padding: clamp(18px, 4vw, 28px);
+  overflow: auto;
+  color: var(--ink);
+  background: var(--yellow);
+  border: 3px solid var(--ink);
+  box-shadow: 10px 10px 0 rgb(36 26 53 / 62%);
+  clip-path: var(--pixel-corner);
+}
+
+.editor-gallery-dialog-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.editor-gallery-dialog-heading h2 { margin: 4px 0 0; }
+
+.editor-gallery-dialog-heading button,
+.editor-gallery-dialog-grid button {
+  min-height: 42px;
+  padding: 7px 12px;
+  color: var(--ink);
+  background: transparent url('/ui/menu-button-yellow-2.png') center / 100% 100% no-repeat;
+  border: 0;
+  font: 900 .68rem/1.15 var(--pixel-font);
+  image-rendering: pixelated;
+}
+
+.editor-gallery-dialog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.editor-gallery-dialog-grid .editor-own-gallery-slot { background: color-mix(in srgb, var(--mint) 42%, var(--paper)); }
+.editor-gallery-dialog-grid button:disabled { opacity: .5; }
+
+@media (max-width: 480px) {
+  .editor-gallery-dialog-grid { grid-template-columns: 1fr; }
+}
 
 .editor-own-gallery {
   border: 2px solid var(--ink);

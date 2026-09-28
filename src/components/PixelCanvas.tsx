@@ -8,7 +8,12 @@ import {
 import { createPortal } from 'react-dom'
 import type { DrawEvent, PixelChange } from '../lib/game'
 import { colorsForPalette, type PaletteSize } from '../lib/palette'
-import { clampSelectionOffset, movePixelSelection } from '../lib/drawing'
+import {
+  clampSelectionOffset,
+  movePixelSelection,
+  transformPixelSelection,
+  type PixelSelectionTransform,
+} from '../lib/drawing'
 import { editorText } from '../lib/editorText'
 import { createPixelSendQueue } from '../lib/pixelSendQueue'
 
@@ -32,6 +37,8 @@ type PixelCanvasProps = {
   events: DrawEvent[]
   onError: (error: unknown) => void
   onImmersiveChange?: (isImmersive: boolean) => void
+  onLoadFromGallery?: () => void
+  onSaveToGallery?: () => void
   onSubmit: (changes: PixelChange[]) => Promise<unknown>
   paletteSize: PaletteSize
   roundId: number
@@ -257,6 +264,8 @@ export function PixelCanvas({
   events,
   onError,
   onImmersiveChange,
+  onLoadFromGallery,
+  onSaveToGallery,
   onSubmit,
   paletteSize,
   roundId,
@@ -299,6 +308,7 @@ export function PixelCanvas({
   const selectionGestureRef = useRef<SelectionGesture | null>(null)
   const selectionMoveGestureRef = useRef<SelectionMoveGesture | null>(null)
   const undoHistoryRef = useRef<PixelMutation[][]>([])
+  const clearTouchHandledAtRef = useRef<number | null>(null)
   const [activeColor, setActiveColor] = useState(pixelPalette[0].hex)
   const [activeTool, setActiveTool] = useState<DrawingTool>('pencil')
   const [canUndo, setCanUndo] = useState(false)
@@ -669,6 +679,30 @@ export function PixelCanvas({
     })
   }
 
+  const transformSelection = (transform: PixelSelectionTransform) => {
+    if (!canDraw || !selectedArea || selectionGestureRef.current || selectionMoveGestureRef.current) return
+
+    const original = [...pixelsRef.current]
+    const result = transformPixelSelection(original, selectedArea, transform)
+    const mutations = result.pixels.flatMap((color, index) =>
+      color === original[index]
+        ? []
+        : [{
+            before: original[index],
+            color,
+            x: index % CANVAS_SIZE,
+            y: Math.floor(index / CANVAS_SIZE),
+          }],
+    )
+    if (mutations.length > 0) {
+      mutations.forEach(queueChange)
+      saveUndoStep(mutations)
+      flushPendingChanges()
+    }
+    setSelectionOffset({ x: 0, y: 0 })
+    setSelectedArea(result.bounds)
+  }
+
   const cancelSelectionGesture = () => {
     selectionGestureRef.current = null
     selectionMoveGestureRef.current = null
@@ -724,6 +758,21 @@ export function PixelCanvas({
     mutations.forEach(queueChange)
     saveUndoStep(mutations)
     flushPendingChanges()
+  }
+
+  const handleClearClick = () => {
+    if (
+      clearTouchHandledAtRef.current !== null &&
+      performance.now() - clearTouchHandledAtRef.current < 700
+    ) return
+    clearCanvas()
+  }
+
+  const handleClearPointerUp = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType !== 'touch') return
+    event.preventDefault()
+    clearTouchHandledAtRef.current = performance.now()
+    clearCanvas()
   }
 
   const enterImmersiveMode = () => {
@@ -1072,7 +1121,8 @@ export function PixelCanvas({
             <button
               aria-label="Teljes vászon törlése"
               className="tool-sprite-button"
-              onClick={clearCanvas}
+              onClick={handleClearClick}
+              onPointerUp={handleClearPointerUp}
               style={toolSpriteStyle(5)}
               title="Teljes vászon törlése"
               type="button"
@@ -1150,10 +1200,42 @@ export function PixelCanvas({
         >
           Rács
         </button>
+        {onSaveToGallery ? <button className="canvas-gallery-button" onClick={onSaveToGallery} type="button">Mentés</button> : null}
+        {onLoadFromGallery ? <button className="canvas-gallery-button" onClick={onLoadFromGallery} type="button">Betöltés</button> : null}
         <button className="canvas-immersive-button" onClick={enterImmersiveMode} type="button">
           Teljes nézet
         </button>
       </div>
+
+      {canDraw && activeTool === 'select' && selectedArea ? (
+        <div className="selection-transform-controls" aria-label="Kijelölés átalakítása">
+          <span>Kijelölés:</span>
+          <button
+            aria-label="Elforgatás 90 fokkal jobbra"
+            onClick={() => transformSelection('rotate-clockwise')}
+            title="Elforgatás 90 fokkal jobbra"
+            type="button"
+          >
+            ↻ 90°
+          </button>
+          <button
+            aria-label="Tükrözés balról jobbra"
+            onClick={() => transformSelection('flip-horizontal')}
+            title="Tükrözés balról jobbra"
+            type="button"
+          >
+            ↔ Bal–jobb
+          </button>
+          <button
+            aria-label="Tükrözés felülről lefelé"
+            onClick={() => transformSelection('flip-vertical')}
+            title="Tükrözés felülről lefelé"
+            type="button"
+          >
+            ↕ Fel–le
+          </button>
+        </div>
+      ) : null}
 
       {isImmersive ? (
         <aside className="immersive-side-controls" aria-label="Vászon vezérlői">
@@ -1219,7 +1301,8 @@ export function PixelCanvas({
                   <button
                     aria-label="Teljes vászon törlése"
                     className="tool-sprite-button"
-                    onClick={clearCanvas}
+                    onClick={handleClearClick}
+                    onPointerUp={handleClearPointerUp}
                     style={toolSpriteStyle(5)}
                     title="Teljes vászon törlése"
                     type="button"
@@ -1266,6 +1349,35 @@ export function PixelCanvas({
                   ))}
                 </div>
               ) : null}
+            </div>
+          ) : null}
+
+          {canDraw && activeTool === 'select' && selectedArea ? (
+            <div className="immersive-selection-controls" aria-label="Kijelölés átalakítása">
+              <button
+                aria-label="Elforgatás 90 fokkal jobbra"
+                onClick={() => transformSelection('rotate-clockwise')}
+                title="Elforgatás 90 fokkal jobbra"
+                type="button"
+              >
+                ↻
+              </button>
+              <button
+                aria-label="Tükrözés balról jobbra"
+                onClick={() => transformSelection('flip-horizontal')}
+                title="Tükrözés balról jobbra"
+                type="button"
+              >
+                ↔
+              </button>
+              <button
+                aria-label="Tükrözés felülről lefelé"
+                onClick={() => transformSelection('flip-vertical')}
+                title="Tükrözés felülről lefelé"
+                type="button"
+              >
+                ↕
+              </button>
             </div>
           ) : null}
 
@@ -1367,6 +1479,17 @@ export function PixelCanvas({
                 return
               }
               finishStroke()
+            }}
+            onLostPointerCapture={(event) => {
+              if (!activePointersRef.current.has(event.pointerId)) return
+              activePointersRef.current.delete(event.pointerId)
+              pendingTouchFillRef.current = null
+              pinchGestureRef.current = null
+              if (isPanningRef.current) finishPan()
+              else if (shapeGestureRef.current) cancelShape()
+              else if (selectionGestureRef.current || selectionMoveGestureRef.current) {
+                cancelSelectionGesture()
+              } else finishStroke()
             }}
             onPointerDown={(event) => {
               event.preventDefault()

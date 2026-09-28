@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test:editor": "node --test scripts/verify-editor.mjs",
+    "test:editor-gallery": "node --test scripts/verify-editor-gallery-flow.mjs",
     "test:round-duration:local": "node --test scripts/verify-round-duration-local.mjs",
     "test:round-duration:live": "node --env-file=.env.local scripts/verify-round-duration-live.mjs",
     "test:palette-hide:local": "node --test scripts/verify-palette-hide-local.mjs",
