@@ -752,13 +752,14 @@ test('voting enforces ownership, the three-vote limit and moving a vote', async 
   assert.equal(moved.active_vote_count, 3)
 })
 
-test('closing the challenge freezes writes and marks every tied leader', async () => {
+test('finalizing the challenge freezes writes and marks every official tied leader', async () => {
   const entries = await asUser(users[1], 'select entry_id, is_own from public.get_weekly_gallery($1)', [challengeId])
   const targets = entries.filter(entry => !entry.is_own).slice(0, 2)
   for (const target of targets) {
     await asUser(users[1], 'select * from public.set_weekly_vote($1, true)', [target.entry_id])
   }
-  await db.query("update public.weekly_challenges set ends_at = clock_timestamp() - interval '1 second' where id = $1", [challengeId])
+  await db.query('insert into private.app_admins (user_id) values ($1) on conflict (user_id) do nothing', [users[1]])
+  await asUser(users[1], 'select * from public.finalize_weekly_challenge($1)', [challengeId])
   await assert.rejects(
     asUser(users[2], 'select * from public.set_weekly_vote($1, true)', [targets[0].entry_id]),
     /WEEKLY_CHALLENGE_CLOSED/,
