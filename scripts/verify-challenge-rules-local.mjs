@@ -9,6 +9,7 @@ const users = Array.from({ length: 5 }, (_, index) =>
   `51000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`)
 const anonymousUser = '52000000-0000-4000-8000-000000000001'
 const baseDrawing = color => JSON.stringify(Array.from({ length: 1024 }, (_, index) => index < 4 ? color : 'transparent'))
+const monthly128Drawing = color => JSON.stringify(Array.from({ length: 16384 }, (_, index) => index < 16 ? color : 'transparent'))
 const expandedColor = '#c57ca8'
 let monthlyChallengeId
 
@@ -50,9 +51,9 @@ before(async () => {
   }
   ;[{ id: monthlyChallengeId }] = (await db.query(`
     insert into public.monthly_challenges
-      (month_key, prompt, starts_at, voting_starts_at, submission_ends_at, ends_at)
+      (month_key, prompt, canvas_size, starts_at, voting_starts_at, submission_ends_at, ends_at)
     values
-      ('synthetic-overlap', 'Synthetic', clock_timestamp() - interval '2 days',
+      ('synthetic-overlap', 'Synthetic', 32, clock_timestamp() - interval '2 days',
        clock_timestamp() - interval '1 day', clock_timestamp() - interval '1 day',
        clock_timestamp() + interval '1 day')
     returning id
@@ -75,7 +76,7 @@ test('historical week cleanup preserves Gomba and leaves the published Witch sch
   assert.equal(new Date(witch.ends_at).toISOString(), '2026-10-04T18:00:00.000Z')
 })
 
-test('weekly submissions accept the expanded palette while retaining legacy palette rows', async () => {
+test('weekly submissions accept expanded, custom, and alpha colors while retaining legacy palette rows', async () => {
   const challenge = (await db.query(`
     insert into public.weekly_challenges (week_key, prompt, starts_at, ends_at)
     values ('synthetic-palette', 'Palette', clock_timestamp() - interval '1 hour', clock_timestamp() + interval '1 hour')
@@ -88,18 +89,68 @@ test('weekly submissions accept the expanded palette while retaining legacy pale
     [challenge.id, users[0]],
   )).rows[0]
   assert.equal(expanded.palette_id, 'editor-32-v1')
+  await asUser(users[1], 'select public.save_weekly_draft($1, $2::jsonb)', [challenge.id, baseDrawing('#123456')])
+  await asUser(users[1], 'select public.submit_weekly_entry($1, $2::jsonb)', [challenge.id, baseDrawing('#123456')])
+  await asUser(users[2], 'select public.save_weekly_draft($1, $2::jsonb)', [challenge.id, baseDrawing('#12345680')])
+  await asUser(users[2], 'select public.submit_weekly_entry($1, $2::jsonb)', [challenge.id, baseDrawing('#12345680')])
+  assert.equal((await db.query(
+    "select count(*)::integer as count from public.weekly_entries where challenge_id = $1 and palette_id = 'custom-v1'",
+    [challenge.id],
+  )).rows[0].count, 2)
   await assert.rejects(
-    asUser(users[1], 'select public.save_weekly_draft($1, $2::jsonb)', [challenge.id, baseDrawing('#ffffff')]),
+    asUser(users[3], 'select public.save_weekly_draft($1, $2::jsonb)', [challenge.id, baseDrawing('#fff')]),
     /WEEKLY_DRAWING_INVALID/,
   )
   await db.query(
     'insert into public.weekly_entries (challenge_id, user_id, pixels, palette_id) values ($1, $2, $3::jsonb, $4)',
-    [challenge.id, users[2], baseDrawing('#d3493b'), 'base-12-v1'],
+    [challenge.id, users[3], baseDrawing('#d3493b'), 'base-12-v1'],
   )
   assert.equal((await db.query(
     "select count(*)::integer as count from public.weekly_entries where challenge_id = $1 and palette_id = 'base-12-v1'",
     [challenge.id],
   )).rows[0].count, 1)
+})
+
+test('monthly entries accept a mixed alpha color and classify it as custom', async () => {
+  await asUser(users[4], 'select public.save_monthly_entry($1, $2::jsonb)', [monthlyChallengeId, baseDrawing('#4a7bc880')])
+  await asUser(users[4], 'select public.submit_monthly_entry($1)', [monthlyChallengeId])
+  const entry = (await db.query(
+    'select palette_id, pixels ->> 0 as first_pixel from public.monthly_entries where challenge_id = $1 and user_id = $2',
+    [monthlyChallengeId, users[4]],
+  )).rows[0]
+  assert.deepEqual(entry, { palette_id: 'custom-v1', first_pixel: '#4a7bc880' })
+})
+
+test('October and future monthly challenges use a real 128 by 128 canvas', async () => {
+  const october = (await db.query(`
+    select prompt, canvas_size, description
+    from public.monthly_challenges
+    where month_key = '2026-10'
+  `)).rows[0]
+  assert.equal(october.prompt, 'Halloween')
+  assert.equal(october.canvas_size, 128)
+  assert.match(october.description, /128×128/)
+
+  const challenge = (await db.query(`
+    insert into public.monthly_challenges (
+      month_key, prompt, starts_at, voting_starts_at, submission_ends_at, ends_at
+    ) values (
+      'synthetic-128', 'Large', clock_timestamp() - interval '1 hour',
+      clock_timestamp() + interval '1 day', clock_timestamp() + interval '1 day',
+      clock_timestamp() + interval '2 days'
+    ) returning id, canvas_size
+  `)).rows[0]
+  assert.equal(challenge.canvas_size, 128)
+  await assert.rejects(
+    asUser(users[0], 'select public.save_monthly_entry($1, $2::jsonb)', [challenge.id, baseDrawing('#d3493b')]),
+    /MONTHLY_DRAWING_INVALID/,
+  )
+  await asUser(users[0], 'select public.save_monthly_entry($1, $2::jsonb)', [challenge.id, monthly128Drawing('#12345680')])
+  await asUser(users[0], 'select public.submit_monthly_entry($1)', [challenge.id])
+  assert.equal((await db.query(
+    'select jsonb_array_length(pixels)::integer as pixel_count from public.monthly_entries where challenge_id = $1 and user_id = $2',
+    [challenge.id, users[0]],
+  )).rows[0].pixel_count, 16384)
 })
 
 test('monthly voting can overlap new entries without reopening submitted artwork edits', async () => {

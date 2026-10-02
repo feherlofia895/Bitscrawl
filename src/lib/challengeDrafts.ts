@@ -1,4 +1,4 @@
-import { isValidDrawingPixels } from './drawing.ts'
+import { isValidEditorDrawingPixels, type DrawingSize } from './drawing.ts'
 
 export type ChallengeDraftKind = 'weekly' | 'monthly'
 
@@ -22,13 +22,14 @@ export function loadChallengeDraft(
   userId: string,
   challengeId: number,
   storage: Storage = window.localStorage,
+  drawingSize: DrawingSize = 32,
 ): ChallengeDraft | null {
   try {
     const serialized = storage.getItem(draftKey(kind, userId, challengeId))
     if (!serialized) return null
     const stored: unknown = JSON.parse(serialized)
     if (typeof stored !== 'object' || stored === null || !('pixels' in stored) ||
-      !isValidDrawingPixels(stored.pixels)) return null
+      !isValidEditorDrawingPixels(stored.pixels, drawingSize)) return null
     return {
       pixels: [...stored.pixels],
       savedAt: 'savedAt' in stored && typeof stored.savedAt === 'string'
@@ -46,8 +47,9 @@ export function saveChallengeDraft(
   challengeId: number,
   pixels: readonly string[],
   storage: Storage = window.localStorage,
+  drawingSize: DrawingSize = 32,
 ) {
-  if (!isValidDrawingPixels(pixels)) return false
+  if (!isValidEditorDrawingPixels(pixels, drawingSize)) return false
   try {
     storage.setItem(draftKey(kind, userId, challengeId), JSON.stringify({
       pixels: [...pixels],
@@ -65,8 +67,9 @@ export function clearChallengeDraft(
   challengeId: number,
   savedPixels: readonly string[],
   storage: Storage = window.localStorage,
+  drawingSize: DrawingSize = 32,
 ) {
-  const current = loadChallengeDraft(kind, userId, challengeId, storage)
+  const current = loadChallengeDraft(kind, userId, challengeId, storage, drawingSize)
   if (!current || !samePixels(current.pixels, savedPixels)) return false
   try {
     storage.removeItem(draftKey(kind, userId, challengeId))

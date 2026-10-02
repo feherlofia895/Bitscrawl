@@ -74,9 +74,9 @@ before(async () => {
 
   ids.monthly = (await db.query(`
     insert into public.monthly_challenges (
-      month_key, prompt, starts_at, voting_starts_at, submission_ends_at, ends_at
+      month_key, prompt, canvas_size, starts_at, voting_starts_at, submission_ends_at, ends_at
     ) values (
-      'score-month', 'Béka', clock_timestamp() - interval '4 days',
+      'score-month', 'Béka', 32, clock_timestamp() - interval '4 days',
       clock_timestamp() - interval '3 days', clock_timestamp() - interval '2 days',
       clock_timestamp() - interval '1 day'
     ) returning id
@@ -111,9 +111,9 @@ before(async () => {
 
   ids.activeMonthly = (await db.query(`
     insert into public.monthly_challenges (
-      month_key, prompt, starts_at, voting_starts_at, submission_ends_at, ends_at
+      month_key, prompt, canvas_size, starts_at, voting_starts_at, submission_ends_at, ends_at
     ) values (
-      'active-score-month', 'Aktív', clock_timestamp() - interval '2 days',
+      'active-score-month', 'Aktív', 32, clock_timestamp() - interval '2 days',
       clock_timestamp() - interval '1 day', clock_timestamp() + interval '1 day',
       clock_timestamp() + interval '2 days'
     ) returning id

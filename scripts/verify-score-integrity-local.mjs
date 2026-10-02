@@ -188,9 +188,9 @@ test('later weekly votes count normally for Martin and the exception does not to
 
   const monthlyChallenge = (await db.query(`
     insert into public.monthly_challenges (
-      month_key, prompt, starts_at, voting_starts_at, submission_ends_at, ends_at
+      month_key, prompt, canvas_size, starts_at, voting_starts_at, submission_ends_at, ends_at
     ) values (
-      'integrity-month', 'Béka', clock_timestamp() - interval '3 days',
+      'integrity-month', 'Béka', 32, clock_timestamp() - interval '3 days',
       clock_timestamp() - interval '2 days', clock_timestamp() + interval '1 day',
       clock_timestamp() + interval '3 days'
     ) returning id
@@ -262,9 +262,9 @@ test('excluded weekly and monthly entries stop consuming vote quota without dele
 
   const monthlyChallenge = (await db.query(`
     insert into public.monthly_challenges (
-      month_key, prompt, starts_at, voting_starts_at, submission_ends_at, ends_at
+      month_key, prompt, canvas_size, starts_at, voting_starts_at, submission_ends_at, ends_at
     ) values (
-      'integrity-monthly-quota', 'Monthly quota', clock_timestamp() - interval '3 days',
+      'integrity-monthly-quota', 'Monthly quota', 32, clock_timestamp() - interval '3 days',
       clock_timestamp() - interval '2 days', clock_timestamp() + interval '1 day',
       clock_timestamp() + interval '3 days'
     ) returning id

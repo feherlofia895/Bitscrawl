@@ -124,7 +124,7 @@ test('the monthly canvas waits for the saved drawing before mounting', async () 
   const source = await readFile(new URL('../src/components/MonthlyDraw.tsx', import.meta.url), 'utf8')
   assert.match(source, /const accountReady = loadedChallengeId === selectedId/)
   assert.match(source, /const canEdit = !loading && accountReady && monthlyEntryCanBeEdited\(challenge, account\.submittedAt\)/)
-  assert.match(source, /initialPixels: account\.entryPixels \?\? emptyDrawing\(\)/)
+  assert.match(source, /initialPixels: account\.entryPixels \?\? emptyDrawing\(challenge\?\.canvas_size \?\? 32\)/)
 })
 
 test('monthly gallery keeps comments hidden until voting starts', async () => {
@@ -188,8 +188,9 @@ test('the editor uses one share menu for the feed and both challenge entries', a
   assert.match(editorSource, /saveProfileAvatar\(snapshot\)/)
   assert.match(editorSource, />\s*Beállítás profilképnek\s*<\/button>/)
   assert.match(editorSource, /Biztosan beállítod ezt a rajzot profilképnek\? A mostani profilképed elveszik/)
-  assert.match(editorSource, /A heti kihívás és a Rajzfal fogadja a 32 színt/)
-  assert.match(editorSource, /A havi kihívás egyelőre csak a 12 alapszínt engedi/)
+  assert.match(editorSource, /A kevert színeket a heti és havi kihívás fogadja/)
+  assert.match(editorSource, /disabled=\{sharing \|\| !shareState\.weekly/)
+  assert.match(editorSource, /disabled=\{sharing \|\| !shareState\.monthly/)
   assert.match(editorSource, /A Rajzfal adatbázis-frissítése még nincs telepítve/)
   assert.match(editorSource, /shareState\.feedPostCount >= FEED_DAILY_POST_LIMIT/)
   assert.match(editorSource, /Megosztás a Rajzfalon \(\$\{shareState\.feedPostCount\}\/\$\{FEED_DAILY_POST_LIMIT\}\)/)
@@ -291,7 +292,7 @@ test('local draft restores the expanded editor palette and its colors', () => {
 
 test('corrupt or unsupported drafts cannot become pixel data', () => {
   const cases = [null, '', '{', 'null', '42', '[]', JSON.stringify({ pixels: ['red'] }),
-    JSON.stringify({ pixels: Array(1024).fill('#ffffff') }),
+    JSON.stringify({ pixels: Array(1024).fill('#fff') }),
     JSON.stringify({ pixels: Array(1024).fill(123) })]
   for (const value of cases) {
     assert.deepEqual(parseDrawingDraft(value), { pixels: emptyDrawing(), exported: true, paletteSize: 12 })

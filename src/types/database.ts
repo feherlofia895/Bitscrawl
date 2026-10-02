@@ -494,6 +494,10 @@ export type Database = {
           trophy_count: number
         }[]
       }
+      get_own_profile_note: {
+        Args: { target_profile_name: string }
+        Returns: string | null
+      }
       is_app_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -737,6 +741,7 @@ export type Database = {
       get_monthly_challenges: {
         Args: Record<PropertyKey, never>
         Returns: {
+          canvas_size: number
           challenge_id: number
           challenge_status: string
           description: string | null

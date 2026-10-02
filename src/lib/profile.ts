@@ -12,6 +12,7 @@ export type PlayerProfile = {
   displayName: string
   feedPostCount: number
   goldCount: number
+  privateNote: string | null
   receivedLikes: number
   silverCount: number
   trophyCount: number
@@ -115,12 +116,13 @@ export async function loadOwnProfile(): Promise<{ profile: PlayerProfile | null;
   }
 
   if (error) throw profileError(error)
-  const [feedStats, publicStats] = data
+  const [feedStats, publicStats, privateNote] = data
     ? await Promise.all([
         loadOwnFeedStats().catch(() => null),
         loadPublicProfileStats(data.display_name).catch(() => null),
+        loadOwnProfileNote(data.display_name),
       ])
-    : [{ postCount: 0, receivedLikeCount: 0 }, null]
+    : [{ postCount: 0, receivedLikeCount: 0 }, null, null]
   return {
     profile: data ? {
       avatarPixels: parseAvatarPixels(data.avatar_pixels) ?? loadLocalAvatar(user.id),
@@ -129,12 +131,21 @@ export async function loadOwnProfile(): Promise<{ profile: PlayerProfile | null;
       displayName: data.display_name,
       feedPostCount: feedStats?.postCount ?? 0,
       goldCount: publicStats?.goldCount ?? 0,
+      privateNote,
       receivedLikes: feedStats?.receivedLikeCount ?? publicStats?.receivedLikeCount ?? 0,
       silverCount: publicStats?.silverCount ?? 0,
       trophyCount: publicStats?.trophyCount ?? 0,
     } : null,
     user,
   }
+}
+
+export async function loadOwnProfileNote(name: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc('get_own_profile_note', {
+    target_profile_name: name,
+  })
+  if (error) return null
+  return typeof data === 'string' && data.trim() ? data : null
 }
 
 export async function loadPublicProfileStats(name: string): Promise<PublicProfileStats> {

@@ -43,6 +43,7 @@ import { moderateDeleteContent } from '../lib/moderation'
 import { useModeratorAccess } from '../hooks/useModeratorAccess'
 import { ConfirmModal } from './ConfirmModal'
 import { AdminArtworkReactions } from './AdminArtworkReactions'
+import type { EditorPaletteSize } from '../lib/palette'
 
 const blankAccount: MonthlyAccountState = {
   entryId: null,
@@ -102,6 +103,8 @@ export function MonthlyDraw({
   const [discoverySeed, setDiscoverySeed] = useState(createDiscoverySeed)
   const [loadedChallengeId, setLoadedChallengeId] = useState<number | null>(null)
   const [moderationTarget, setModerationTarget] = useState<MonthlyGalleryEntry | null>(null)
+  const [paletteSize, setPaletteSize] = useState<EditorPaletteSize>(12)
+  const [customPaletteActive, setCustomPaletteActive] = useState(false)
   const pixelsRef = useRef(emptyDrawing())
   const mountedRef = useRef(true)
   const loadVersionRef = useRef(0)
@@ -123,7 +126,8 @@ export function MonthlyDraw({
       save: saveMonthlyEntry,
       onSaved: task => {
         const userId = userIdRef.current
-        if (userId && clearChallengeDraft('monthly', userId, task.key, task.pixels)) {
+        const drawingSize = task.pixels.length === 16384 ? 128 : 32
+        if (userId && clearChallengeDraft('monthly', userId, task.key, task.pixels, undefined, drawingSize)) {
           localDraftStoredRef.current = false
         }
         if (mountedRef.current && selectedIdRef.current === task.key) {
@@ -163,7 +167,7 @@ export function MonthlyDraw({
     ])
     if (loadVersion !== loadVersionRef.current) return false
     const localDraft = currentUser && monthlyEntryCanBeEdited(selectedChallenge, nextAccount.submittedAt)
-      ? loadChallengeDraft('monthly', currentUser.id, challengeId)
+      ? loadChallengeDraft('monthly', currentUser.id, challengeId, undefined, selectedChallenge.canvas_size)
       : null
     const mergedAccount = localDraft
       ? { ...nextAccount, entryPixels: localDraft.pixels }
@@ -173,7 +177,7 @@ export function MonthlyDraw({
     setGallery(nextGalleryPage.entries)
     setGalleryTotal(nextGalleryPage.totalCount)
     setAccount(mergedAccount)
-    pixelsRef.current = [...(mergedAccount.entryPixels ?? emptyDrawing())]
+    pixelsRef.current = [...(mergedAccount.entryPixels ?? emptyDrawing(selectedChallenge.canvas_size))]
     setDisplayName(mergedAccount.profileName ?? suggestedProfileName(currentUser))
     setLoadedChallengeId(challengeId)
     localDraftStoredRef.current = Boolean(localDraft)
@@ -306,7 +310,10 @@ export function MonthlyDraw({
     setStatus('Mentés folyamatban…')
     const userId = userIdRef.current
     if (selectedId && userId) {
-      localDraftStoredRef.current = saveChallengeDraft('monthly', userId, selectedId, pixels)
+      const drawingSize = pixels.length === 16384 ? 128 : 32
+      localDraftStoredRef.current = saveChallengeDraft(
+        'monthly', userId, selectedId, pixels, undefined, drawingSize,
+      )
       saveQueueRef.current?.schedule(selectedId, pixels)
     }
   }, [selectedId])
@@ -447,7 +454,7 @@ export function MonthlyDraw({
 
     {!loading && challenge && !accountReady ? <section className="weekly-account-card"><div><h2>A mentett rajz nem töltődött be</h2><p>A szerkesztőt addig nem nyitjuk meg, hogy a meglévő rajzod biztonságban maradjon.</p></div><button disabled={busy} onClick={() => void chooseChallenge(challenge.challenge_id)} type="button">Betöltés újra</button></section> : null}
 
-    {mode === 'challenge' && canEdit && user && account.profileName ? <section className="weekly-editor"><div className="weekly-section-heading"><div><p className="step-label">A te havi rajzod</p><h2>Rajzold le: {challenge?.prompt}</h2><p>Minden változtatás automatikusan mentődik.</p></div>{account.submittedAt ? <span className="weekly-status weekly-status-active">Beküldve · még szerkeszthető</span> : <button className="primary-button" disabled={busy || !pixelsRef.current.some(pixel => pixel !== 'transparent')} onClick={() => void handleSubmit()} type="button">Beküldés</button>}</div><PixelCanvas canDraw={!busy} chosenWord={challenge?.prompt ?? null} drawingEndsAt={account.submittedAt ? challenge?.submission_ends_at ?? null : challenge?.ends_at ?? null} events={[]} localDrawing={{ initialPixels: account.entryPixels ?? emptyDrawing(), onChange: handleDrawingChange }} onError={error => setStatus(errorMessage(error))} onSubmit={handleSubmit} paletteSize={12} roundId={challenge?.challenge_id ?? 0} serverNow={challenge?.server_now ?? ''} /></section> : null}
+    {mode === 'challenge' && canEdit && user && account.profileName ? <section className="weekly-editor"><div className="weekly-section-heading"><div><p className="step-label">A te havi rajzod · {challenge?.canvas_size}×{challenge?.canvas_size}</p><h2>Rajzold le: {challenge?.prompt}</h2><p>Minden változtatás automatikusan mentődik.</p></div>{account.submittedAt ? <span className="weekly-status weekly-status-active">Beküldve · még szerkeszthető</span> : <button className="primary-button" disabled={busy || !pixelsRef.current.some(pixel => pixel !== 'transparent')} onClick={() => void handleSubmit()} type="button">Beküldés</button>}</div><fieldset className="palette-mode-fieldset editor-palette-picker"><legend>Színpaletta</legend><div className="palette-mode-buttons"><button aria-pressed={!customPaletteActive && paletteSize === 12} onClick={() => { setCustomPaletteActive(false); setPaletteSize(12) }} type="button">12 szín · alap</button><button aria-pressed={!customPaletteActive && paletteSize === 32} onClick={() => { setCustomPaletteActive(false); setPaletteSize(32) }} type="button">32 szín · bővített</button><button aria-pressed={customPaletteActive} onClick={() => setCustomPaletteActive(true)} type="button">Egyéni paletta</button></div></fieldset><PixelCanvas allowColorMixer canvasSize={challenge?.canvas_size ?? 32} canDraw={!busy} chosenWord={challenge?.prompt ?? null} customPaletteActive={customPaletteActive} drawingEndsAt={account.submittedAt ? challenge?.submission_ends_at ?? null : challenge?.ends_at ?? null} events={[]} localDrawing={{ initialPixels: account.entryPixels ?? emptyDrawing(challenge?.canvas_size ?? 32), onChange: handleDrawingChange }} onCustomPaletteActiveChange={setCustomPaletteActive} onError={error => setStatus(errorMessage(error))} onPaletteSizeChange={size => { setCustomPaletteActive(false); setPaletteSize(size === 32 ? 32 : 12) }} onSubmit={handleSubmit} paletteSize={paletteSize} roundId={challenge?.challenge_id ?? 0} serverNow={challenge?.server_now ?? ''} /></section> : null}
 
     {mode === 'challenge' && !canEdit && account.submittedAt && account.entryPixels ? <section className="weekly-submitted"><WeeklyArtwork label="A havi rajzod" pixels={account.entryPixels} /><div><p className="step-label">{statusLabel}</p><h2>A beküldött rajzod biztonságban van</h2><p>A szerkesztési határidő után a beadott kép már nem módosítható. Az új nevezők a kihívás végéig még beküldhetnek.</p></div></section> : null}
 
@@ -461,6 +468,7 @@ export function MonthlyDraw({
       <div className="gallery-subcontrols">
         {user && accountReady && account.profileName ? <p className="gallery-vote-count">Szavazatok: <strong>{account.votesUsed}/3</strong></p> : null}
         <ChallengePeriodNavigation busy={busy} onSelectMonthly={() => undefined} onSelectWeekly={() => void leavePage(onSelectWeekly)} period="monthly" />
+        {challenge && challenges.length > 1 ? <label className="field weekly-picker gallery-period-picker"><span>Hónap</span><select disabled={loading} onChange={event => void chooseChallenge(Number(event.target.value))} value={challenge.challenge_id}>{challenges.map(item => <option key={item.challenge_id} value={item.challenge_id}>{item.month_key} · {item.prompt}</option>)}</select></label> : null}
         <label className="field weekly-sort"><span>Sorrend</span><select disabled={loading} onChange={event => void handleGallerySort(event.target.value as GallerySort)} value={sort}><option value="likes">Legkedveltebb</option><option value="discovery">Felfedezés</option><option value="newest">Legújabb</option></select></label>
       </div>
       {gallery.length ? <><div className="weekly-gallery-grid">{gallery.map(entry => <article className={`weekly-entry${entry.is_winner ? ' is-winner' : ''}`} key={entry.entry_id}>{entry.is_winner ? <span className="weekly-winner">Havi győztes</span> : null}<ArtworkPreview label={`${entry.author_name} havi rajza`} pixels={entry.pixels} /><div className="weekly-entry-meta"><ProfilePreviewButton className="weekly-entry-author" name={entry.author_name} pixels={entry.authorAvatar}><ProfileAvatar label={`${entry.author_name} profilképe`} pixels={entry.authorAvatar} /><strong>{entry.author_name}</strong></ProfilePreviewButton><div className="entry-reaction-summary"><span>{entry.vote_count} szavazat</span>{isModerator ? <AdminArtworkReactions count={entry.vote_count} key={`${entry.entry_id}:${entry.vote_count}`} kind="monthly-entry" targetId={entry.entry_id} /> : null}</div></div>{isModerator ? <button className="moderation-entry-button" disabled={busy} onClick={() => setModerationTarget(entry)} type="button">Admin: kép eltávolítása</button> : null}<button aria-pressed={entry.has_voted} disabled={busy || loading || !accountReady || !user || !isVoting || entry.is_own || (!entry.has_voted && account.votesUsed >= 3)} onClick={() => void handleVote(entry)} type="button">{entry.is_own ? 'A te rajzod' : entry.has_voted ? 'Szavazat visszavonása' : 'Szavazok'}</button>{isDrawing ? null : <GalleryComments artworkAuthor={entry.author_name} busy={busy} canModerate={isModerator} commentCount={entry.comment_count} isSignedIn={Boolean(user && account.profileName)} loadComments={page => loadGalleryCommentsForEntry('monthly', entry.entry_id, page, selectedId ?? undefined)} onDelete={handleCommentDelete} onSubmit={content => handleComment(entry.entry_id, content)} onUpdate={handleCommentUpdate} />}</article>)}</div><GalleryPagination currentPage={galleryPage} onPageChange={handleGalleryPage} totalItems={galleryTotal} /></> : <p className="weekly-empty">Ehhez a hónaphoz még nincs beküldött rajz.</p>}

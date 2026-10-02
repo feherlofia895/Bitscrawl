@@ -13,6 +13,7 @@ let challengeId
 let monthlyChallengeId
 const colors = ['#d3493b', '#da7149', '#e29958', '#f5e57a', '#a5d967', '#67ba62']
 const drawing = (color) => Array.from({ length: 1024 }, (_, index) => index < 4 ? color : 'transparent')
+const monthlyDrawing = (color) => Array.from({ length: 16384 }, (_, index) => index < 16 ? color : 'transparent')
 
 async function asUser(user, sql, params = [], { anonymous = false, role = 'authenticated' } = {}) {
   await db.query("select set_config('request.jwt.claim.sub', $1, false)", [user ?? ''])
@@ -443,13 +444,14 @@ test('monthly challenge locks submitted edits but accepts new entries during vot
     where id = $1
   `, [monthlyChallengeId])
   const [challenge] = await asUser(null, 'select * from public.get_monthly_challenges()', [], { role: 'anon' })
-  assert.equal(challenge.prompt, 'Béka')
+  assert.equal(challenge.prompt, 'Halloween')
+  assert.equal(challenge.canvas_size, 128)
   assert.equal(challenge.challenge_status, 'drawing')
   assert.equal(new Date(challenge.ends_at) - new Date(challenge.voting_starts_at), 7 * 24 * 60 * 60 * 1000)
 
   await asUser(
     users[5], 'select public.save_monthly_entry($1, $2::jsonb)',
-    [monthlyChallengeId, JSON.stringify(Array(1024).fill('transparent'))],
+    [monthlyChallengeId, JSON.stringify(Array(16384).fill('transparent'))],
   )
   await assert.rejects(
     asUser(users[5], 'select public.submit_monthly_entry($1)', [monthlyChallengeId]),
@@ -459,7 +461,7 @@ test('monthly challenge locks submitted edits but accepts new entries during vot
   for (let index = 0; index < users.length; index += 1) {
     await asUser(
       users[index], 'select public.save_monthly_entry($1, $2::jsonb)',
-      [monthlyChallengeId, JSON.stringify(drawing(colors[index]))],
+      [monthlyChallengeId, JSON.stringify(monthlyDrawing(colors[index]))],
     )
   }
   for (let index = 0; index < 5; index += 1) {
@@ -467,10 +469,10 @@ test('monthly challenge locks submitted edits but accepts new entries during vot
   }
   await asUser(
     users[0], 'select public.save_monthly_entry($1, $2::jsonb)',
-    [monthlyChallengeId, JSON.stringify(drawing(colors[5]))],
+    [monthlyChallengeId, JSON.stringify(monthlyDrawing(colors[5]))],
   )
   const [account] = await asUser(users[0], 'select * from public.get_monthly_account_state($1)', [monthlyChallengeId])
-  assert.deepEqual(account.entry_pixels, drawing(colors[5]))
+  assert.deepEqual(account.entry_pixels, monthlyDrawing(colors[5]))
   assert(account.submitted_at)
   const drawingPeriodGallery = await asUser(null, 'select * from public.get_monthly_gallery($1)', [monthlyChallengeId], { role: 'anon' })
   assert.equal(drawingPeriodGallery.length, 5)
@@ -498,7 +500,7 @@ test('monthly challenge locks submitted edits but accepts new entries during vot
     [monthlyChallengeId],
   )
   await assert.rejects(
-    asUser(users[0], 'select public.save_monthly_entry($1, $2::jsonb)', [monthlyChallengeId, JSON.stringify(drawing(colors[0]))]),
+    asUser(users[0], 'select public.save_monthly_entry($1, $2::jsonb)', [monthlyChallengeId, JSON.stringify(monthlyDrawing(colors[0]))]),
     /MONTHLY_DRAWING_LOCKED/,
   )
   await asUser(users[5], 'select public.submit_monthly_entry($1)', [monthlyChallengeId])
@@ -506,7 +508,7 @@ test('monthly challenge locks submitted edits but accepts new entries during vot
   await asUser(
     unprofiledUser,
     'select public.save_monthly_entry($1, $2::jsonb)',
-    [monthlyChallengeId, JSON.stringify(drawing(colors[4]))],
+    [monthlyChallengeId, JSON.stringify(monthlyDrawing(colors[4]))],
   )
   const [{ id: lateMonthlyEntryId }] = (await db.query(
     'select id from public.monthly_entries where challenge_id = $1 and user_id = $2',

@@ -1,4 +1,5 @@
 import type { Json } from '../types/database'
+import type { DrawingSize } from './drawing'
 import { supabase } from './supabase'
 import {
   CHALLENGE_GALLERY_PAGE_SIZE,
@@ -9,6 +10,7 @@ import {
 } from './galleryComments'
 
 export type MonthlyChallenge = {
+  canvas_size: DrawingSize
   challenge_id: number
   challenge_status: 'upcoming' | 'drawing' | 'voting' | 'closed'
   description: string | null
@@ -88,7 +90,7 @@ function monthlyError(error: unknown) {
 }
 
 function pixels(value: Json | null): string[] | null {
-  return Array.isArray(value) && value.length === 1024 && value.every(item => typeof item === 'string')
+  return Array.isArray(value) && (value.length === 1024 || value.length === 16384) && value.every(item => typeof item === 'string')
     ? value as string[]
     : null
 }

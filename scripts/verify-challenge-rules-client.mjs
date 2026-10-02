@@ -91,15 +91,20 @@ test('registration keeps the confirmation fallback without creating a profile ea
   assert.equal(api.suggestedProfileName({ user_metadata: { display_name: 'x' } }), '')
 })
 
-test('weekly uses 32 colors and editor offers monthly entries during voting', async () => {
+test('both challenges expose official and custom palettes, and monthly entries remain open during voting', async () => {
   const [weekly, editor, monthly] = await Promise.all([
     readFile(new URL('../src/components/WeeklyDraw.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/components/DrawingEditor.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/components/MonthlyDraw.tsx', import.meta.url), 'utf8'),
   ])
-  assert.match(weekly, /paletteSize=\{32\}/)
+  assert.match(weekly, /allowColorMixer/)
+  assert.match(weekly, /useState<EditorPaletteSize>\(32\)/)
+  assert.match(monthly, /allowColorMixer/)
+  assert.match(monthly, /useState<EditorPaletteSize>\(12\)/)
+  assert.match(weekly, /Egyéni paletta/)
+  assert.match(monthly, /Egyéni paletta/)
   assert.match(editor, /challenge_status === 'drawing' \|\| challenge\.challenge_status === 'voting'/)
-  assert.match(editor, /A heti kihívás és a Rajzfal fogadja a 32 színt/)
+  assert.match(editor, /A kevert színeket a heti és havi kihívás fogadja/)
   assert.match(monthly, /account\.submittedAt \? challenge\?\.submission_ends_at[^:]+: challenge\?\.ends_at/)
   assert.match(monthly, /Új nevezés:[\s\S]*Beküldött kép szerkesztése:[\s\S]*Szavazás:/)
 })

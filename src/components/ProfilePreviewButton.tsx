@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import {
   loadProfileAvatarLikeState,
+  loadOwnProfileNote,
   loadPublicProfileStats,
   setProfileAvatarLike,
   type ProfileAvatarLikeState,
@@ -25,6 +26,7 @@ export function ProfilePreviewButton({
   const [open, setOpen] = useState(false)
   const [likeState, setLikeState] = useState<ProfileAvatarLikeState | null>(null)
   const [publicStats, setPublicStats] = useState<PublicProfileStats | null>(null)
+  const [privateNote, setPrivateNote] = useState<string | null>(null)
   const [likePending, setLikePending] = useState(false)
   const [likeFeedback, setLikeFeedback] = useState('')
   const triggerRef = useRef<HTMLButtonElement>(null)
@@ -66,13 +68,16 @@ export function ProfilePreviewButton({
     setLikeFeedback('')
     setLikeState(null)
     setPublicStats(null)
+    setPrivateNote(null)
     void Promise.allSettled([
       loadProfileAvatarLikeState(name),
       loadPublicProfileStats(name),
-    ]).then(([likeResult, statsResult]) => {
+      loadOwnProfileNote(name),
+    ]).then(([likeResult, statsResult, noteResult]) => {
       if (cancelled) return
       if (likeResult.status === 'fulfilled') setLikeState(likeResult.value)
       if (statsResult.status === 'fulfilled') setPublicStats(statsResult.value)
+      if (noteResult.status === 'fulfilled') setPrivateNote(noteResult.value)
       if (likeResult.status === 'rejected' && statsResult.status === 'rejected') {
         setLikeFeedback('A profilstatisztikák most nem tölthetők be.')
       }
@@ -129,6 +134,7 @@ export function ProfilePreviewButton({
             <strong>{likeState?.likeCount ?? 0}</strong>
           </button>
           <h2 id="profile-preview-title">{name}</h2>
+          {privateNote ? <p className="profile-private-title">{privateNote}</p> : null}
           <div className="profile-preview-stats" aria-label="Játékos statisztikák">
             <span><strong>{receivedLikes ?? publicStats?.receivedLikeCount ?? 0}</strong> rajzfali lájk</span>
             <span><strong>{publicStats?.trophyCount ?? 0}</strong> trófea</span>

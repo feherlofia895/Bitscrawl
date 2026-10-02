@@ -28,6 +28,7 @@ import { ProfileAvatar } from './components/ProfileAvatar'
 import { ProfilePreviewButton } from './components/ProfilePreviewButton'
 import { ProfilePanel } from './components/ProfilePanel'
 import { Scoreboard } from './components/Scoreboard'
+import { MusicPlayer } from './components/MusicPlayer'
 import { RoomChat } from './components/RoomChat'
 import { RoundChat } from './components/RoundChat'
 import { RoundTimer } from './components/RoundTimer'
@@ -1058,6 +1059,8 @@ function App() {
           </button>
         </div>
       </header>
+
+      <MusicPlayer />
 
       {lobby ? (
         <section className="waiting-room" id="top" aria-labelledby="room-title">

@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -12,20 +13,37 @@ import {
   clampSelectionOffset,
   movePixelSelection,
   transformPixelSelection,
+  type DrawingSize,
   type PixelSelectionTransform,
 } from '../lib/drawing'
 import { editorText } from '../lib/editorText'
 import { createPixelSendQueue } from '../lib/pixelSendQueue'
+import { isHexColor } from '../lib/colorMixer'
+import { ColorMixer } from './ColorMixer'
 
-const CANVAS_SIZE = 32
 const TRANSPARENT = 'transparent'
 const MAX_UNDO_STEPS = 50
 const MIN_ZOOM = 1
 const ZOOM_BUTTON_STEP = 0.5
 const CANVAS_SURFACE_RATIO = 0.93
 const CENTERED_CANVAS_OFFSET = (1 - CANVAS_SURFACE_RATIO) / 2
+const MIXED_COLORS_STORAGE_KEY = 'bitscrawl-editor-custom-palette-v1'
+
+function loadMixedColors() {
+  try {
+    const stored: unknown = JSON.parse(localStorage.getItem(MIXED_COLORS_STORAGE_KEY) ?? '[]')
+    return Array.isArray(stored)
+      ? stored.filter((color): color is string => typeof color === 'string' && isHexColor(color)).slice(0, 8)
+      : []
+  } catch {
+    return []
+  }
+}
 
 type PixelCanvasProps = {
+  allowColorMixer?: boolean
+  canvasSize?: DrawingSize
+  customPaletteActive?: boolean
   localDrawing?: {
     initialPixels: string[]
     onChange: (pixels: string[]) => void
@@ -37,7 +55,9 @@ type PixelCanvasProps = {
   events: DrawEvent[]
   onError: (error: unknown) => void
   onImmersiveChange?: (isImmersive: boolean) => void
+  onCustomPaletteActiveChange?: (active: boolean) => void
   onLoadFromGallery?: () => void
+  onPaletteSizeChange?: (size: PaletteSize) => void
   onSaveToGallery?: () => void
   onSubmit: (changes: PixelChange[]) => Promise<unknown>
   paletteSize: PaletteSize
@@ -221,24 +241,24 @@ function pointInSelection(point: PixelPoint, bounds: SelectionBounds) {
     point.y >= bounds.top && point.y <= bounds.bottom
 }
 
-function connectedPixels(pixels: string[], start: PixelPoint) {
-  const targetColor = pixels[start.y * CANVAS_SIZE + start.x]
+function connectedPixels(pixels: string[], start: PixelPoint, canvasSize: DrawingSize) {
+  const targetColor = pixels[start.y * canvasSize + start.x]
   const result: PixelPoint[] = []
-  const queue = [start.y * CANVAS_SIZE + start.x]
-  const visited = new Uint8Array(CANVAS_SIZE * CANVAS_SIZE)
+  const queue = [start.y * canvasSize + start.x]
+  const visited = new Uint8Array(canvasSize * canvasSize)
   visited[queue[0]] = 1
 
   for (let queueIndex = 0; queueIndex < queue.length; queueIndex += 1) {
     const index = queue[queueIndex]
-    const x = index % CANVAS_SIZE
-    const y = Math.floor(index / CANVAS_SIZE)
+    const x = index % canvasSize
+    const y = Math.floor(index / canvasSize)
     result.push({ x, y })
 
     const neighbours = [
       x > 0 ? index - 1 : -1,
-      x < CANVAS_SIZE - 1 ? index + 1 : -1,
-      y > 0 ? index - CANVAS_SIZE : -1,
-      y < CANVAS_SIZE - 1 ? index + CANVAS_SIZE : -1,
+      x < canvasSize - 1 ? index + 1 : -1,
+      y > 0 ? index - canvasSize : -1,
+      y < canvasSize - 1 ? index + canvasSize : -1,
     ]
 
     neighbours.forEach((neighbour) => {
@@ -257,6 +277,9 @@ function connectedPixels(pixels: string[], start: PixelPoint) {
 }
 
 export function PixelCanvas({
+  allowColorMixer = false,
+  canvasSize = 32,
+  customPaletteActive = false,
   localDrawing,
   canDraw,
   chosenWord,
@@ -264,7 +287,9 @@ export function PixelCanvas({
   events,
   onError,
   onImmersiveChange,
+  onCustomPaletteActiveChange,
   onLoadFromGallery,
+  onPaletteSizeChange,
   onSaveToGallery,
   onSubmit,
   paletteSize,
@@ -285,7 +310,7 @@ export function PixelCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const canvasFrameRef = useRef<HTMLDivElement>(null)
   const pixelsRef = useRef<string[]>(
-    Array.from({ length: CANVAS_SIZE * CANVAS_SIZE }, () => TRANSPARENT),
+    Array.from({ length: canvasSize * canvasSize }, () => TRANSPARENT),
   )
   const appliedEventIdsRef = useRef(new Set<number>())
   const pendingChangesRef = useRef(new Map<string, PixelChange>())
@@ -310,6 +335,8 @@ export function PixelCanvas({
   const undoHistoryRef = useRef<PixelMutation[][]>([])
   const clearTouchHandledAtRef = useRef<number | null>(null)
   const [activeColor, setActiveColor] = useState(pixelPalette[0].hex)
+  const [isColorMixerOpen, setIsColorMixerOpen] = useState(false)
+  const [mixedColors, setMixedColors] = useState<string[]>(() => allowColorMixer ? loadMixedColors() : [])
   const [activeTool, setActiveTool] = useState<DrawingTool>('pencil')
   const [canUndo, setCanUndo] = useState(false)
   const [zoom, setZoom] = useState(MIN_ZOOM)
@@ -333,6 +360,20 @@ export function PixelCanvas({
     null,
   )
   const drawingColor = activeTool === 'eraser' ? TRANSPARENT : activeColor
+  const visiblePalette = customPaletteActive && allowColorMixer
+    ? mixedColors.map(hex => ({ hex, name: 'Egyéni szín' }))
+    : pixelPalette
+
+  const chooseColor = (color: string) => {
+    setActiveColor(color)
+    selectDrawingTool('pencil')
+    setIsImmersivePaletteOpen(false)
+  }
+
+  const saveMixedColor = (color: string) => {
+    setMixedColors((current) => [color, ...current.filter(saved => saved !== color)].slice(0, 8))
+    chooseColor(color)
+  }
 
   const maximumZoom = () => {
     const frameWidth = canvasFrameRef.current?.getBoundingClientRect().width ?? 680
@@ -415,8 +456,8 @@ export function PixelCanvas({
     setSelectionOffset({ x: 0, y: 0 })
   }
 
-  const paintPixel = (change: PixelChange) => {
-    pixelsRef.current[change.y * CANVAS_SIZE + change.x] = change.color
+  const paintPixel = useCallback((change: PixelChange) => {
+    pixelsRef.current[change.y * canvasSize + change.x] = change.color
     const context = canvasRef.current?.getContext('2d')
     if (!context) return
 
@@ -425,17 +466,17 @@ export function PixelCanvas({
       context.fillStyle = change.color
       context.fillRect(change.x, change.y, 1, 1)
     }
-  }
+  }, [canvasSize])
 
   const redrawCanvas = (previewPoints: PixelPoint[] = []) => {
     const context = canvasRef.current?.getContext('2d')
     if (!context) return
 
-    context.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
+    context.clearRect(0, 0, canvasSize, canvasSize)
     pixelsRef.current.forEach((color, index) => {
       if (color === TRANSPARENT) return
       context.fillStyle = color
-      context.fillRect(index % CANVAS_SIZE, Math.floor(index / CANVAS_SIZE), 1, 1)
+      context.fillRect(index % canvasSize, Math.floor(index / canvasSize), 1, 1)
     })
 
     context.fillStyle = activeColor
@@ -481,7 +522,7 @@ export function PixelCanvas({
   }
 
   const queueChange = (change: PixelChange) => {
-    const index = change.y * CANVAS_SIZE + change.x
+    const index = change.y * canvasSize + change.x
     if (pixelsRef.current[index] === change.color) return false
 
     paintPixel(change)
@@ -529,7 +570,7 @@ export function PixelCanvas({
   }
 
   const queueStrokePixel = (point: PixelPoint) => {
-    const index = point.y * CANVAS_SIZE + point.x
+    const index = point.y * canvasSize + point.x
     const before = pixelsRef.current[index]
     if (before === drawingColor) return
 
@@ -549,15 +590,15 @@ export function PixelCanvas({
       x: Math.max(
         0,
         Math.min(
-          CANVAS_SIZE - 1,
-          Math.floor(((event.clientX - bounds.left) / bounds.width) * CANVAS_SIZE),
+          canvasSize - 1,
+          Math.floor(((event.clientX - bounds.left) / bounds.width) * canvasSize),
         ),
       ),
       y: Math.max(
         0,
         Math.min(
-          CANVAS_SIZE - 1,
-          Math.floor(((event.clientY - bounds.top) / bounds.height) * CANVAS_SIZE),
+          canvasSize - 1,
+          Math.floor(((event.clientY - bounds.top) / bounds.height) * canvasSize),
         ),
       ),
     }
@@ -571,10 +612,10 @@ export function PixelCanvas({
 
   const fillArea = (point: PixelPoint) => {
     const originalPixels = [...pixelsRef.current]
-    const targetColor = originalPixels[point.y * CANVAS_SIZE + point.x]
+    const targetColor = originalPixels[point.y * canvasSize + point.x]
     if (targetColor === activeColor) return
 
-    const mutations = connectedPixels(originalPixels, point).map((pixel) => ({
+    const mutations = connectedPixels(originalPixels, point, canvasSize).map((pixel) => ({
       ...pixel,
       before: targetColor,
       color: activeColor,
@@ -598,7 +639,7 @@ export function PixelCanvas({
 
     const mutations = pointsForShape(gesture).map((pixel) => ({
       ...pixel,
-      before: pixelsRef.current[pixel.y * CANVAS_SIZE + pixel.x],
+      before: pixelsRef.current[pixel.y * canvasSize + pixel.x],
       color: activeColor,
     }))
     shapeGestureRef.current = null
@@ -631,7 +672,7 @@ export function PixelCanvas({
     setSelectionOffset(clampSelectionOffset(gesture.bounds, {
       x: point.x - gesture.start.x,
       y: point.y - gesture.start.y,
-    }))
+    }, canvasSize))
   }
 
   const finishSelectionMove = (point?: PixelPoint) => {
@@ -643,7 +684,7 @@ export function PixelCanvas({
     const movedSelection = movePixelSelection(original, gesture.bounds, {
       x: gesture.current.x - gesture.start.x,
       y: gesture.current.y - gesture.start.y,
-    })
+    }, canvasSize)
     const { offset } = movedSelection
     selectionMoveGestureRef.current = null
     setSelectionOffset({ x: 0, y: 0 })
@@ -655,8 +696,8 @@ export function PixelCanvas({
         : [{
             before: original[index],
             color,
-            x: index % CANVAS_SIZE,
-            y: Math.floor(index / CANVAS_SIZE),
+            x: index % canvasSize,
+            y: Math.floor(index / canvasSize),
           }],
     )
     if (mutations.length === 0) {
@@ -683,15 +724,15 @@ export function PixelCanvas({
     if (!canDraw || !selectedArea || selectionGestureRef.current || selectionMoveGestureRef.current) return
 
     const original = [...pixelsRef.current]
-    const result = transformPixelSelection(original, selectedArea, transform)
+    const result = transformPixelSelection(original, selectedArea, transform, canvasSize)
     const mutations = result.pixels.flatMap((color, index) =>
       color === original[index]
         ? []
         : [{
             before: original[index],
             color,
-            x: index % CANVAS_SIZE,
-            y: Math.floor(index / CANVAS_SIZE),
+            x: index % canvasSize,
+            y: Math.floor(index / canvasSize),
           }],
     )
     if (mutations.length > 0) {
@@ -735,8 +776,8 @@ export function PixelCanvas({
             {
               before: color,
               color: TRANSPARENT,
-              x: index % CANVAS_SIZE,
-              y: Math.floor(index / CANVAS_SIZE),
+              x: index % canvasSize,
+              y: Math.floor(index / canvasSize),
             },
           ],
     )
@@ -876,7 +917,7 @@ export function PixelCanvas({
     const localSource = localDrawingRef.current
     pixelsRef.current = localSource
       ? [...localSource.initialPixels]
-      : Array<string>(CANVAS_SIZE * CANVAS_SIZE).fill(TRANSPARENT)
+      : Array<string>(canvasSize * canvasSize).fill(TRANSPARENT)
     appliedEventIdsRef.current.clear()
     pendingChangesRef.current.clear()
     sendQueueRef.current?.reset()
@@ -904,21 +945,28 @@ export function PixelCanvas({
     setSelectedArea(null)
     setSelectionOffset({ x: 0, y: 0 })
     const context = canvasRef.current?.getContext('2d')
-    context?.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
+    context?.clearRect(0, 0, canvasSize, canvasSize)
     if (context && localSource) {
       pixelsRef.current.forEach((color, index) => {
         if (color === TRANSPARENT) return
         context.fillStyle = color
-        context.fillRect(index % CANVAS_SIZE, Math.floor(index / CANVAS_SIZE), 1, 1)
+        context.fillRect(index % canvasSize, Math.floor(index / canvasSize), 1, 1)
       })
     }
-  }, [roundId])
+  }, [canvasSize, roundId])
 
   useEffect(() => {
-    if (!pixelPalette.some((color) => color.hex === activeColor)) {
+    if (!allowColorMixer && !pixelPalette.some((color) => color.hex === activeColor)) {
       setActiveColor(pixelPalette[0].hex)
     }
-  }, [activeColor, paletteSize, pixelPalette])
+  }, [activeColor, allowColorMixer, paletteSize, pixelPalette])
+
+  useEffect(() => {
+    if (!allowColorMixer) return
+    try {
+      localStorage.setItem(MIXED_COLORS_STORAGE_KEY, JSON.stringify(mixedColors))
+    } catch { /* The mixer still works for the current session without storage. */ }
+  }, [allowColorMixer, mixedColors])
 
   useEffect(() => {
     events.forEach((event) => {
@@ -926,7 +974,7 @@ export function PixelCanvas({
       event.changes.forEach(paintPixel)
       appliedEventIdsRef.current.add(event.id)
     })
-  }, [events])
+  }, [events, paintPixel])
 
   useEffect(() => () => {
     if (pendingChangesRef.current.size) flushPendingChangesRef.current()
@@ -953,13 +1001,13 @@ export function PixelCanvas({
     const animationFrame = window.requestAnimationFrame(() => {
       const context = canvasRef.current?.getContext('2d')
       if (context) {
-        context.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
+        context.clearRect(0, 0, canvasSize, canvasSize)
         pixelsRef.current.forEach((color, index) => {
           if (color === TRANSPARENT) return
           context.fillStyle = color
           context.fillRect(
-            index % CANVAS_SIZE,
-            Math.floor(index / CANVAS_SIZE),
+            index % canvasSize,
+            Math.floor(index / canvasSize),
             1,
             1,
           )
@@ -968,7 +1016,7 @@ export function PixelCanvas({
       updatePan(panRef.current, zoomRef.current)
     })
     return () => window.cancelAnimationFrame(animationFrame)
-  }, [isImmersive])
+  }, [canvasSize, isImmersive])
 
   useEffect(() => {
     onImmersiveChange?.(isImmersive)
@@ -1140,25 +1188,47 @@ export function PixelCanvas({
           </div>
           <div
             className="drawing-palette"
-            data-palette-size={paletteSize}
-            aria-label={`${paletteSize} színű paletta`}
+            data-palette-size={customPaletteActive ? 'custom' : paletteSize}
+            aria-label={customPaletteActive ? 'Egyéni paletta' : `${paletteSize} színű paletta`}
           >
-            {pixelPalette.map((color) => (
+            {visiblePalette.map((color) => (
               <button
                 aria-label={`${color.name}, ${color.hex}`}
                 aria-pressed={activeColor === color.hex}
                 key={color.hex}
-                onClick={() => {
-                  setActiveColor(color.hex)
-                  selectDrawingTool('pencil')
-                  setIsImmersivePaletteOpen(false)
-                }}
+                onClick={() => chooseColor(color.hex)}
                 style={{ backgroundColor: color.hex }}
                 title={color.name}
                 type="button"
               />
             ))}
+            {customPaletteActive && mixedColors.length === 0 ? (
+              <small className="custom-palette-empty">Még nincs kikevert szín.</small>
+            ) : null}
           </div>
+          {allowColorMixer ? (
+            <div className="editor-color-mixer">
+              <div className="editor-color-mixer-bar">
+                <button
+                  aria-expanded={isColorMixerOpen}
+                  className="color-mixer-toggle"
+                  onClick={() => setIsColorMixerOpen(current => !current)}
+                  type="button"
+                >
+                  Színkeverő
+                </button>
+                <small>A mentett színek az Egyéni palettára kerülnek.</small>
+              </div>
+              {isColorMixerOpen ? (
+                <ColorMixer
+                  activeColor={activeColor}
+                  onClose={() => setIsColorMixerOpen(false)}
+                  onSave={saveMixedColor}
+                  onUse={chooseColor}
+                />
+              ) : null}
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -1327,27 +1397,86 @@ export function PixelCanvas({
                 type="button"
               />
               {isImmersivePaletteOpen ? (
-                <div
-                  aria-label={`${paletteSize} színű paletta`}
-                  className="immersive-palette-menu"
-                  data-palette-size={paletteSize}
-                >
-                  {pixelPalette.map((color) => (
+                allowColorMixer ? createPortal(
+                  <div className="immersive-palette-popover">
+                    <div aria-label="Paletta kiválasztása" className="immersive-palette-tabs">
+                      <button
+                        aria-pressed={!customPaletteActive && paletteSize === 12}
+                        onClick={() => {
+                          onCustomPaletteActiveChange?.(false)
+                          onPaletteSizeChange?.(12)
+                        }}
+                        type="button"
+                      >Alap</button>
+                      <button
+                        aria-pressed={!customPaletteActive && paletteSize === 32}
+                        onClick={() => {
+                          onCustomPaletteActiveChange?.(false)
+                          onPaletteSizeChange?.(32)
+                        }}
+                        type="button"
+                      >Bővített</button>
+                      <button
+                        aria-pressed={customPaletteActive}
+                        onClick={() => onCustomPaletteActiveChange?.(true)}
+                        type="button"
+                      >Egyéni</button>
+                    </div>
+                    <div
+                      aria-label={customPaletteActive ? 'Egyéni paletta' : `${paletteSize} színű paletta`}
+                      className="immersive-palette-menu"
+                      data-palette-size={customPaletteActive ? 'custom' : paletteSize}
+                    >
+                      {visiblePalette.map((color) => (
+                        <button
+                          aria-label={`${color.name}, ${color.hex}`}
+                          aria-pressed={activeColor === color.hex}
+                          key={color.hex}
+                          onClick={() => chooseColor(color.hex)}
+                          style={{ backgroundColor: color.hex }}
+                          title={color.name}
+                          type="button"
+                        />
+                      ))}
+                      {customPaletteActive && mixedColors.length === 0 ? (
+                        <small className="immersive-custom-empty">Az Egyéni paletta még üres.</small>
+                      ) : null}
+                    </div>
                     <button
-                      aria-label={`${color.name}, ${color.hex}`}
-                      aria-pressed={activeColor === color.hex}
-                      key={color.hex}
-                      onClick={() => {
-                        setActiveColor(color.hex)
-                        selectDrawingTool('pencil')
-                        setIsImmersivePaletteOpen(false)
-                      }}
-                      style={{ backgroundColor: color.hex }}
-                      title={color.name}
+                      aria-expanded={isColorMixerOpen}
+                      className="immersive-mixer-toggle"
+                      onClick={() => setIsColorMixerOpen(current => !current)}
                       type="button"
-                    />
-                  ))}
-                </div>
+                    >Színkeverő</button>
+                    {isColorMixerOpen ? (
+                      <ColorMixer
+                        activeColor={activeColor}
+                        onClose={() => setIsColorMixerOpen(false)}
+                        onSave={saveMixedColor}
+                        onUse={chooseColor}
+                      />
+                    ) : null}
+                  </div>,
+                  document.body,
+                ) : (
+                  <div
+                    aria-label={`${paletteSize} színű paletta`}
+                    className="immersive-palette-menu"
+                    data-palette-size={paletteSize}
+                  >
+                    {pixelPalette.map((color) => (
+                      <button
+                        aria-label={`${color.name}, ${color.hex}`}
+                        aria-pressed={activeColor === color.hex}
+                        key={color.hex}
+                        onClick={() => chooseColor(color.hex)}
+                        style={{ backgroundColor: color.hex }}
+                        title={color.name}
+                        type="button"
+                      />
+                    ))}
+                  </div>
+                )
               ) : null}
             </div>
           ) : null}
@@ -1424,6 +1553,7 @@ export function PixelCanvas({
         <div
           className={`pixel-canvas-surface${showGrid ? ' show-grid' : ''}`}
           style={{
+            '--canvas-size': canvasSize,
             height: isImmersive
               ? `min(${CANVAS_SURFACE_RATIO * zoom * 100}cqw, ${CANVAS_SURFACE_RATIO * zoom * 100}cqh)`
               : `${CANVAS_SURFACE_RATIO * zoom * 100}%`,
@@ -1432,28 +1562,28 @@ export function PixelCanvas({
             width: isImmersive
               ? `min(${CANVAS_SURFACE_RATIO * zoom * 100}cqw, ${CANVAS_SURFACE_RATIO * zoom * 100}cqh)`
               : `${CANVAS_SURFACE_RATIO * zoom * 100}%`,
-          }}
+          } as CSSProperties}
         >
           {selectedArea ? (
             <div
               aria-hidden="true"
               className="pixel-selection-outline"
               style={{
-                height: `${((selectedArea.bottom - selectedArea.top + 1) / CANVAS_SIZE) * 100}%`,
-                left: `${((selectedArea.left + selectionOffset.x) / CANVAS_SIZE) * 100}%`,
-                top: `${((selectedArea.top + selectionOffset.y) / CANVAS_SIZE) * 100}%`,
-                width: `${((selectedArea.right - selectedArea.left + 1) / CANVAS_SIZE) * 100}%`,
+                height: `${((selectedArea.bottom - selectedArea.top + 1) / canvasSize) * 100}%`,
+                left: `${((selectedArea.left + selectionOffset.x) / canvasSize) * 100}%`,
+                top: `${((selectedArea.top + selectionOffset.y) / canvasSize) * 100}%`,
+                width: `${((selectedArea.right - selectedArea.left + 1) / canvasSize) * 100}%`,
               }}
             />
           ) : null}
           <canvas
-            aria-label={canDraw ? 'Rajzolható 32×32 pixeles vászon' : 'Élő pixelrajz'}
+            aria-label={canDraw ? `Rajzolható ${canvasSize}×${canvasSize} pixeles vászon` : 'Élő pixelrajz'}
             className={`drawing-canvas${isPanMode ? ' is-pan-mode' : ''}${
               activeTool === 'select' ? ' is-selection-mode' : ''
             }${
               isPanningRef.current ? ' is-panning' : ''
             }`}
-            height={CANVAS_SIZE}
+            height={canvasSize}
             onContextMenu={(event) => event.preventDefault()}
             onPointerCancel={(event) => {
               activePointersRef.current.delete(event.pointerId)
@@ -1646,7 +1776,7 @@ export function PixelCanvas({
               finishStroke()
             }}
             ref={canvasRef}
-            width={CANVAS_SIZE}
+            width={canvasSize}
           />
         </div>
       </div>
