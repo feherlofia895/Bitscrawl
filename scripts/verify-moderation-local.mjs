@@ -55,6 +55,11 @@ before(async () => {
     ids[kind] = (await db.query(`insert into public.gallery_comments (${kind}_entry_id, user_id, content) values ($1, $2, 'Synthetic comment') returning id`, [entry.id, users[0]])).rows[0].id
   }
   await db.query('insert into private.app_admins (user_id) values ($1)', [users[2]])
+  ids.feedback = (await db.query(`
+    insert into public.bug_reports (user_id, reporter_name, category, description, technical_context)
+    values ($1, 'FeedbackTester', 'idea', 'Synthetic admin feedback item', '{"viewport":"390x844"}'::jsonb)
+    returning id
+  `, [users[0]])).rows[0].id
   await db.query('insert into public.feed_likes (post_id, user_id) values ($1,$2)', [ids.post,users[1]])
   for (const kind of ['weekly','monthly']) await db.query(`insert into public.${kind}_votes (challenge_id,entry_id,voter_user_id) values ($1,$2,$3)`, [ids[kind+'Challenge'],ids[kind+'Entry'],users[1]])
 })
@@ -94,6 +99,44 @@ test('all reaction lists are admin-only and return names/times without account i
     assert.deepEqual(Object.keys(rows[0]).sort(),['display_name','reacted_at'])
     assert.equal(rows[0].display_name,'LikeTester1')
   }
+})
+
+test('feedback inbox is admin-only and omits account identifiers', async () => {
+  for (const schema of ['public', 'private']) {
+    await assert.rejects(asUser(users[0], `select * from ${schema}.get_admin_feedback_reports(null)`), /ADMIN_REQUIRED/)
+    await assert.rejects(asUser(users[2], `select * from ${schema}.get_admin_feedback_reports(null)`, [], { anonymous: true }), /ADMIN_REQUIRED/)
+    await assert.rejects(asUser(null, `select * from ${schema}.get_admin_feedback_reports(null)`, [], { role: 'anon' }), /permission denied/)
+  }
+
+  const reports = await asUser(users[2], 'select * from public.get_admin_feedback_reports(null)')
+  const report = reports.find(item => Number(item.report_id) === Number(ids.feedback))
+  assert.ok(report)
+  assert.deepEqual(Object.keys(report).sort(), [
+    'category', 'created_at', 'description', 'report_id', 'reporter_name', 'status', 'steps', 'technical_context',
+  ])
+  assert.equal(report.reporter_name, 'FeedbackTester')
+})
+
+test('only an admin can move feedback through valid workflow states', async () => {
+  await assert.rejects(
+    asUser(users[0], 'select * from public.set_admin_feedback_status($1,$2)', [ids.feedback, 'reviewed']),
+    /ADMIN_REQUIRED/,
+  )
+  await assert.rejects(
+    asUser(users[2], 'select * from public.set_admin_feedback_status($1,$2)', [ids.feedback, 'invalid']),
+    /FEEDBACK_STATUS_INVALID/,
+  )
+  await assert.rejects(
+    asUser(users[2], 'select * from public.set_admin_feedback_status($1,$2)', [900000000, 'closed']),
+    /FEEDBACK_REPORT_NOT_FOUND/,
+  )
+
+  assert.deepEqual(
+    await asUser(users[2], 'select * from public.set_admin_feedback_status($1,$2)', [ids.feedback, 'reviewed']),
+    [{ report_id: ids.feedback, status: 'reviewed' }],
+  )
+  const reviewed = await asUser(users[2], 'select report_id from public.get_admin_feedback_reports($1)', ['reviewed'])
+  assert.ok(reviewed.some(item => Number(item.report_id) === Number(ids.feedback)))
 })
 
 test('invalid kinds and missing targets fail without touching existing content', async () => {

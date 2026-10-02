@@ -502,6 +502,34 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      get_admin_feedback_reports: {
+        Args: { requested_status?: string | null }
+        Returns: {
+          category: string
+          created_at: string
+          description: string
+          report_id: number
+          reporter_name: string | null
+          status: string
+          steps: string | null
+          technical_context: Json
+        }[]
+      }
+      get_admin_feedback_summary: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          bug_count: number
+          idea_count: number
+          new_count: number
+        }[]
+      }
+      set_admin_feedback_status: {
+        Args: { requested_status: string; target_report_id: number }
+        Returns: {
+          report_id: number
+          status: string
+        }[]
+      }
       moderate_delete_content: {
         Args: { target_id: number; target_kind: string }
         Returns: boolean

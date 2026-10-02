@@ -21,6 +21,8 @@ import {
 import { DEFAULT_ROUND_DURATION, isRoundDuration, roundDurations, roundDurationText, type RoundDuration } from './lib/roundDuration'
 import { BugReport } from './components/BugReport'
 import { ActiveUsers } from './components/ActiveUsers'
+import { AdminFeedbackButton } from './components/AdminFeedbackButton'
+import { AdminFeedbackCenter } from './components/AdminFeedbackCenter'
 import { ConfirmModal } from './components/ConfirmModal'
 import { CompetitionGallery } from './components/CompetitionGallery'
 import { WeeklyDraw } from './components/WeeklyDraw'
@@ -81,12 +83,13 @@ import {
 import { basePalette, type RoomPaletteSize } from './lib/palette'
 import { checkSupabaseConnection } from './lib/supabase'
 import { loadOwnProfile, parseAvatarPixels, type PlayerProfile } from './lib/profile'
+import { useModeratorAccess } from './hooks/useModeratorAccess'
 
 type BackendStatus = 'checking' | 'online' | 'reconnecting' | 'offline'
-type HomeView = 'main' | 'play' | 'editor' | 'challenge' | 'gallery' | 'scoreboard' | 'create' | 'join' | 'settings' | 'profile'
+type HomeView = 'main' | 'play' | 'editor' | 'challenge' | 'gallery' | 'scoreboard' | 'create' | 'join' | 'settings' | 'profile' | 'admin'
 
 const homeViews = new Set<HomeView>([
-  'main', 'play', 'editor', 'challenge', 'gallery', 'scoreboard', 'create', 'join', 'settings', 'profile',
+  'main', 'play', 'editor', 'challenge', 'gallery', 'scoreboard', 'create', 'join', 'settings', 'profile', 'admin',
 ])
 
 const homeViewParents: Record<Exclude<HomeView, 'main'>, HomeView> = {
@@ -99,6 +102,7 @@ const homeViewParents: Record<Exclude<HomeView, 'main'>, HomeView> = {
   join: 'play',
   settings: 'main',
   profile: 'main',
+  admin: 'main',
 }
 
 function historyState() {
@@ -181,6 +185,7 @@ function App() {
   const [showEditorLeaveConfirmation, setShowEditorLeaveConfirmation] = useState(false)
   const [weeklyUserLabel, setWeeklyUserLabel] = useState('Vendég')
   const [playerProfile, setPlayerProfile] = useState<PlayerProfile | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const allowEditorLeaveRef = useRef(false)
   const requestedHomeBackTargetRef = useRef<HomeView | null>(null)
   const [reduceMotion, setReduceMotion] = useState(
@@ -252,10 +257,12 @@ function App() {
     void loadOwnProfile().then(({ profile, user }) => {
       if (cancelled) return
       setPlayerProfile(profile)
+      setCurrentUserId(user?.id ?? null)
       setWeeklyUserLabel(profile?.displayName || user?.email || 'Vendég')
     }).catch(() => {
       if (!cancelled) {
         setPlayerProfile(null)
+        setCurrentUserId(null)
         setWeeklyUserLabel('Vendég')
       }
     })
@@ -265,7 +272,10 @@ function App() {
   const handleProfileChange = useCallback((profile: PlayerProfile | null) => {
     setPlayerProfile(profile)
     setWeeklyUserLabel(profile?.displayName ?? 'Vendég')
+    if (!profile) setCurrentUserId(null)
   }, [])
+
+  const isModerator = useModeratorAccess(currentUserId)
 
   useEffect(() => {
     if (lobby) return
@@ -1036,6 +1046,12 @@ function App() {
         >
           <span aria-hidden="true">⚙</span>
         </button>
+        {isModerator ? (
+          <AdminFeedbackButton
+            disabled={Boolean(lobby) || homeView === 'admin'}
+            onClick={() => openHomeView('admin')}
+          />
+        ) : null}
         <div className="topbar-statuses">
           <span
             className="backend-badge"
@@ -1479,6 +1495,8 @@ function App() {
         </section>
       ) : homeView === 'profile' ? (
         <ProfilePanel onBack={closeHomeView} onProfileChange={handleProfileChange} />
+      ) : homeView === 'admin' ? (
+        <AdminFeedbackCenter isAdmin={isModerator} onBack={closeHomeView} />
       ) : homeView === 'editor' ? (
         <DrawingEditor onBack={closeHomeView} onDirtyChange={setEditorDirty} onStorageChange={setEditorStorageAvailable} />
       ) : homeView === 'challenge' ? (
