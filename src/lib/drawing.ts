@@ -36,10 +36,53 @@ export function isValidEditorDrawingPixels(
 
 export type PixelSelection = { left: number; top: number; right: number; bottom: number }
 export type PixelOffset = { x: number; y: number }
+export type PixelPoint = { x: number; y: number }
+export type BrushSize = 1 | 2 | 3
 export type PixelSelectionTransform = 'rotate-clockwise' | 'flip-horizontal' | 'flip-vertical'
 
 export function emptyDrawing(drawingSize: DrawingSize = DRAWING_SIZE): string[] {
   return Array<string>(drawingSize * drawingSize).fill(TRANSPARENT_PIXEL)
+}
+
+export function brushFootprint(
+  point: PixelPoint,
+  brushSize: BrushSize,
+  drawingSize: DrawingSize = DRAWING_SIZE,
+): PixelPoint[] {
+  const startOffset = -Math.floor(brushSize / 2)
+  const points: PixelPoint[] = []
+
+  for (let offsetY = 0; offsetY < brushSize; offsetY += 1) {
+    for (let offsetX = 0; offsetX < brushSize; offsetX += 1) {
+      const x = point.x + startOffset + offsetX
+      const y = point.y + startOffset + offsetY
+      if (x >= 0 && x < drawingSize && y >= 0 && y < drawingSize) {
+        points.push({ x, y })
+      }
+    }
+  }
+
+  return points
+}
+
+export function replaceDrawingColor(
+  pixels: readonly string[],
+  fromColor: string,
+  toColor: string,
+  bounds: PixelSelection | null = null,
+  drawingSize: DrawingSize = DRAWING_SIZE,
+) {
+  if (pixels.length !== drawingSize * drawingSize) throw new Error('DRAWING_INVALID')
+  if (fromColor === toColor) return [...pixels]
+
+  return pixels.map((color, index) => {
+    const x = index % drawingSize
+    const y = Math.floor(index / drawingSize)
+    const insideBounds = !bounds || (
+      x >= bounds.left && x <= bounds.right && y >= bounds.top && y <= bounds.bottom
+    )
+    return insideBounds && color === fromColor ? toColor : color
+  })
 }
 
 export function clampSelectionOffset(

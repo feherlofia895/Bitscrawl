@@ -537,6 +537,7 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
       </div>
       <PixelCanvas
         allowColorMixer
+        allowEditorTools
         canDraw
         chosenWord={null}
         drawingEndsAt={null}

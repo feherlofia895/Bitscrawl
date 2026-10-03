@@ -2,10 +2,12 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
 import {
+  brushFootprint,
   emptyDrawing,
   movePixelSelection,
   parseDrawingDraft,
   rasterizeDrawing,
+  replaceDrawingColor,
   transformPixelSelection,
 } from '../src/lib/drawing.ts'
 import { basePalette, editorPalette32 } from '../src/lib/palette.ts'
@@ -83,6 +85,37 @@ test('the regular toolbar omits its duplicate pan hand and enlarges the drawn co
   assert.match(regularToolbar, /Teljes vászon törlése[\s\S]*?aria-label="Kijelölés"/)
   assert.match(regularToolbar, /onClick=\{handleClearClick\}[\s\S]*?onPointerUp=\{handleClearPointerUp\}/)
   assert.match(canvasSource, /onLostPointerCapture=\{\(event\) => \{[\s\S]*?finishStroke\(\)/)
+  assert.match(canvasSource, /label: 'Pipetta'/)
+  assert.match(regularToolbar, /aria-label="Újra"/)
+  assert.match(canvasSource, /const brushSizeControls/)
+  assert.match(canvasSource, />Teljes vászon<\/button>/)
+  assert.match(canvasSource, />Kijelölésben<\/button>/)
+})
+
+test('advanced drawing tools are enabled only in the standalone editor', async () => {
+  const [
+    canvasSource,
+    drawingEditorSource,
+    appSource,
+    weeklySource,
+    monthlySource,
+    feedSource,
+    profileSource,
+  ] = await Promise.all([
+    readFile(new URL('../src/components/PixelCanvas.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/DrawingEditor.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/App.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/WeeklyDraw.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/MonthlyDraw.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/DailyFeed.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/ProfilePanel.tsx', import.meta.url), 'utf8'),
+  ])
+
+  assert.match(canvasSource, /allowEditorTools = false/)
+  assert.match(drawingEditorSource, /<PixelCanvas[\s\S]*?allowEditorTools/)
+  for (const source of [appSource, weeklySource, monthlySource, feedSource, profileSource]) {
+    assert.doesNotMatch(source, /allowEditorTools/)
+  }
 })
 
 test('empty drawings do not share mutable data', () => {
@@ -90,6 +123,46 @@ test('empty drawings do not share mutable data', () => {
   first[0] = '#d3493b'
   assert.equal(emptyDrawing()[0], 'transparent')
   assert.equal(first.length, 1024)
+})
+
+test('brush footprints support one to three pixels and stay inside the canvas', () => {
+  assert.deepEqual(brushFootprint({ x: 5, y: 6 }, 1), [{ x: 5, y: 6 }])
+  assert.equal(brushFootprint({ x: 5, y: 6 }, 2).length, 4)
+  assert.equal(brushFootprint({ x: 5, y: 6 }, 3).length, 9)
+  assert.deepEqual(brushFootprint({ x: 0, y: 0 }, 3), [
+    { x: 0, y: 0 },
+    { x: 1, y: 0 },
+    { x: 0, y: 1 },
+    { x: 1, y: 1 },
+  ])
+  assert.deepEqual(brushFootprint({ x: 127, y: 127 }, 3, 128), [
+    { x: 126, y: 126 },
+    { x: 127, y: 126 },
+    { x: 126, y: 127 },
+    { x: 127, y: 127 },
+  ])
+})
+
+test('exact color replacement can target either the whole canvas or a selection', () => {
+  const source = emptyDrawing()
+  source[0] = '#d3493b'
+  source[1] = '#d3493b'
+  source[33] = '#d3493b'
+  source[34] = '#7db4bf'
+
+  const fullCanvas = replaceDrawingColor(source, '#d3493b', '#7db4bf')
+  assert.equal(fullCanvas.filter(color => color === '#7db4bf').length, 4)
+  assert.equal(source[0], '#d3493b')
+
+  const selected = replaceDrawingColor(
+    source,
+    '#d3493b',
+    '#7db4bf',
+    { left: 0, top: 0, right: 0, bottom: 1 },
+  )
+  assert.equal(selected[0], '#7db4bf')
+  assert.equal(selected[1], '#d3493b')
+  assert.equal(selected[33], '#d3493b')
 })
 
 test('signed-in profiles supply the immutable multiplayer display name', async () => {

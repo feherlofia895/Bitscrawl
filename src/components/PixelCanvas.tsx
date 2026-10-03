@@ -10,10 +10,14 @@ import { createPortal } from 'react-dom'
 import type { DrawEvent, PixelChange } from '../lib/game'
 import { colorsForPalette, type PaletteSize } from '../lib/palette'
 import {
+  brushFootprint,
   clampSelectionOffset,
   movePixelSelection,
+  replaceDrawingColor,
   transformPixelSelection,
+  type BrushSize,
   type DrawingSize,
+  type PixelPoint,
   type PixelSelectionTransform,
 } from '../lib/drawing'
 import { editorText } from '../lib/editorText'
@@ -42,6 +46,7 @@ function loadMixedColors() {
 
 type PixelCanvasProps = {
   allowColorMixer?: boolean
+  allowEditorTools?: boolean
   canvasSize?: DrawingSize
   customPaletteActive?: boolean
   localDrawing?: {
@@ -65,10 +70,10 @@ type PixelCanvasProps = {
   serverNow: string
 }
 
-type PixelPoint = { x: number; y: number }
 type DrawingTool =
   | 'pencil'
   | 'eraser'
+  | 'eyedropper'
   | 'fill'
   | 'line'
   | 'rectangle'
@@ -213,6 +218,7 @@ const toolButtons: Array<{
 }> = [
   { label: 'Ceruza', spriteRow: 0, tool: 'pencil' },
   { label: 'Radír', spriteRow: 2, tool: 'eraser' },
+  { icon: '/icons/tools/eyedropper.svg', label: 'Pipetta', tool: 'eyedropper' },
   { label: 'Kitöltés', spriteRow: 1, tool: 'fill' },
   { label: 'Egyenes vonal', spriteRow: 4, tool: 'line' },
   { label: 'Négyzet vagy téglalap', spriteRow: 7, tool: 'rectangle' },
@@ -278,6 +284,7 @@ function connectedPixels(pixels: string[], start: PixelPoint, canvasSize: Drawin
 
 export function PixelCanvas({
   allowColorMixer = false,
+  allowEditorTools = false,
   canvasSize = 32,
   customPaletteActive = false,
   localDrawing,
@@ -333,12 +340,19 @@ export function PixelCanvas({
   const selectionGestureRef = useRef<SelectionGesture | null>(null)
   const selectionMoveGestureRef = useRef<SelectionMoveGesture | null>(null)
   const undoHistoryRef = useRef<PixelMutation[][]>([])
+  const redoHistoryRef = useRef<PixelMutation[][]>([])
   const clearTouchHandledAtRef = useRef<number | null>(null)
   const [activeColor, setActiveColor] = useState(pixelPalette[0].hex)
   const [isColorMixerOpen, setIsColorMixerOpen] = useState(false)
   const [mixedColors, setMixedColors] = useState<string[]>(() => allowColorMixer ? loadMixedColors() : [])
   const [activeTool, setActiveTool] = useState<DrawingTool>('pencil')
+  const [brushSize, setBrushSize] = useState<BrushSize>(1)
   const [canUndo, setCanUndo] = useState(false)
+  const [canRedo, setCanRedo] = useState(false)
+  const [brushPreviewPoint, setBrushPreviewPoint] = useState<PixelPoint | null>(null)
+  const [isColorReplaceOpen, setIsColorReplaceOpen] = useState(false)
+  const [isPickingReplaceSource, setIsPickingReplaceSource] = useState(false)
+  const [replaceFromColor, setReplaceFromColor] = useState<string | null>(null)
   const [zoom, setZoom] = useState(MIN_ZOOM)
   const zoomRef = useRef(MIN_ZOOM)
   const [pan, setPan] = useState<CanvasPan>({
@@ -366,7 +380,7 @@ export function PixelCanvas({
 
   const chooseColor = (color: string) => {
     setActiveColor(color)
-    selectDrawingTool('pencil')
+    if (!isColorReplaceOpen) selectDrawingTool('pencil')
     setIsImmersivePaletteOpen(false)
   }
 
@@ -444,6 +458,7 @@ export function PixelCanvas({
   const selectDrawingTool = (tool: DrawingTool) => {
     setActiveTool(tool)
     setIsPanMode(false)
+    setIsPickingReplaceSource(false)
     if (tool !== 'select') {
       setSelectedArea(null)
       setSelectionOffset({ x: 0, y: 0 })
@@ -531,7 +546,7 @@ export function PixelCanvas({
     return true
   }
 
-  const saveUndoStep = (mutations: PixelMutation[]) => {
+  const saveUndoStep = (mutations: PixelMutation[], clearRedo = true) => {
     const changedMutations = mutations.filter(
       (mutation) => mutation.before !== mutation.color,
     )
@@ -542,6 +557,10 @@ export function PixelCanvas({
       undoHistoryRef.current.shift()
     }
     setCanUndo(true)
+    if (clearRedo) {
+      redoHistoryRef.current = []
+      setCanRedo(false)
+    }
   }
 
   const finishStroke = () => {
@@ -569,7 +588,7 @@ export function PixelCanvas({
     lastPointRef.current = null
   }
 
-  const queueStrokePixel = (point: PixelPoint) => {
+  const queueSingleStrokePixel = (point: PixelPoint) => {
     const index = point.y * canvasSize + point.x
     const before = pixelsRef.current[index]
     if (before === drawingColor) return
@@ -582,6 +601,10 @@ export function PixelCanvas({
       activeStrokeRef.current?.set(key, { ...point, before, color: drawingColor })
     }
     queueChange({ ...point, color: drawingColor })
+  }
+
+  const queueBrushPoint = (point: PixelPoint) => {
+    brushFootprint(point, brushSize, canvasSize).forEach(queueSingleStrokePixel)
   }
 
   const pointFromEvent = (event: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -606,7 +629,7 @@ export function PixelCanvas({
 
   const drawTo = (point: PixelPoint) => {
     const from = lastPointRef.current ?? point
-    pointsOnLine(from, point).forEach(queueStrokePixel)
+    pointsOnLine(from, point).forEach(queueBrushPoint)
     lastPointRef.current = point
   }
 
@@ -761,9 +784,73 @@ export function PixelCanvas({
       queueChange({ x, y, color: before })
     })
     flushPendingChanges()
+    redoHistoryRef.current.push(mutations)
+    if (redoHistoryRef.current.length > MAX_UNDO_STEPS) redoHistoryRef.current.shift()
     setSelectedArea(null)
     setSelectionOffset({ x: 0, y: 0 })
     setCanUndo(undoHistoryRef.current.length > 0)
+    setCanRedo(true)
+  }
+
+  const redoLastStep = () => {
+    if (isDrawingRef.current) return
+
+    flushPendingChanges()
+    const mutations = redoHistoryRef.current.pop()
+    if (!mutations) return
+
+    mutations.forEach(({ color, x, y }) => {
+      queueChange({ x, y, color })
+    })
+    flushPendingChanges()
+    saveUndoStep(mutations, false)
+    setSelectedArea(null)
+    setSelectionOffset({ x: 0, y: 0 })
+    setCanRedo(redoHistoryRef.current.length > 0)
+  }
+
+  const pickColorFromCanvas = (point: PixelPoint) => {
+    const color = pixelsRef.current[point.y * canvasSize + point.x]
+    if (color === TRANSPARENT) return false
+    setActiveColor(color)
+    selectDrawingTool('pencil')
+    return true
+  }
+
+  const pickReplaceSource = (point: PixelPoint) => {
+    const color = pixelsRef.current[point.y * canvasSize + point.x]
+    if (color === TRANSPARENT) return false
+    setReplaceFromColor(color)
+    setIsPickingReplaceSource(false)
+    return true
+  }
+
+  const applyColorReplacement = (bounds: SelectionBounds | null) => {
+    if (!replaceFromColor || replaceFromColor === activeColor) return
+    const original = [...pixelsRef.current]
+    const replaced = replaceDrawingColor(
+      original,
+      replaceFromColor,
+      activeColor,
+      bounds,
+      canvasSize,
+    )
+    const mutations = replaced.flatMap((color, index) =>
+      color === original[index]
+        ? []
+        : [{
+            before: original[index],
+            color,
+            x: index % canvasSize,
+            y: Math.floor(index / canvasSize),
+          }],
+    )
+    if (mutations.length === 0) return
+    mutations.forEach(queueChange)
+    saveUndoStep(mutations)
+    flushPendingChanges()
+    setIsColorReplaceOpen(false)
+    setIsPickingReplaceSource(false)
   }
 
   const clearCanvas = () => {
@@ -934,6 +1021,11 @@ export function PixelCanvas({
     pendingTouchFillRef.current = null
     lastPointRef.current = null
     setCanUndo(false)
+    setCanRedo(false)
+    setBrushPreviewPoint(null)
+    setIsColorReplaceOpen(false)
+    setIsPickingReplaceSource(false)
+    setReplaceFromColor(null)
     zoomRef.current = MIN_ZOOM
     setZoom(MIN_ZOOM)
     panRef.current = {
@@ -1103,6 +1195,88 @@ export function PixelCanvas({
           .toString()
           .padStart(2, '0')}`
 
+  const previewPoints = allowEditorTools && brushPreviewPoint && (activeTool === 'pencil' || activeTool === 'eraser')
+    ? brushFootprint(brushPreviewPoint, brushSize, canvasSize)
+    : []
+  const brushPreviewBounds = previewPoints.length > 0
+    ? {
+        left: Math.min(...previewPoints.map(point => point.x)),
+        right: Math.max(...previewPoints.map(point => point.x)),
+        top: Math.min(...previewPoints.map(point => point.y)),
+        bottom: Math.max(...previewPoints.map(point => point.y)),
+      }
+    : null
+
+  const brushSizeControls = (immersive = false) => (
+    <div
+      aria-label={`${activeTool === 'eraser' ? 'Radír' : 'Ecset'} mérete`}
+      className={`brush-size-controls${immersive ? ' is-immersive' : ''}`}
+    >
+      <span>{activeTool === 'eraser' ? 'Radír' : 'Ecset'}:</span>
+      {([1, 2, 3] as BrushSize[]).map(size => (
+        <button
+          aria-label={`${size}×${size} pixeles ${activeTool === 'eraser' ? 'radír' : 'ecset'}`}
+          aria-pressed={brushSize === size}
+          key={size}
+          onClick={() => setBrushSize(size)}
+          type="button"
+        >
+          {size}×
+        </button>
+      ))}
+    </div>
+  )
+
+  const colorReplaceControls = (immersive = false) => (
+    <div className={`color-replace-panel${immersive ? ' is-immersive' : ''}`}>
+      <div className="color-replace-heading">
+        <div>
+          <span>Pontos színcsere</span>
+          <strong>Színcsere</strong>
+        </div>
+        <button
+          aria-label="Színcsere bezárása"
+          onClick={() => {
+            setIsColorReplaceOpen(false)
+            setIsPickingReplaceSource(false)
+          }}
+          type="button"
+        >×</button>
+      </div>
+      <p>Válaszd ki a lecserélendő színt a vásznon. Az új szín a palettán aktív szín lesz.</p>
+      <div className="color-replace-swatches">
+        <span>
+          <i style={{ backgroundColor: replaceFromColor ?? 'transparent' }} />
+          Forrás: <strong>{replaceFromColor ?? 'nincs'}</strong>
+        </span>
+        <span>
+          <i style={{ backgroundColor: activeColor }} />
+          Új: <strong>{activeColor}</strong>
+        </span>
+      </div>
+      <button
+        aria-pressed={isPickingReplaceSource}
+        className="color-replace-picker"
+        onClick={() => setIsPickingReplaceSource(current => !current)}
+        type="button"
+      >
+        {isPickingReplaceSource ? 'Kattints egy színre a vásznon…' : 'Forrásszín felvétele'}
+      </button>
+      <div className="color-replace-actions">
+        <button
+          disabled={!replaceFromColor || replaceFromColor === activeColor}
+          onClick={() => applyColorReplacement(null)}
+          type="button"
+        >Teljes vászon</button>
+        <button
+          disabled={!replaceFromColor || replaceFromColor === activeColor || !selectedArea}
+          onClick={() => applyColorReplacement(selectedArea)}
+          type="button"
+        >Kijelölésben</button>
+      </div>
+    </div>
+  )
+
   const editor = (
     <section
       aria-label={isImmersive ? 'Teljes képernyős pixelvászon' : undefined}
@@ -1143,7 +1317,9 @@ export function PixelCanvas({
       {canDraw ? (
         <div className="pixel-toolbar" aria-label="Rajzeszközök">
           <div className="tool-buttons">
-            {toolButtons.filter(({ tool }) => tool !== 'select').map(({ icon, label, spriteRow, tool }) => (
+            {toolButtons.filter(({ tool }) => (
+              tool !== 'select' && (allowEditorTools || tool !== 'eyedropper')
+            )).map(({ icon, label, spriteRow, tool }) => (
               <button
                 aria-label={label}
                 aria-pressed={activeTool === tool}
@@ -1166,6 +1342,18 @@ export function PixelCanvas({
               title="Visszavonás"
               type="button"
             />
+            {allowEditorTools ? (
+              <button
+                aria-label="Újra"
+                className="tool-icon-button"
+                disabled={!canRedo}
+                onClick={redoLastStep}
+                title="Újra"
+                type="button"
+              >
+                <img alt="" aria-hidden="true" src="/icons/tools/redo.svg" />
+              </button>
+            ) : null}
             <button
               aria-label="Teljes vászon törlése"
               className="tool-sprite-button"
@@ -1185,7 +1373,30 @@ export function PixelCanvas({
             >
               <img alt="" aria-hidden="true" src="/icons/tools/select.svg" />
             </button>
+            {allowEditorTools ? (
+              <button
+                aria-expanded={isColorReplaceOpen}
+                aria-label="Színcsere"
+                aria-pressed={isColorReplaceOpen}
+                className="tool-icon-button"
+                onClick={() => {
+                  setIsColorReplaceOpen(current => !current)
+                  setIsPickingReplaceSource(false)
+                  setIsPanMode(false)
+                }}
+                title="Színcsere"
+                type="button"
+              >
+                <img alt="" aria-hidden="true" src="/icons/tools/replace-color.svg" />
+              </button>
+            ) : null}
           </div>
+          {allowEditorTools && (activeTool === 'pencil' || activeTool === 'eraser')
+            ? brushSizeControls()
+            : null}
+          {allowEditorTools && isColorReplaceOpen && !isImmersive
+            ? colorReplaceControls()
+            : null}
           <div
             className="drawing-palette"
             data-palette-size={customPaletteActive ? 'custom' : paletteSize}
@@ -1328,7 +1539,9 @@ export function PixelCanvas({
               </button>
               {areImmersiveToolsOpen ? (
                 <div className="immersive-tool-menu" aria-label="Rajzeszköz választása">
-                  {toolButtons.map(({ icon, label, spriteRow, tool }) => (
+                  {toolButtons.filter(({ tool }) => (
+                    allowEditorTools || tool !== 'eyedropper'
+                  )).map(({ icon, label, spriteRow, tool }) => (
                     <button
                       aria-label={label}
                       aria-pressed={activeTool === tool}
@@ -1368,6 +1581,18 @@ export function PixelCanvas({
                     title="Visszavonás"
                     type="button"
                   />
+                  {allowEditorTools ? (
+                    <button
+                      aria-label="Újra"
+                      className="tool-icon-button"
+                      disabled={!canRedo}
+                      onClick={redoLastStep}
+                      title="Újra"
+                      type="button"
+                    >
+                      <img alt="" aria-hidden="true" src="/icons/tools/redo.svg" />
+                    </button>
+                  ) : null}
                   <button
                     aria-label="Teljes vászon törlése"
                     className="tool-sprite-button"
@@ -1377,6 +1602,28 @@ export function PixelCanvas({
                     title="Teljes vászon törlése"
                     type="button"
                   />
+                  {allowEditorTools ? (
+                    <button
+                      aria-expanded={isColorReplaceOpen}
+                      aria-label="Színcsere"
+                      aria-pressed={isColorReplaceOpen}
+                      className="tool-icon-button"
+                      onClick={() => {
+                        setIsColorReplaceOpen(current => !current)
+                        setIsPickingReplaceSource(false)
+                        setIsPanMode(false)
+                        setIsImmersivePaletteOpen(false)
+                        setAreImmersiveToolsOpen(false)
+                      }}
+                      title="Színcsere"
+                      type="button"
+                    >
+                      <img alt="" aria-hidden="true" src="/icons/tools/replace-color.svg" />
+                    </button>
+                  ) : null}
+                  {allowEditorTools && (activeTool === 'pencil' || activeTool === 'eraser')
+                    ? brushSizeControls(true)
+                    : null}
                 </div>
               ) : null}
             </div>
@@ -1549,6 +1796,12 @@ export function PixelCanvas({
         </aside>
       ) : null}
 
+      {allowEditorTools && isImmersive && isColorReplaceOpen ? (
+        <div className="immersive-color-replace-popover">
+          {colorReplaceControls(true)}
+        </div>
+      ) : null}
+
       <div className="pixel-canvas-frame" ref={canvasFrameRef}>
         <div
           className={`pixel-canvas-surface${showGrid ? ' show-grid' : ''}`}
@@ -1576,16 +1829,31 @@ export function PixelCanvas({
               }}
             />
           ) : null}
+          {brushPreviewBounds && canDraw && !isPanMode ? (
+            <div
+              aria-hidden="true"
+              className={`pixel-brush-preview${activeTool === 'eraser' ? ' is-eraser' : ''}`}
+              style={{
+                height: `${((brushPreviewBounds.bottom - brushPreviewBounds.top + 1) / canvasSize) * 100}%`,
+                left: `${(brushPreviewBounds.left / canvasSize) * 100}%`,
+                top: `${(brushPreviewBounds.top / canvasSize) * 100}%`,
+                width: `${((brushPreviewBounds.right - brushPreviewBounds.left + 1) / canvasSize) * 100}%`,
+              }}
+            />
+          ) : null}
           <canvas
             aria-label={canDraw ? `Rajzolható ${canvasSize}×${canvasSize} pixeles vászon` : 'Élő pixelrajz'}
             className={`drawing-canvas${isPanMode ? ' is-pan-mode' : ''}${
               activeTool === 'select' ? ' is-selection-mode' : ''
+            }${
+              activeTool === 'eyedropper' || isPickingReplaceSource ? ' is-eyedropper-mode' : ''
             }${
               isPanningRef.current ? ' is-panning' : ''
             }`}
             height={canvasSize}
             onContextMenu={(event) => event.preventDefault()}
             onPointerCancel={(event) => {
+              setBrushPreviewPoint(null)
               activePointersRef.current.delete(event.pointerId)
               if (pendingTouchFillRef.current?.pointerId === event.pointerId) {
                 pendingTouchFillRef.current = null
@@ -1650,6 +1918,19 @@ export function PixelCanvas({
 
               if (!canDraw) return
               const point = pointFromEvent(event)
+              if (activeTool === 'pencil' || activeTool === 'eraser') {
+                setBrushPreviewPoint(point)
+              }
+
+              if (isPickingReplaceSource) {
+                pickReplaceSource(point)
+                return
+              }
+
+              if (activeTool === 'eyedropper') {
+                pickColorFromCanvas(point)
+                return
+              }
 
               if (activeTool === 'fill') {
                 if (event.pointerType === 'touch') {
@@ -1694,6 +1975,12 @@ export function PixelCanvas({
             onPointerMove={(event) => {
               event.preventDefault()
 
+              if (canDraw && (activeTool === 'pencil' || activeTool === 'eraser') && !isPanMode) {
+                setBrushPreviewPoint(pointFromEvent(event))
+              } else {
+                setBrushPreviewPoint(null)
+              }
+
               if (activePointersRef.current.has(event.pointerId)) {
                 activePointersRef.current.set(event.pointerId, {
                   clientX: event.clientX,
@@ -1729,6 +2016,7 @@ export function PixelCanvas({
               if (!canDraw || !isDrawingRef.current) return
               drawTo(pointFromEvent(event))
             }}
+            onPointerLeave={() => setBrushPreviewPoint(null)}
             onPointerUp={(event) => {
               event.preventDefault()
               const wasPinching = pinchGestureRef.current !== null
