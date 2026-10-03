@@ -47,6 +47,8 @@ Titkot vagy `service_role` kulcsot soha ne tegyél kliensoldali fájlba, commitb
   játékosokat mutatja, mindenkit egyetlen kártyán az összes érmével.
 - A rajzfal napi három képet, leírást, kedvelést, kommentet és kommentkedvelést
   támogat. A képek, kommentek és visszajelzések adminisztrátorként moderálhatók.
+- Mobilon az előszoba-chat „Most online” része alapból összecsukott, a címsorával
+  nyitható és zárható, így az üzenetek több helyet kapnak.
 - A profilok rajzolt avatárt, nyilvános statisztikát, trófeákat és három,
   profillal szinkronizált, legfeljebb 16 színes egyéni palettát kezelnek.
 - A Szerkesztőben és a heti/havi kihívásban elérhető a pipetta, újra, 1×/2×/3×

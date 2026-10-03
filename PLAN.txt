@@ -10,6 +10,8 @@ Jelölések:
 - [x] A Dicsőségfal „A legmenőbbek” része már nem sorolja fel külön minden hét és
   hónap dobogósait. Csak a legalább egy érmet szerzett játékosok látszanak, mindenki
   egyszer, az összesített arany-, ezüst- és bronzérmeivel.
+- [x] A mobilos előszoba-chatben a „Most online” játékoslista alapból összecsukott,
+  a fejlécével nyitható és zárható, így több hely marad a chatüzeneteknek.
 - [x] Az admin az előszoba-chat minden üzeneténél külön, megerősített Törlés gombot
   kapott. A jogosultságot továbbra is a szerveroldali, privát adminlista ellenőrzi;
   közvetlen táblatörlési jog nem került a klienshez. A `martinteteme` profil 497

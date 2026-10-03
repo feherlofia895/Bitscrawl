@@ -39,6 +39,7 @@ export function ActiveUsers({
   currentProfile: PlayerProfile | null
   isModerator: boolean
 }) {
+  const initialMobile = window.matchMedia('(max-width: 760px)').matches
   const [identity, setIdentity] = useState<Identity | null>(null)
   const [onlineProfiles, setOnlineProfiles] = useState<OnlineProfile[]>([])
   const [messages, setMessages] = useState<GlobalLobbyMessage[]>([])
@@ -48,6 +49,8 @@ export function ActiveUsers({
   const [isSending, setIsSending] = useState(false)
   const [message, setMessage] = useState('')
   const [feedback, setFeedback] = useState('')
+  const [isMobile, setIsMobile] = useState(initialMobile)
+  const [isOnlineProfilesOpen, setIsOnlineProfilesOpen] = useState(!initialMobile)
   const [deleteTarget, setDeleteTarget] = useState<GlobalLobbyMessage | null>(null)
   const [deletingMessageId, setDeletingMessageId] = useState<number | null>(null)
   const messageListRef = useRef<HTMLDivElement>(null)
@@ -56,6 +59,17 @@ export function ActiveUsers({
   useEffect(() => {
     isOpenRef.current = isOpen
   }, [isOpen])
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 760px)')
+    const updateLayout = () => {
+      setIsMobile(media.matches)
+      setIsOnlineProfilesOpen(!media.matches)
+    }
+
+    media.addEventListener('change', updateLayout)
+    return () => media.removeEventListener('change', updateLayout)
+  }, [])
 
   const refreshIdentity = useCallback(async () => {
     try {
@@ -147,7 +161,7 @@ export function ActiveUsers({
     if (!isOpen) return
     const list = messageListRef.current
     if (list) list.scrollTop = list.scrollHeight
-  }, [deleteTarget, isOpen, messages])
+  }, [deleteTarget, isOnlineProfilesOpen, isOpen, messages])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -212,20 +226,35 @@ export function ActiveUsers({
             </div>
           </header>
 
-          <div className="active-users-layout">
-            <section className="online-profile-section" aria-labelledby="online-profile-title">
-              <div className="active-users-section-heading">
+          <div className={`active-users-layout${isOnlineProfilesOpen ? '' : ' has-collapsed-online'}`}>
+            <section className={`online-profile-section${isOnlineProfilesOpen ? ' is-open' : ''}`} aria-labelledby="online-profile-title">
+              <button
+                aria-controls="online-profile-content"
+                aria-expanded={isMobile ? isOnlineProfilesOpen : undefined}
+                className="active-users-section-heading online-profile-toggle"
+                onClick={() => {
+                  if (isMobile) setIsOnlineProfilesOpen(current => !current)
+                }}
+                type="button"
+              >
                 <h3 id="online-profile-title">Most online</h3>
-                <span>{onlineProfiles.length}</span>
+                <span className="online-profile-toggle-summary">
+                  {onlineProfiles.length}
+                  <span aria-hidden="true" className="online-profile-toggle-icon">
+                    {isOnlineProfilesOpen ? '−' : '+'}
+                  </span>
+                </span>
+              </button>
+              <div className="online-profile-content" hidden={!isOnlineProfilesOpen} id="online-profile-content">
+                {onlineProfiles.length ? <ul className="online-profile-list">
+                  {onlineProfiles.map(profile => <li key={profile.userId}>
+                    <ProfilePreviewButton className="online-profile-button" name={profile.displayName} pixels={profile.avatarPixels}>
+                      <ProfileAvatar label={`${profile.displayName} profilképe`} pixels={profile.avatarPixels} />
+                      <span><strong>{profile.displayName}</strong><small>online</small></span>
+                    </ProfilePreviewButton>
+                  </li>)}
+                </ul> : <p className="active-users-empty">Kapcsolódás az előszobához…</p>}
               </div>
-              {onlineProfiles.length ? <ul className="online-profile-list">
-                {onlineProfiles.map(profile => <li key={profile.userId}>
-                  <ProfilePreviewButton className="online-profile-button" name={profile.displayName} pixels={profile.avatarPixels}>
-                    <ProfileAvatar label={`${profile.displayName} profilképe`} pixels={profile.avatarPixels} />
-                    <span><strong>{profile.displayName}</strong><small>online</small></span>
-                  </ProfilePreviewButton>
-                </li>)}
-              </ul> : <p className="active-users-empty">Kapcsolódás az előszobához…</p>}
             </section>
 
             <section className="global-lobby-chat" aria-labelledby="global-lobby-chat-title">

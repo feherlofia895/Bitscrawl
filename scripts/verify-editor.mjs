@@ -311,10 +311,18 @@ test('the profile avatar editor uses the expanded 32-color palette', async () =>
 })
 
 test('the mobile lobby chat keeps its composer inside the panel', async () => {
-  const css = await readFile(new URL('../src/App.css', import.meta.url), 'utf8')
+  const [css, activeUsers] = await Promise.all([
+    readFile(new URL('../src/App.css', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/ActiveUsers.tsx', import.meta.url), 'utf8'),
+  ])
   assert.match(css, /\.global-lobby-chat-form label\s*\{\s*min-width:\s*0;/)
   assert.match(css, /\.global-lobby-chat-form input\s*\{[\s\S]*?max-width:\s*100%;/)
   assert.match(css, /@media \(max-width: 760px\)[\s\S]*?\.global-lobby-chat\s*\{[\s\S]*?grid-template-rows:\s*auto minmax\(0, 1fr\) auto;[\s\S]*?overflow:\s*hidden;/)
+  assert.match(activeUsers, /useState\(!initialMobile\)/)
+  assert.match(activeUsers, /aria-controls="online-profile-content"/)
+  assert.match(activeUsers, /aria-expanded=\{isMobile \? isOnlineProfilesOpen : undefined\}/)
+  assert.match(activeUsers, /hidden=\{!isOnlineProfilesOpen\}/)
+  assert.match(css, /\.active-users-layout\.has-collapsed-online\s*\{\s*grid-template-rows:\s*auto minmax\(280px, 1fr\);/)
 })
 
 test('very narrow mobile layouts can shrink below 320px without clipping editor controls', async () => {
