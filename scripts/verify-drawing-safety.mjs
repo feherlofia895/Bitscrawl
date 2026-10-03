@@ -379,3 +379,10 @@ test('weekly editor stays unmounted while the newly selected draft is loading', 
   assert.equal(canvas.props.roundId, 2)
   assert.deepEqual(canvas.props.localDrawing.initialPixels, newDrawing)
 })
+
+test('immersive color controls stay inside narrow phone viewports', async () => {
+  const css = await readFile(new URL('../src/App.css', import.meta.url), 'utf8')
+  assert.match(css, /\.immersive-palette-popover\s*\{[\s\S]*?right:\s*max\(72px,[\s\S]*?width:\s*min\(520px, calc\(100vw - 84px\)\)[\s\S]*?overflow-y:\s*auto/)
+  assert.match(css, /@media \(max-width: 560px\)[\s\S]*?\.color-mixer-hsla\s*\{\s*grid-template-columns:\s*1fr/)
+  assert.match(css, /@media \(max-width: 560px\)[\s\S]*?\.immersive-palette-menu\[data-palette-size='custom'\]\s*\{\s*grid-template-columns:\s*repeat\(5, 36px\)/)
+})

@@ -1112,7 +1112,7 @@ export function PixelCanvas({
       {isImmersive ? (
         <div className="immersive-canvas-heading">
           {localDrawing ? (
-            <span>{editorText.freeDrawing}</span>
+            <span>{editorText.freeDrawing} · {canvasSize} × {canvasSize}</span>
           ) : (
             <>
               <span>
@@ -1129,7 +1129,7 @@ export function PixelCanvas({
       ) : (
         <div className="pixel-editor-heading">
           <div>
-            <p className="round-label">32 × 32 pixel</p>
+            <p className="round-label">{canvasSize} × {canvasSize} pixel</p>
             <h3 id="pixel-editor-title">
               {canDraw ? 'Pixelvászon' : 'Élő rajz'}
             </h3>

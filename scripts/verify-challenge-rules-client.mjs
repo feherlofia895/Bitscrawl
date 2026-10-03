@@ -92,10 +92,11 @@ test('registration keeps the confirmation fallback without creating a profile ea
 })
 
 test('both challenges expose official and custom palettes, and monthly entries remain open during voting', async () => {
-  const [weekly, editor, monthly] = await Promise.all([
+  const [weekly, editor, monthly, pixelCanvas] = await Promise.all([
     readFile(new URL('../src/components/WeeklyDraw.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/components/DrawingEditor.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/components/MonthlyDraw.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/PixelCanvas.tsx', import.meta.url), 'utf8'),
   ])
   assert.match(weekly, /allowColorMixer/)
   assert.match(weekly, /useState<EditorPaletteSize>\(32\)/)
@@ -107,4 +108,6 @@ test('both challenges expose official and custom palettes, and monthly entries r
   assert.match(editor, /A kevert színeket a heti és havi kihívás fogadja/)
   assert.match(monthly, /account\.submittedAt \? challenge\?\.submission_ends_at[^:]+: challenge\?\.ends_at/)
   assert.match(monthly, /Új nevezés:[\s\S]*Beküldött kép szerkesztése:[\s\S]*Szavazás:/)
+  assert.match(pixelCanvas, /\{canvasSize\} × \{canvasSize\} pixel/)
+  assert.doesNotMatch(pixelCanvas, />32 × 32 pixel</)
 })
