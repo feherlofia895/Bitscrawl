@@ -309,6 +309,30 @@ async function loadComponent(file, imports, hooks) {
     '../lib/weekly': { getWeeklyUser: async () => ({ id: 'audit-user', user_metadata: { display_name: 'Audit' } }) },
     '../lib/moderation': { moderateDeleteContent: async () => true },
     '../hooks/useModeratorAccess': { useModeratorAccess: () => false },
+    '../hooks/useChallengeEditorPalettes': {
+      useChallengeEditorPalettes: (_syncKey, initialPaletteSize) => {
+        const customPalettes = [1, 2, 3].map(slotIndex => ({
+          colors: [],
+          name: `Saját paletta ${slotIndex}`,
+          slotIndex,
+          updatedAt: null,
+        }))
+        return {
+          activeCustomPalette: customPalettes[0],
+          activePaletteSlot: 1,
+          customPaletteActive: false,
+          customPaletteOptions: [],
+          customPalettes,
+          paletteSize: initialPaletteSize,
+          paletteSyncStatus: '',
+          saveCustomColor() {},
+          selectCustomPaletteSlot() {},
+          selectPalette() {},
+          setCustomPaletteActive() {},
+          updateCustomPaletteColors() {},
+        }
+      },
+    },
     './PixelCanvas': { PixelCanvas: 'PixelCanvas' },
     './GalleryPagination': { GALLERY_PAGE_SIZE: 6, GalleryPagination: 'Pagination' },
     ...imports,

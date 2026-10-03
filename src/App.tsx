@@ -84,6 +84,7 @@ import { basePalette, type RoomPaletteSize } from './lib/palette'
 import { checkSupabaseConnection } from './lib/supabase'
 import { loadOwnProfile, parseAvatarPixels, type PlayerProfile } from './lib/profile'
 import { useModeratorAccess } from './hooks/useModeratorAccess'
+import { usePwaInstall } from './hooks/usePwaInstall'
 
 type BackendStatus = 'checking' | 'online' | 'reconnecting' | 'offline'
 type HomeView = 'main' | 'play' | 'editor' | 'challenge' | 'gallery' | 'scoreboard' | 'create' | 'join' | 'settings' | 'profile' | 'admin'
@@ -191,6 +192,7 @@ function App() {
   const [reduceMotion, setReduceMotion] = useState(
     () => window.localStorage.getItem('bitscrawl-reduce-motion') === 'true',
   )
+  const pwaInstall = usePwaInstall()
   const [roomCode, setRoomCode] = useState(getInitialRoomCode)
   const [message, setMessage] = useState(guestNamePrompt)
   const [backendStatus, setBackendStatus] =
@@ -1823,6 +1825,29 @@ function App() {
                     <strong>{reduceMotion ? 'BE' : 'KI'}</strong>
                   </button>
                   <p>A beállítás ezen az eszközön marad meg.</p>
+                  <section className="pwa-install-card" aria-labelledby="pwa-install-title">
+                    <p className="step-label">Alkalmazás</p>
+                    <h3 id="pwa-install-title">Bitscrawl telepítése</h3>
+                    <button
+                      className="setting-row"
+                      disabled={pwaInstall.installed || !pwaInstall.canInstall}
+                      onClick={() => void pwaInstall.install()}
+                      type="button"
+                    >
+                      <span>Telepítés</span>
+                      <strong>{pwaInstall.installed ? 'TELEPÍTVE' : pwaInstall.canInstall ? 'TELEPÍTÉS' : 'ÚTMUTATÓ'}</strong>
+                    </button>
+                    <p>
+                      {pwaInstall.installed
+                        ? 'A Bitscrawl már külön alkalmazásablakban is megnyitható.'
+                        : pwaInstall.appleMobile
+                          ? 'iPhone vagy iPad: Safariban válaszd a Megosztás, majd a Főképernyőhöz adás lehetőséget.'
+                          : pwaInstall.canInstall
+                            ? 'A telepítés ikont és külön alkalmazásablakot készít. A játékhoz továbbra is internetkapcsolat kell.'
+                            : 'Chrome vagy Edge: keresd a böngésző menüjében a Telepítés vagy Alkalmazás telepítése lehetőséget.'}
+                    </p>
+                    {pwaInstall.status ? <p aria-live="polite" className="pwa-install-status">{pwaInstall.status}</p> : null}
+                  </section>
                   <section className="info-panel-copy" aria-labelledby="info-title">
                     <p className="step-label">A játékról</p>
                     <h3 id="info-title">Információk</h3>

@@ -77,6 +77,22 @@ npm run deploy
 A parancs előbb elkészíti a `dist` mappát, majd feltölti a `main` production
 ágra. A publikus cím HTTPS-t használ, és nem szükséges hozzá saját domain.
 
+## Telepítés alkalmazásként (PWA)
+
+A nyilvános Bitscrawl kezdőképernyőre vagy asztalra telepíthető, de továbbra is
+internetkapcsolatot igényel. A service worker szándékosan nem tárol offline
+alkalmazáscsomagot: minden megnyitáskor a hálózatról kéri az aktuális változatot,
+így nem keveredik régi kliens az élő multiplayerrel.
+
+- iPhone/iPad Safariban: **Megosztás → Főképernyőhöz adás**.
+- Android Chrome-ban: **Menü → Alkalmazás telepítése** vagy **Hozzáadás a
+  kezdőképernyőhöz**.
+- Asztali Chrome/Edge alatt: a címsor telepítésikonja vagy a böngésző
+  **Telepítés** menüpontja.
+
+A Beállítások oldal jelzi, ha a böngésző közvetlen telepítőgombot biztosít, iPhone-on
+pedig megmutatja a kézi lépéseket.
+
 ## Ellenőrzés
 
 ```bash

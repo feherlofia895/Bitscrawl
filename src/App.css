@@ -2979,6 +2979,33 @@ button,
   background: color-mix(in srgb, var(--mint) 72%, var(--paper));
 }
 
+.pwa-install-card {
+  display: grid;
+  gap: 9px;
+  padding: 13px;
+  background: color-mix(in srgb, var(--mint) 28%, var(--paper));
+  border: 2px solid var(--ink);
+}
+
+.pwa-install-card h3,
+.pwa-install-card p {
+  margin: 0;
+}
+
+.pwa-install-card > p:not(.step-label) {
+  line-height: 1.5;
+}
+
+.pwa-install-card .setting-row:disabled {
+  opacity: .72;
+}
+
+.pwa-install-status {
+  padding: 7px 9px;
+  background: var(--yellow);
+  border-left: 4px solid var(--blue);
+}
+
 .info-version {
   padding: 10px;
   font-family: var(--pixel-font);
