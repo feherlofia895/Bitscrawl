@@ -8,7 +8,14 @@ function currentRevision() {
   }
 
   try {
-    return execFileSync('git', ['rev-parse', '--short=12', 'HEAD'], {
+    const repositoryPath = process.cwd().replaceAll('\\', '/')
+    return execFileSync('git', [
+      '-c',
+      `safe.directory=${repositoryPath}`,
+      'rev-parse',
+      '--short=12',
+      'HEAD',
+    ], {
       encoding: 'utf8',
     }).trim()
   } catch {
