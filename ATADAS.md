@@ -1,129 +1,151 @@
-# Bitscrawl – friss átadó
+# Bitscrawl – aktuális átadó
 
 Frissítve: 2026. október 3.
 
-Ez az egyetlen aktuális átadó. A korábbi package-, audit-, ZIP- és patch-alapú
-átadások elavultak és eltávolításra kerültek. Az új beszélgetésben először ezt a
-fájlt, utána a `PLAN.txt` elejét és a `README.md` fájlt olvasd el.
+Ez az egyetlen aktuális átadó dokumentum. Új beszélgetésben először ezt a fájlt,
+utána a `PLAN.txt` elejét és a `README.md` fájlt olvasd el. A korábbi package-,
+audit-, ZIP- és patch-alapú átadók elavultak és eltávolításra kerültek.
 
-## Egyetlen hiteles munkapéldány
+## Hiteles munkapéldány
 
 - Projekt: `C:\Users\23hun\Documents\Codex\2026-09-22\olvasd-el-teljesen-a-bitscrawl-atadas\work\package-10-live-extras`
 - GitHub: `https://github.com/feherlofia895/Bitscrawl.git`
 - Aktív ág: `agent/12-color-palette-logo`
-- PWA mérföldkő: `2526d40` (`Add installable PWA with custom icon`); az aktuális
-  funkcionális HEAD-et mindig a `git log -1 --oneline` paranccsal ellenőrizd.
+- Utolsó éles funkcionális commit: `364c377` (`Add admin lobby chat moderation`)
 - Éles oldal: `https://bitscrawl.pages.dev/`
+- Ellenőrzött kiadás: `https://bitscrawl.pages.dev/?deploy=364c377`
 - Cloudflare Pages projekt: `bitscrawl`, production ág: `main`
 
-A dokumentációs átadás után a pontos HEAD-et mindig a `git log -1 --oneline`
-paranccsal ellenőrizd. Ne dolgozz a `work` mappa egy régi `package-*` vagy audit
-másolatából; azok nem a jelenlegi források.
+Munkakezdéskor mindig futtasd:
+
+```powershell
+git status --short
+git log -5 --oneline
+```
+
+Ne dolgozz másik `package-*` mappából. A pontos dokumentációs HEAD változhat, ezért
+a fenti parancsok eredménye az irányadó; a `364c377` az utolsó ellenőrzött és éles
+funkcionális kiadás.
 
 ## Technikai alap
 
-- React 19 + TypeScript + Vite 8
+- React 19, TypeScript és Vite 8
 - Supabase Auth, Postgres, RLS, Realtime és RPC-k
 - Cloudflare Pages frontend
 - OXLint és Node beépített tesztfuttató
-- Környezeti adatok: a Git által figyelmen kívül hagyott `.env.local`
+- Lokális, Git által figyelmen kívül hagyott `.env.local`
 
-Titkos vagy `service_role` kulcsot soha ne tegyél kliensoldali fájlba, commitba,
-átadóba vagy böngészős buildbe. A jelenlegi frontend publishable Supabase kulccsal
-működik.
+Titkot vagy `service_role` kulcsot soha ne tegyél kliensoldali fájlba, commitba,
+átadóba vagy böngészős buildbe. A frontend publishable Supabase kulcsot használ.
 
-## Jelenlegi termékállapot
+## Jelenlegi éles termékállapot
 
 - A klasszikus online játék 2–6 játékost, kódos szobát, hostkezelést, szerveroldali
   szókiosztást, köridőt, pontozást, újracsatlakozást és teljes meccsciklust kezel.
-- Van külön párhuzamos rajzverseny, heti és havi kihívás, szavazás, archív galéria,
-  örökranglista és „A legmenőbbek” dobogós nézet.
-- A közösségi rajzfal napi három beküldést, leírást, kedvelést, kommentet és
-  kommentkedvelést támogat. Az admin felület képet, kommentet és visszajelzést tud
-  moderálni; az admin a képek reakcióinak szerzőit is láthatja. Az admin az
-  előszoba-chat bármely üzenetét külön megerősítés után törölheti.
+- Van párhuzamos rajzverseny, heti és havi kihívás, szavazás, archív galéria,
+  Dicsőségfal, örökranglista és „A legmenőbbek” dobogós nézet.
+- A rajzfal napi három képet, leírást, kedvelést, kommentet és kommentkedvelést
+  támogat. A képek, kommentek és visszajelzések adminisztrátorként moderálhatók.
 - A profilok rajzolt avatárt, nyilvános statisztikát, trófeákat és három,
   profillal szinkronizált, legfeljebb 16 színes egyéni palettát kezelnek.
-- A Szerkesztőben és mindkét kihívásban elérhető a pipetta, újra, 1×/2×/3× ecset és
-  radír, színcsere, kijelölés, mozgatás, 90°-os forgatás, valamint vízszintes és
-  függőleges tükrözés.
-- A HSL+A színkeverő alapértelmezett fedettsége 100%. Az egyéni paletta alapból
-  kiválasztható, színei rendezhetők és törölhetők.
+- A Szerkesztőben és a heti/havi kihívásban elérhető a pipetta, újra, 1×/2×/3×
+  ecset és radír, színcsere, kijelölés, mozgatás, 90°-os forgatás, valamint
+  vízszintes és függőleges tükrözés.
+- A HSL+A színkeverő 100% fedettséggel indul. Az egyéni paletták átnevezhetők,
+  rendezhetők, a színeik mozgathatók és törölhetők.
 - A Szerkesztő animációs módja legfeljebb három képkockát, hagymahéjat, 1–8 kép/mp
   előnézetet, GIF-exportot és profilonként két privát animációmentést kezel.
-- A mobil fejléc, galéria, rajzeszköztár és animációs vezérlés 320–390 px szélességen
-  igazítva lett. A fizikai iPhone-próba sikeres.
-- A webalkalmazás telepíthető PWA. A beküldött fekete, színes pixelkarom ikon
-  iPhone-on helyesen megjelenik. A service worker nem használ offline cache-t:
-  navigációkor mindig hálózatról tölti az aktuális klienst.
-- Az éles heti kihívás Boszorkány, a havi kihívás Halloween és 128×128-as. A korábbi
-  Béka havi kihívás pontjai bekerültek a dicsőségfalba; Vivi korábbi hóemberrajza a
-  rajzfalra került felirat nélkül.
+- A fontos mobilfelületek 320–390 px szélességre igazítva lettek. A fizikai iPhone-
+  próba, a telepítés, az indítás és az egyedi ikon ellenőrzése sikeres.
+- Az éles heti kihívás Boszorkány, a havi kihívás Halloween és 128×128 pixeles.
 
-## Következő kiemelt feladat: két réteg
+## Legutóbbi változás: előszoba-admin
 
-A felhasználó első változatként pontosan két layert szeretne. Ez a Szerkesztőben,
-a heti kihívásban és a havi kihívásban is legyen használható, mert már két réteg is
-nagy segítség a rajzolóknak.
+- A `martinteteme` profil a szerveroldali `private.app_admins` lista tagja.
+- Az admin minden előszobaüzenet mellett külön Törlés gombot lát.
+- A törlés kompakt, mobilbarát, beágyazott megerősítést kér. A közös modál helyett
+  ez maradt, mert böngészős próbán a profil-/előzményablakokkal összeakadhatott.
+- A törlést a `public.moderate_delete_lobby_message` security-invoker wrapper hívja;
+  a tényleges security-definer művelet a privát sémában újra ellenőrzi az admint.
+- `anon` nem futtathatja az RPC-t; `authenticated` csak a belső adminellenőrzésen
+  át törölhet. Közvetlen táblatörlési jog nem került a klienshez.
+- A `martinteteme` 497 karakteres, kilógó utolsó üzenete (message id `31`) célzottan
+  törölve lett az éles adatbázisból.
+- A migráció: `supabase/migrations/20261003160309_admin_delete_lobby_messages.sql`.
+- Az éles felületen a gomb, a megerősítés megnyitása és megszakítása ellenőrzött;
+  más valódi üzenet nem lett törölve.
+
+## PWA telepítés és frissítés
+
+- Manifest: `public/manifest.webmanifest`
+- Service worker: `public/service-worker.js`
+- Regisztráció: `src/main.tsx`
+- Ikonok: `public/icons/bitscrawl-app-180.png`, `-192.png`, `-512.png` és
+  `bitscrawl-app-maskable-512.png`
+- A telepített Bitscrawl ugyanarról a `https://bitscrawl.pages.dev/` címről indul,
+  ezért az új verziókhoz nem kell újratelepíteni.
+- A service worker `updateViaCache: 'none'`, `skipWaiting()` és `clients.claim()`
+  beállítást használ. Szándékosan nincs offline alkalmazás-cache: a multiplayer
+  kliens nem maradhat észrevétlenül egy régi, gyorsítótárazott verzión.
+- iPhone-on az alkalmazásváltóban teljesen bezárt, majd újranyitott PWA biztosan az
+  aktuális klienst tölti be. Ikon- vagy manifestcsere az iOS erős gyorsítótára miatt
+  esetenként törlést és újbóli „Főképernyőhöz adás” műveletet igényelhet.
+- Tervezett kis fejlesztés: látható
+  `Új Bitscrawl-verzió érhető el – Frissítés` jelzés. Induláskor és előtérbe
+  kerüléskor keressen új buildet, de aktív rajzolást vagy játékot soha ne töltsön
+  újra automatikusan. A gomb csak felhasználói kattintásra frissítsen.
+- A kliens kapjon látható buildazonosítót. A frissítési folyamatot valós A → B
+  kiadással kell iPhone-on, majd Android Chrome-on és asztali Chrome/Edge alatt
+  ellenőrizni. A részletes feladatok a `PLAN.txt` elején vannak.
+
+## Következő kiemelt fejlesztés: pontosan két réteg
+
+A felhasználó első változatként két layert szeretne a Szerkesztőben, a heti
+kihívásban és a havi kihívásban is.
 
 Javasolt v1-határ:
 
 1. Két rögzített sorrendű réteg: alsó és felső.
 2. Aktív réteg választása, láthatóság kapcsolása és az aktív réteg külön törlése.
-3. Minden módosító rajzeszköz csak az aktív rétegen dolgozik; a pipetta a látható
-   kompozitból olvas.
+3. Minden módosító eszköz csak az aktív rétegen dolgozik; a pipetta a látható,
+   összerakott képből olvas.
 4. A régi egyrétegű mentés az alsó rétegre töltődik, a felső üres marad.
-5. A réteges szerkeszthető adat külön, verziózott formában mentődik; galériához,
-   nevezéshez, profilképhez és exporthoz továbbra is lapított pixelkép készül.
-6. A heti/havi felhővázlat mindkét réteget őrzi, és a szerver méret-, szín- és
-   tulajdonos-ellenőrzést végez.
-7. Mobilon a rétegváltó kompakt, becsukható panel legyen, ne szűkítse tovább a vásznat.
-8. A háromképkockás animáció és a multiplayer rétegei ne kerüljenek az első körbe;
-   külön adatmodell- és teljesítményfeladatként folytathatók.
+5. A szerkeszthető rétegek verziózott adatként mentődnek; galériához, nevezéshez,
+   profilképhez, PNG- és GIF-exporthoz lapított kompozit készül.
+6. A heti és havi felhővázlat mindkét réteget megőrzi, szerveroldali méret-, szín-
+   és tulajdonos-ellenőrzéssel.
+7. Mobilon a rétegváltó kompakt és becsukható legyen.
+8. A háromképkockás animáció és a multiplayer rétegei ne kerüljenek a v1-be.
 
 A részletes elfogadási feltételek a `PLAN.txt` elején, a
-„KÖVETKEZŐ KIEMELT FEJLESZTÉS – KÉT RÉTEG” részben vannak.
+„KÖVETKEZŐ KIEMELT FEJLESZTÉS – KÉT RÉTEG” részben találhatók.
 
-## Fontos adatbázis-megjegyzés
+## Adatbázis és biztonság
 
-A helyi `20260924113451_allow_editing_own_feed_posts.sql` migráció a meglévő éles
-adatbázisban történetileg `20260924113829` verziószámon lett alkalmazva. A helyi
-fájlnév a fejlesztési történet miatt maradt meg, a későbbi
-`20260925204835_increase_daily_feed_limit_to_three.sql` pedig már felülírja az érintett
-publikáló függvényt napi három képre.
+A helyi és éles Supabase-migrációtörténetben több korábbi név- és verzióeltérés
+van. Production környezetben tilos vakon `supabase db push` vagy általános
+`migration repair` parancsot futtatni.
 
-Ezt a migrációt ne alkalmazd vakon újra, és production környezeten ne futtass
-automatikus migration repairt. Új migráció előtt előbb hasonlítsd össze a helyi és
-távoli migrációlistát, majd az eltérést tudatosan kezeld. Tiszta, új adatbázison a
-helyi migrációs sor normál sorrendben alkalmazható.
+Új adatbázis-módosítás előtt:
 
-A teljes helyi és távoli migrációtörténet több további történeti néveltérést is
-tartalmaz, ezért jelenleg tilos vak `supabase db push`-t futtatni. A
-`20261003160309_admin_delete_lobby_messages.sql` migráció célzott SQL-ként került az
-éles adatbázisra, majd kizárólag a `20261003160309` verzió lett alkalmazottként
-rögzítve. Következő adatbázis-módosítás előtt mindig futtasd a
-`supabase migration list --linked` parancsot.
+1. `supabase migration list --linked`
+2. a helyi és távoli sor kézi összehasonlítása;
+3. új, önálló migráció készítése;
+4. célzott alkalmazás és csak annak a verziónak a rögzítése;
+5. jogosultságok és security advisor újbóli ellenőrzése.
 
-A 2026-10-03-i security advisor több, korábbról meglévő figyelmeztetést jelez a
-régi, nyilvános `SECURITY DEFINER` RPC-kre és az anonymous Auth mellett használt RLS
-szabályokra. Ezek nem az új előszobatörlésből származnak. Ne módosítsd őket vakon,
-mert a vendégjáték és több ellenőrzött RPC szándékosan ezekre épül; külön biztonsági
-felülvizsgálatban kell őket egyenként értékelni.
+A `20261003160309_admin_delete_lobby_messages.sql` célzott SQL-ként került élesre,
+majd kizárólag a `20261003160309` verzió lett alkalmazottként rögzítve.
 
-## PWA- és kiadási szabályok
+A 2026-10-03-i security advisor több korábbi, nyilvános `SECURITY DEFINER` RPC-re
+és az anonymous Auth mellett használt RLS-szabályra jelez. Ezek nem az új
+előszobatörlésből származnak. Ne módosítsd őket egyben vagy vakon, mert a vendégjáték
+és több ellenőrzött RPC szándékosan ezekre épül; külön auditban kell egyenként
+értékelni őket.
 
-- A manifest: `public/manifest.webmanifest`.
-- A service worker: `public/service-worker.js`.
-- Az alkalmazásikonok: `public/icons/bitscrawl-app-180.png`, `-192.png`, `-512.png`
-  és `bitscrawl-app-maskable-512.png`.
-- Ne vezess be offline App Shell cache-t külön multiplayer-verzióegyeztetés nélkül.
-- Élesítés előtt legyen sikeres build, lint, releváns tesztek és `git diff --check`.
-- Frontend kiadás: `npm run deploy`. Ez buildel, majd a Cloudflare Pages `bitscrawl`
-  projekt `main` production ágára tölt.
-- A GitHub push és a Cloudflare kiadás két külön lépés; mindkettő állapotát ellenőrizd.
-- Dokumentációs-only változást nem kell Cloudflare-re kiadni.
+## Ellenőrzés és kiadás
 
-## Helyi indítás és alapellenőrzés
+Helyi indítás:
 
 ```powershell
 npm install
@@ -145,37 +167,51 @@ npm run test:pwa
 git diff --check
 ```
 
-A `package.json` tartalmaz további célzott teszteket a galériához, moderációhoz,
-scoreboardhoz, havi ponthoz, köridőhöz és multiplayerhez. A `.env.local`-t igénylő
-élő teszteket csak izolált próbaadatokkal futtasd; a létrehozott szobákat és adatokat
-a teszt végén takarítsd el.
+A `package.json` további célzott teszteket tartalmaz galériához, moderációhoz,
+scoreboardhoz, havi pontozáshoz, köridőhöz és multiplayerhez. Élő tesztet csak
+izolált próbaadattal futtass, majd takarítsd el a létrehozott adatokat.
+
+Élesítés előtt legyen sikeres a build, lint, releváns teszt és `git diff --check`.
+A GitHub push és a Cloudflare-kiadás két külön művelet. Frontend kiadás:
+
+```powershell
+npm run deploy
+```
+
+Dokumentációs-only változást nem kell Cloudflare-re kiadni.
+
+## Utolsó ellenőrzési eredmény
+
+- 21 helyi, `.env.local` nélküli tesztparancs
+- összesen 206 sikeres ellenőrzés, hiba és kihagyás nélkül
+- TypeScript/Vite production build sikeres
+- OXLint sikeres
+- `git diff --check` sikeres
+- az előszoba-admin RPC éles jogosultságai ellenőrzöttek
+- az éles adminfelület és a törlési megerősítés ellenőrzött
+
+A Vite továbbra is jelzi, hogy a production JavaScript körülbelül 664 kB
+tömörítés előtt. Ez nem kiadást blokkoló hiba, de később érdemes a nagy nézeteket
+dinamikusan betölteni.
 
 ## Még nyitott ellenőrzések
 
-- Android Chrome és asztali Chrome/Edge PWA-telepítés.
-- Korábban telepített PWA automatikus frissülése egy új kiadás után.
-- Fizikai telefonon billentyűzetes mezők és hálózatkimaradás utáni folytatás.
-- A két réteg implementációja előtt a mentési formátum és az adatbázis-migráció
-  részletes, visszafelé kompatibilis megtervezése.
-- A production JavaScript jelenleg körülbelül 662 kB tömörítés előtt; a build sikeres,
-  de a Vite 500 kB felett kódszétválasztást javasol. Ez nem kiadást blokkoló hiba,
-  későbbi teljesítményfeladatként érdemes a nagy nézeteket dinamikusan betölteni.
+- PWA látható verziófrissítési jelzés és buildazonosító.
+- Telepített PWA valós A → B frissítési próba iPhone-on.
+- Android Chrome és asztali Chrome/Edge PWA-telepítés/frissítés.
+- Fizikai telefonos billentyűzet- és hálózatkimaradási esetek.
+- Két réteg visszafelé kompatibilis mentési formátuma és adatbázis-migrációja.
+- A régi security-advisor figyelmeztetések egyenkénti biztonsági felülvizsgálata.
+- Production JavaScript kódszétválasztása.
 
-## Átadáskori ellenőrzési eredmény
+## Javasolt munkakezdési sorrend az új beszélgetésben
 
-2026. október 3-án lefutott mind a 21 helyi, `.env.local` nélküli tesztparancs:
-összesen 206 ellenőrzés ment át, hiba és kihagyás nélkül. A TypeScript/Vite production
-build, az OXLint és a `git diff --check` szintén sikeres. Ez a dokumentációs kör nem
-futtatta újra az élő Supabase-t módosító többjátékos teszteket. Az előszoba-admin
-törlés helyi jogosultsági tesztje és éles funkciójogosultsága külön ellenőrzést kapott.
-
-## Munkakezdési sorrend az új beszélgetésben
-
-1. `git status --short`, `git log -5 --oneline`, majd az éles oldal és a branch
-   egyezésének ellenőrzése.
+1. Git-állapot és éles commit ellenőrzése.
 2. `ATADAS.md`, a `PLAN.txt` eleje és `README.md` elolvasása.
-3. A két réteg adatmodelljének megtervezése a meglévő `PixelCanvas`, `DrawingEditor`,
-   `WeeklyDraw`, `MonthlyDraw`, `challengeDrafts` és mentési RPC-k alapján.
-4. Először kompatibilitási tesztek, utána a statikus Szerkesztő prototípusa.
-5. Mobilos próba után heti, majd havi kihívás bekötése.
-6. A felhasználó tesztje és külön jóváhagyása előtt ne élesítsd a réteges változatot.
+3. A kis PWA-frissítési jelzés/buildazonosító megvalósítása és fizikai telefonos
+   A → B próba, ha a felhasználó ezt kéri elsőnek.
+4. A két réteg adatmodelljének megtervezése a meglévő `PixelCanvas`,
+   `DrawingEditor`, `WeeklyDraw`, `MonthlyDraw`, vázlatok és mentési RPC-k alapján.
+5. Kompatibilitási tesztek, majd a statikus Szerkesztő két réteges prototípusa.
+6. Mobilos próba után heti, majd havi kihívás bekötése.
+7. A felhasználó tesztje és külön jóváhagyása előtt a réteges változatot ne élesítsd.

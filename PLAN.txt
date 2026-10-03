@@ -26,7 +26,8 @@ Jelölések:
   A mobilos fejléc 320×700-as szimulált nézetben kilógás nélkül működik; a mentés,
   betöltés és GIF-export a közös Megosztás / mentés menüben található.
 - [x] A fenti csomag buildje, lintje, szerkesztő-, animáció-, GIF- és galériatesztjei
-  sikeresek. A GitHub- és Cloudflare-kiadás a `2526d40` commitból éles.
+  sikeresek. A jelenlegi GitHub- és Cloudflare-kiadás a `364c377` commitból éles;
+  ebben már az adminos előszoba-moderálás is benne van.
 - [>] A fizikai telefonos animációs alappróba és a PWA iPhone-telepítés sikeres;
   a billentyűzetes és hálózatkimaradási eset, valamint az Android/asztali PWA-próba
   még külön ellenőrzendő.
@@ -34,6 +35,24 @@ Jelölések:
   ikonokkal, Beállításokból elérhető telepítési segítséggel és hálózat‑csak service
   workerrel. Nincs offline cache. Az iPhone-próba sikeres; az Android/asztali
   telepítés és egy későbbi kiadás automatikus frissülésének ellenőrzése még hátravan.
+- [x] A telepített PWA ugyanarról a `https://bitscrawl.pages.dev/` címről kapja az
+  új kiadásokat, ezért nem kell minden verziónál újratelepíteni. A service worker
+  `updateViaCache: 'none'`, `skipWaiting()` és `clients.claim()` beállítást használ,
+  az oldal pedig nem tart fenn offline alkalmazás-cache-t. iPhone-on a teljes
+  bezárás és újranyitás tölti be biztosan az új klienst; az alkalmazásikon és a
+  manifest erősebb iOS-cache miatt ikoncserekor még igényelhet újratelepítést.
+
+KÖVETKEZŐ KIS PWA-FEJLESZTÉS – LÁTHATÓ VERZIÓFRISSÍTÉS
+
+- [ ] Induláskor és az alkalmazás újbóli előtérbe kerülésekor ellenőrizzük, van-e
+  új kiadás. Ha igen, jelenjen meg: `Új Bitscrawl-verzió érhető el – Frissítés`.
+- [ ] A Frissítés gomb tudatos felhasználói műveletre töltse újra az alkalmazást;
+  aktív rajzolás, nevezés vagy multiplayer-kör közben ne legyen automatikus reload.
+- [ ] A kiadás kapjon kliensből olvasható buildazonosítót, hogy a támogatásnál és a
+  hibajelentésekben látható legyen, pontosan melyik verzió fut az eszközön.
+- [ ] Fizikai iPhone-on egy valós A → B Cloudflare-kiadással ellenőrizni kell, hogy
+  a telepített PWA jelzi és a gombbal betölti az új verziót. Utána Android Chrome és
+  asztali Chrome/Edge telepített módban is fusson le ugyanaz a próba.
 
 KÖVETKEZŐ KIEMELT FEJLESZTÉS – KÉT RÉTEG
 
