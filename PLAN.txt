@@ -7,6 +7,10 @@ Jelölések:
 [ ] még hátra van
 
 2026-10-03-i aktuális állapot:
+- [x] Az admin az előszoba-chat minden üzeneténél külön, megerősített Törlés gombot
+  kapott. A jogosultságot továbbra is a szerveroldali, privát adminlista ellenőrzi;
+  közvetlen táblatörlési jog nem került a klienshez. A `martinteteme` profil 497
+  karakteres, kilógó legutolsó üzenete célzottan törölve lett az éles adatbázisból.
 - [x] A Bitscrawl PWA iPhone-on fizikailag telepítve és elindítva működik. A
   főképernyőn a beküldött fekete hátterű, színes pixelkarom ikon jelenik meg.
   A telepítési alapot és az ikont a `2526d40` commit tartalmazza.

@@ -46,6 +46,14 @@ export async function moderateDeleteContent(kind: ModerationTargetKind, id: numb
   return data
 }
 
+export async function moderateDeleteLobbyMessage(id: number) {
+  const { data, error } = await supabase.rpc('moderate_delete_lobby_message', {
+    target_message_id: id,
+  })
+  if (error) throw moderationError(error)
+  return data
+}
+
 export async function loadAdminArtworkReactions(
   kind: ArtworkReactionTargetKind,
   id: number,

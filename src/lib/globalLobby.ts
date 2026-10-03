@@ -101,6 +101,11 @@ export function subscribeToGlobalLobbyMessages(onChange: () => void) {
       { event: 'INSERT', schema: 'public', table: 'lobby_messages' },
       onChange,
     )
+    .on(
+      'postgres_changes',
+      { event: 'DELETE', schema: 'public', table: 'lobby_messages' },
+      onChange,
+    )
     .subscribe()
 
   return () => { void supabase.removeChannel(channel) }

@@ -1872,6 +1872,7 @@ function App() {
       <BugReport
         extraTrigger={<ActiveUsers
           currentProfile={playerProfile}
+          isModerator={isModerator}
         />}
         playerName={effectivePlayerName}
         roomCode={lobby?.room.code ?? null}

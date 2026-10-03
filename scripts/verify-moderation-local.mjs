@@ -55,6 +55,7 @@ before(async () => {
     ids[kind] = (await db.query(`insert into public.gallery_comments (${kind}_entry_id, user_id, content) values ($1, $2, 'Synthetic comment') returning id`, [entry.id, users[0]])).rows[0].id
   }
   await db.query('insert into private.app_admins (user_id) values ($1)', [users[2]])
+  ids.lobby = (await db.query("insert into public.lobby_messages (user_id, content) values ($1, 'Synthetic lobby message') returning id", [users[0]])).rows[0].id
   ids.feedback = (await db.query(`
     insert into public.bug_reports (user_id, reporter_name, category, description, technical_context)
     values ($1, 'FeedbackTester', 'idea', 'Synthetic admin feedback item', '{"viewport":"390x844"}'::jsonb)
@@ -84,6 +85,11 @@ test('normal users, guests and even allowlisted anonymous sessions cannot modera
     for (const [user,options,pattern] of [[users[0],{},/ADMIN_REQUIRED/],[users[2],{anonymous:true},/ADMIN_REQUIRED/],[null,{role:'anon'},/permission denied/]]) {
       await assert.rejects(asUser(user,`select ${schema}.moderate_delete_content($1,$2)`,[kind,id],options),pattern)
     }
+  }
+  for (const schema of ['public','private']) {
+    await assert.rejects(asUser(users[0],`select ${schema}.moderate_delete_lobby_message($1)`,[ids.lobby]),/ADMIN_REQUIRED/)
+    await assert.rejects(asUser(users[2],`select ${schema}.moderate_delete_lobby_message($1)`,[ids.lobby],{anonymous:true}),/ADMIN_REQUIRED/)
+    await assert.rejects(asUser(null,`select ${schema}.moderate_delete_lobby_message($1)`,[ids.lobby],{role:'anon'}),/permission denied/)
   }
 })
 
@@ -143,6 +149,18 @@ test('invalid kinds and missing targets fail without touching existing content',
   await assert.rejects(remove('invalid',ids.post),/MODERATION_KIND_INVALID/)
   for (const [kind] of targets()) await assert.rejects(remove(kind,900000000),/MODERATION_TARGET_NOT_FOUND/)
   await assert.rejects(asUser(users[2],'select * from public.get_admin_artwork_reactions($1,$2)',['invalid',ids.post]),/MODERATION_KIND_INVALID/)
+  await assert.rejects(asUser(users[2],'select public.moderate_delete_lobby_message($1)',[900000000]),/MODERATION_TARGET_NOT_FOUND/)
+})
+
+test('admin can delete exactly one lobby message', async () => {
+  const keptId = (await db.query("insert into public.lobby_messages (user_id, content) values ($1, 'Keep this message') returning id", [users[1]])).rows[0].id
+  assert.deepEqual(
+    await asUser(users[2], 'select public.moderate_delete_lobby_message($1)', [ids.lobby]),
+    [{ moderate_delete_lobby_message: true }],
+  )
+  assert.equal((await db.query('select count(*)::integer as n from public.lobby_messages where id=$1',[ids.lobby])).rows[0].n,0)
+  assert.equal((await db.query('select count(*)::integer as n from public.lobby_messages where id=$1',[keptId])).rows[0].n,1)
+  await assert.rejects(asUser(users[2], 'select public.moderate_delete_lobby_message($1)', [ids.lobby]), /MODERATION_TARGET_NOT_FOUND/)
 })
 
 test('admin comment removal cascades comment likes', async () => {

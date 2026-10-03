@@ -801,6 +801,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      moderate_delete_lobby_message: {
+        Args: { target_message_id: number }
+        Returns: boolean
+      }
       get_profile_avatar_like_state: {
         Args: { target_profile_name: string }
         Returns: {

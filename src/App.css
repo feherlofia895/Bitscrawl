@@ -1599,6 +1599,61 @@ footer {
   box-shadow: none;
 }
 
+.global-chat-message-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.global-chat-delete-button {
+  min-height: 26px;
+  padding: 4px 7px;
+  color: var(--ink);
+  background: var(--coral);
+  border: 1px solid var(--ink);
+  font: 900 .52rem/1 var(--pixel-font);
+}
+
+.global-chat-delete-confirmation {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 rgb(36 26 53 / 25%);
+}
+
+.global-chat-delete-confirmation > strong {
+  font-family: var(--display-font);
+  font-size: .9rem;
+}
+
+.global-chat-delete-confirmation > p {
+  margin: 0;
+  font-size: .75rem;
+  line-height: 1.35;
+}
+
+.global-chat-delete-confirmation > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.global-chat-delete-confirmation button {
+  min-height: 32px;
+  padding: 6px 9px;
+  font-size: .62rem;
+}
+
+.global-chat-delete-confirmation .global-chat-delete-confirm-button {
+  background: var(--coral);
+}
+
 .brush-size-controls {
   display: flex;
   align-items: center;

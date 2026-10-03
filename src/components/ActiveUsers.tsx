@@ -12,6 +12,7 @@ import {
   type OnlineProfile,
 } from '../lib/globalLobby'
 import { loadOwnProfile, type PlayerProfile } from '../lib/profile'
+import { moderateDeleteLobbyMessage } from '../lib/moderation'
 import { supabase } from '../lib/supabase'
 import { ProfileAvatar } from './ProfileAvatar'
 import { ProfilePreviewButton } from './ProfilePreviewButton'
@@ -33,8 +34,10 @@ const connectionLabels: Record<GlobalLobbyConnectionStatus, string> = {
 
 export function ActiveUsers({
   currentProfile,
+  isModerator,
 }: {
   currentProfile: PlayerProfile | null
+  isModerator: boolean
 }) {
   const [identity, setIdentity] = useState<Identity | null>(null)
   const [onlineProfiles, setOnlineProfiles] = useState<OnlineProfile[]>([])
@@ -45,6 +48,8 @@ export function ActiveUsers({
   const [isSending, setIsSending] = useState(false)
   const [message, setMessage] = useState('')
   const [feedback, setFeedback] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState<GlobalLobbyMessage | null>(null)
+  const [deletingMessageId, setDeletingMessageId] = useState<number | null>(null)
   const messageListRef = useRef<HTMLDivElement>(null)
   const isOpenRef = useRef(false)
 
@@ -122,6 +127,12 @@ export function ActiveUsers({
   useEffect(() => {
     if (!isOpen) return
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (deleteTarget && event.key === 'Escape') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        setDeleteTarget(null)
+        return
+      }
       if (event.key === 'Escape') {
         event.preventDefault()
         event.stopImmediatePropagation()
@@ -130,13 +141,13 @@ export function ActiveUsers({
     }
     window.addEventListener('keydown', handleKeyDown, true)
     return () => window.removeEventListener('keydown', handleKeyDown, true)
-  }, [isOpen])
+  }, [deleteTarget, isOpen])
 
   useEffect(() => {
     if (!isOpen) return
     const list = messageListRef.current
     if (list) list.scrollTop = list.scrollHeight
-  }, [isOpen, messages])
+  }, [deleteTarget, isOpen, messages])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -155,6 +166,23 @@ export function ActiveUsers({
       setFeedback(error instanceof Error ? error.message : 'Az üzenetet nem sikerült elküldeni.')
     } finally {
       setIsSending(false)
+    }
+  }
+
+  const handleDeleteMessage = async (target: GlobalLobbyMessage) => {
+    if (!isModerator || deletingMessageId !== null) return
+    setDeletingMessageId(target.messageId)
+    setFeedback('')
+    try {
+      await moderateDeleteLobbyMessage(target.messageId)
+      setMessages(current => current.filter(item => item.messageId !== target.messageId))
+      setDeleteTarget(null)
+      setFeedback('Az előszobaüzenet törölve.')
+    } catch (error) {
+      setDeleteTarget(null)
+      setFeedback(error instanceof Error ? error.message : 'Az üzenetet nem sikerült törölni.')
+    } finally {
+      setDeletingMessageId(null)
     }
   }
 
@@ -212,10 +240,30 @@ export function ActiveUsers({
                       <ProfileAvatar label={`${chatMessage.authorName} profilképe`} pixels={chatMessage.authorAvatar} />
                       <strong>{chatMessage.authorName}</strong>
                     </ProfilePreviewButton>
-                    <time dateTime={chatMessage.createdAt}>{timeLabel(chatMessage.createdAt)}</time>
+                    <span className="global-chat-message-actions">
+                      <time dateTime={chatMessage.createdAt}>{timeLabel(chatMessage.createdAt)}</time>
+                      {isModerator ? <button
+                        aria-label={`${chatMessage.authorName} előszobaüzenetének törlése`}
+                        className="global-chat-delete-button"
+                        disabled={deletingMessageId !== null}
+                        onClick={() => setDeleteTarget(chatMessage)}
+                        title="Admin: üzenet törlése"
+                        type="button"
+                      >Törlés</button> : null}
+                    </span>
                   </div>
                   <p>{chatMessage.content}</p>
                 </article>) : <p className="active-users-empty">Még nincs üzenet. Köszönj elsőként!</p>}
+                {deleteTarget ? <section aria-labelledby="global-chat-delete-title" aria-modal="true" className="global-chat-delete-confirmation" role="alertdialog">
+                  <strong id="global-chat-delete-title">Moderátorként törlöd ezt az üzenetet?</strong>
+                  <p>A(z) {deleteTarget.authorName} által írt előszobaüzenet végleg törlődik.</p>
+                  <div>
+                    <button disabled={deletingMessageId !== null} onClick={() => setDeleteTarget(null)} type="button">Mégsem</button>
+                    <button className="global-chat-delete-confirm-button" disabled={deletingMessageId !== null} onClick={() => { void handleDeleteMessage(deleteTarget) }} type="button">
+                      {deletingMessageId === deleteTarget.messageId ? 'Törlés…' : 'Üzenet törlése'}
+                    </button>
+                  </div>
+                </section> : null}
               </div>
               <form className="global-lobby-chat-form" onSubmit={event => { void handleSubmit(event) }}>
                 <label>

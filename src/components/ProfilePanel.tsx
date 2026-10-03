@@ -187,7 +187,7 @@ export function ProfilePanel({ onBack, onProfileChange }: {
                 {isModerator ? <span className="profile-admin-badge">Admin</span> : null}
               </div>
               <p>{user.email}</p>
-              {isModerator ? <p className="profile-admin-note">A Rajzfal és a kihívásgalériák képeit és kommentjeit moderálhatod.</p> : null}
+              {isModerator ? <p className="profile-admin-note">A Rajzfal, a kihívásgalériák és az előszoba-chat tartalmait moderálhatod.</p> : null}
               <div className="profile-achievements">
                 <h3>Elért eredmények:</h3>
                 {profile?.privateNote ? <p className="profile-private-title">{profile.privateNote}</p> : null}

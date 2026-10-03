@@ -11,7 +11,8 @@ fájlt, utána a `PLAN.txt` elejét és a `README.md` fájlt olvasd el.
 - Projekt: `C:\Users\23hun\Documents\Codex\2026-09-22\olvasd-el-teljesen-a-bitscrawl-atadas\work\package-10-live-extras`
 - GitHub: `https://github.com/feherlofia895/Bitscrawl.git`
 - Aktív ág: `agent/12-color-palette-logo`
-- Legutóbbi funkcionális commit az átadáskor: `2526d40` (`Add installable PWA with custom icon`)
+- PWA mérföldkő: `2526d40` (`Add installable PWA with custom icon`); az aktuális
+  funkcionális HEAD-et mindig a `git log -1 --oneline` paranccsal ellenőrizd.
 - Éles oldal: `https://bitscrawl.pages.dev/`
 - Cloudflare Pages projekt: `bitscrawl`, production ág: `main`
 
@@ -39,7 +40,8 @@ működik.
   örökranglista és „A legmenőbbek” dobogós nézet.
 - A közösségi rajzfal napi három beküldést, leírást, kedvelést, kommentet és
   kommentkedvelést támogat. Az admin felület képet, kommentet és visszajelzést tud
-  moderálni; az admin a képek reakcióinak szerzőit is láthatja.
+  moderálni; az admin a képek reakcióinak szerzőit is láthatja. Az admin az
+  előszoba-chat bármely üzenetét külön megerősítés után törölheti.
 - A profilok rajzolt avatárt, nyilvános statisztikát, trófeákat és három,
   profillal szinkronizált, legfeljebb 16 színes egyéni palettát kezelnek.
 - A Szerkesztőben és mindkét kihívásban elérhető a pipetta, újra, 1×/2×/3× ecset és
@@ -95,6 +97,19 @@ automatikus migration repairt. Új migráció előtt előbb hasonlítsd össze a
 távoli migrációlistát, majd az eltérést tudatosan kezeld. Tiszta, új adatbázison a
 helyi migrációs sor normál sorrendben alkalmazható.
 
+A teljes helyi és távoli migrációtörténet több további történeti néveltérést is
+tartalmaz, ezért jelenleg tilos vak `supabase db push`-t futtatni. A
+`20261003160309_admin_delete_lobby_messages.sql` migráció célzott SQL-ként került az
+éles adatbázisra, majd kizárólag a `20261003160309` verzió lett alkalmazottként
+rögzítve. Következő adatbázis-módosítás előtt mindig futtasd a
+`supabase migration list --linked` parancsot.
+
+A 2026-10-03-i security advisor több, korábbról meglévő figyelmeztetést jelez a
+régi, nyilvános `SECURITY DEFINER` RPC-kre és az anonymous Auth mellett használt RLS
+szabályokra. Ezek nem az új előszobatörlésből származnak. Ne módosítsd őket vakon,
+mert a vendégjáték és több ellenőrzött RPC szándékosan ezekre épül; külön biztonsági
+felülvizsgálatban kell őket egyenként értékelni.
+
 ## PWA- és kiadási szabályok
 
 - A manifest: `public/manifest.webmanifest`.
@@ -149,10 +164,10 @@ a teszt végén takarítsd el.
 ## Átadáskori ellenőrzési eredmény
 
 2026. október 3-án lefutott mind a 21 helyi, `.env.local` nélküli tesztparancs:
-összesen 203 ellenőrzés ment át, hiba és kihagyás nélkül. A TypeScript/Vite production
+összesen 206 ellenőrzés ment át, hiba és kihagyás nélkül. A TypeScript/Vite production
 build, az OXLint és a `git diff --check` szintén sikeres. Ez a dokumentációs kör nem
-futtatta újra az élő Supabase-t módosító többjátékos teszteket, és futásidejű kódot
-nem változtatott.
+futtatta újra az élő Supabase-t módosító többjátékos teszteket. Az előszoba-admin
+törlés helyi jogosultsági tesztje és éles funkciójogosultsága külön ellenőrzést kapott.
 
 ## Munkakezdési sorrend az új beszélgetésben
 

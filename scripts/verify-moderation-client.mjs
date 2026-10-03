@@ -19,13 +19,14 @@ const library = rpc => compile('../src/lib/moderation.ts', { './supabase': { sup
 const settle = () => new Promise(resolve=>setImmediate(resolve))
 const deferred = () => { let resolve, reject; const promise=new Promise((yes,no)=>{resolve=yes;reject=no}); return {promise,resolve,reject} }
 
-test('moderation RPCs use exact target and only expose display names and timestamps', async () => {
+test('moderation RPCs use exact targets and only expose display names and timestamps', async () => {
   const calls=[]
-  const api=await library(async(name,args)=>{calls.push([name,args]);return {data:name==='is_app_admin'?true:name==='moderate_delete_content'?true:[{display_name:'Synthetic',reacted_at:'2026-01-01',user_id:'must-not-leak'}],error:null}})
+  const api=await library(async(name,args)=>{calls.push([name,args]);return {data:name==='is_app_admin'?true:name.startsWith('moderate_delete_')?true:[{display_name:'Synthetic',reacted_at:'2026-01-01',user_id:'must-not-leak'}],error:null}})
   assert.equal(await api.loadModeratorAccess(),true)
   assert.equal(await api.moderateDeleteContent('feed-comment',12),true)
+  assert.equal(await api.moderateDeleteLobbyMessage(56),true)
   assert.deepEqual(await api.loadAdminArtworkReactions('weekly-entry',34),[{displayName:'Synthetic',reactedAt:'2026-01-01'}])
-  assert.deepEqual(calls,[['is_app_admin',undefined],['moderate_delete_content',{target_id:12,target_kind:'feed-comment'}],['get_admin_artwork_reactions',{target_id:34,target_kind:'weekly-entry'}]])
+  assert.deepEqual(calls,[['is_app_admin',undefined],['moderate_delete_content',{target_id:12,target_kind:'feed-comment'}],['moderate_delete_lobby_message',{target_message_id:56}],['get_admin_artwork_reactions',{target_id:34,target_kind:'weekly-entry'}]])
 })
 
 test('access requires literal true; permission and target errors reach the caller', async () => {
@@ -33,8 +34,20 @@ test('access requires literal true; permission and target errors reach the calle
   const api=await library(async()=>({data:null,error:{message:'ADMIN_REQUIRED'}}))
   await assert.rejects(api.loadModeratorAccess(),/jogosultság/)
   await assert.rejects(api.moderateDeleteContent('feed-post',1),/jogosultság/)
+  await assert.rejects(api.moderateDeleteLobbyMessage(1),/jogosultság/)
   await assert.rejects(api.loadAdminArtworkReactions('feed-post',1),/jogosultság/)
   assert.deepEqual(await (await library(async()=>({data:null,error:null}))).loadAdminArtworkReactions('feed-post',1),[])
+})
+
+test('lobby UI exposes confirmed delete controls only through moderator state and refreshes deletes', async () => {
+  const activeUsers=await readFile(new URL('../src/components/ActiveUsers.tsx',import.meta.url),'utf8')
+  const app=await readFile(new URL('../src/App.tsx',import.meta.url),'utf8')
+  const lobby=await readFile(new URL('../src/lib/globalLobby.ts',import.meta.url),'utf8')
+  assert.match(app,/<ActiveUsers[\s\S]*?isModerator=\{isModerator\}/)
+  assert.match(activeUsers,/isModerator \? <button[\s\S]*?global-chat-delete-button/)
+  assert.match(activeUsers,/moderateDeleteLobbyMessage\(target\.messageId\)/)
+  assert.match(activeUsers,/Moderátorként törlöd ezt az üzenetet\?/)
+  assert.match(lobby,/\{ event: 'DELETE', schema: 'public', table: 'lobby_messages' \}/)
 })
 
 function runtime() {
