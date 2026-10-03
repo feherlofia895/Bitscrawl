@@ -1031,7 +1031,10 @@ function App() {
     <main className="app-shell" data-reduced-motion={reduceMotion}>
       <header className="topbar">
         <a className="brand" href="#top" aria-label="Bitscrawl kezdőlap">
-          <img alt="" aria-hidden="true" className="topbar-brand-logo" src="/bitscrawl-logo.png" />
+          <span aria-hidden="true" className="topbar-brand-logo">
+            <img className="topbar-logo-frame logo-frame-off" src="/ui/bitscrawl-logo.png" />
+            <img className="topbar-logo-frame logo-frame-cursor" src="/ui/bitscrawl-logo-cursor.png" />
+          </span>
         </a>
         <button
           aria-label="Beállítások"
