@@ -7,6 +7,9 @@ Jelölések:
 [ ] még hátra van
 
 2026-10-03-i aktuális állapot:
+- [x] A Bitscrawl PWA iPhone-on fizikailag telepítve és elindítva működik. A
+  főképernyőn a beküldött fekete hátterű, színes pixelkarom ikon jelenik meg.
+  A telepítési alapot és az ikont a `2526d40` commit tartalmazza.
 - [x] A Szerkesztő és a heti/havi kihívás közös vászonmotorja megkapta a pipettát,
   az újrát, az 1×/2×/3× ecset- és radírméretet, a színcserét, valamint a kijelölés
   forgatását és vízszintes/függőleges tükrözését.
@@ -19,14 +22,40 @@ Jelölések:
   A mobilos fejléc 320×700-as szimulált nézetben kilógás nélkül működik; a mentés,
   betöltés és GIF-export a közös Megosztás / mentés menüben található.
 - [x] A fenti csomag buildje, lintje, szerkesztő-, animáció-, GIF- és galériatesztjei
-  sikeresek. A GitHub- és Cloudflare-kiadás a `444e580` commitból éles.
-- [>] A következő feladat a fizikai telefonos próba a lenti, 14-es pontban rögzített
-  ellenőrzőlista szerint. A `444e580` kiadás animációs alappróbája fizikai telefonon
-  sikeres volt; a billentyűzetes és hálózatkimaradási eset még külön ellenőrzendő.
-- [>] A PWA telepítési csomag elkészült szabványos 180/192/512 pixeles
+  sikeresek. A GitHub- és Cloudflare-kiadás a `2526d40` commitból éles.
+- [>] A fizikai telefonos animációs alappróba és a PWA iPhone-telepítés sikeres;
+  a billentyűzetes és hálózatkimaradási eset, valamint az Android/asztali PWA-próba
+  még külön ellenőrzendő.
+- [x] A PWA telepítési csomag elkészült szabványos 180/192/512 pixeles
   ikonokkal, Beállításokból elérhető telepítési segítséggel és hálózat‑csak service
-  workerrel. Nincs offline cache; az éles Android/iPhone/asztali telepítési próba
-  és a verziófrissítés ellenőrzése még hátravan.
+  workerrel. Nincs offline cache. Az iPhone-próba sikeres; az Android/asztali
+  telepítés és egy későbbi kiadás automatikus frissülésének ellenőrzése még hátravan.
+
+KÖVETKEZŐ KIEMELT FEJLESZTÉS – KÉT RÉTEG
+
+- [ ] A Szerkesztőben, a heti kihívásban és a havi kihívásban legyen két külön
+  rajzréteg. A funkció első változatának célja nem korlátlan rétegszám, hanem egy
+  egyszerű, telefonon is kényelmes, pontosan két réteges munkafolyamat.
+- [ ] A felhasználó választhassa ki az aktív réteget, kapcsolhassa annak láthatóságát,
+  és külön törölhesse a réteg tartalmát. Az aktív réteg legyen egyértelműen jelölve.
+- [ ] A ceruza, radír, kitöltés, vonal, téglalap, ellipszis, színcsere, kijelölés,
+  forgatás és tükrözés csak az aktív réteget módosítsa; a pipetta az összerakott,
+  látható képből vehessen mintát.
+- [ ] A két réteg sorrendje az első verzióban rögzített lehet (alsó és felső), hogy a
+  mobilos kezelőfelület és a mentési modell egyszerű maradjon. Rétegek tetszőleges
+  átrendezése és kettőnél több réteg későbbi bővítés.
+- [ ] A meglévő egyrétegű rajzok veszteség nélkül nyíljanak meg az alsó rétegen,
+  üres felső réteggel. Galériába küldéskor, profilképnél, PNG/GIF exportnál és minden
+  régi megjelenítőnél a két réteg lapított kompozitja maradjon a kompatibilis kimenet.
+- [ ] A heti és havi kihívások automatikus mentése mindkét réteget őrizze meg, hogy a
+  beküldési határidőig másik eszközön is folytatható legyen a szerkesztés. Ehhez
+  verziózott, szerveroldalon validált rétegadat és migráció szükséges; a végleges
+  nevezés továbbra is a lapított képet használja a galériában és a szavazásban.
+- [ ] Az első két réteges változat a statikus Szerkesztőre és a heti/havi kihívásra
+  készüljön el. A háromképkockás animáció és a multiplayer-vászon rétegesítése külön,
+  későbbi feladat legyen, mert azok eltérő mentési és hálózati modellt igényelnek.
+- [ ] Legyen automatizált kompatibilitási teszt régi egyrétegű mentésre, két réteg
+  mentésére-visszatöltésére, kompozitálásra, kihívás-vázlatra és mobilos vezérlésre.
 
 2026-09-21-i audit- és visszajelzési állapot:
 - [x] Bejelentkezett, mentett profillal az Új szoba és a Csatlakozás már nem kér
@@ -163,11 +192,10 @@ Jelölések:
   lefutott; az éles főmenü és a Gomba kihívás külön böngészős ellenőrzést kapott.
 
 Következő javasolt munkasorrend:
-1. A 14-es regresszió fizikai telefonos része: fejléc és menük, rajzolás és érintéses
-   teljes nézet, egyéni paletta, háromképkockás animáció, GIF-letöltés, privát
-   animációmentés és -betöltés, valamint billentyűzetes mezők.
-2. A PWA tényleges telepíthetőségi próbája Androidon, iPhone-on és számítógépen,
-   majd egy egyszerű, biztonságos frissítési stratégia kialakítása.
+1. A két réteges statikus Szerkesztő prototípusa, majd mobilos próba után ugyanennek
+   a heti és havi kihívásba kötése a fenti kompatibilitási szabályokkal.
+2. A 14-es regresszióból még nyitott fizikai telefonos billentyűzet- és
+   hálózatkimaradási esetek, valamint az Android/asztali PWA-próba.
 3. A 32 színű és egyéni paletták multiplayer-szobákhoz kötött, verziózott
    szerveroldali támogatása.
 4. Az Elérhető szobák alapváltozata név- és spamvédelemmel.
@@ -937,9 +965,10 @@ Első PWA-alap (2026-09-20):
   Bitscrawl grafikára cserélődött. A manifest és az iPhone touch ikon a meglévő,
   szabványos fájlneveket használja tovább.
 - [ ] Éles Android Chrome telepítés és külön alkalmazásablak ellenőrzése.
-- [ ] Éles iPhone Safari Főképernyőhöz adás, ikon és standalone ablak ellenőrzése.
-- [ ] Korábban telepített példánynál szükség esetén eltávolítás és újratelepítés után
-  ellenőrizzük az új ikont, mert az operációs rendszer gyorsítótárazhatja a régit.
+- [x] Éles iPhone Safari Főképernyőhöz adás, egyedi ikon és standalone ablak
+  ellenőrzése sikeres fizikai telefonon.
+- [x] Az első indításkor látott régi kérdőjeles ikon egyszerű oldalfrissítés után az
+  új fekete, színes pixelkarom ikonra váltott; külön fájlnévcsere nem kellett.
 - [ ] Asztali Chrome/Edge telepítés, majd egy új kiadással az automatikus frissülés
   ellenőrzése.
 
@@ -967,8 +996,8 @@ Javasolt sorrend és függőségek:
 
 1. Az MVP előtt zárjuk le a szerveroldali lapozást, majd a 14-es összevont mobilos,
    többjátékos és hálózatkimaradási regressziót.
-2. Ezután következzen a PWA tényleges telepíthetőségi próbája és a 16-os MVP-kiadási
-   ellenőrzés; a manifest már elkészült, a service worker és a frissítési stratégia nyitott.
+2. Ezután következzen az Android/asztali PWA-próba és a 16-os MVP-kiadási
+   ellenőrzés; a manifest, a hálózat-csak service worker és az iPhone-próba elkészült.
 3. Az Elérhető szobák csak alapvető név- és spamvédelemmel kerüljön ki.
 4. A Párhuzamos rajzverseny a meglévő vendégmunkamenetekkel is elkészülhet, de külön
    játékmód-állapotgépet igényel.
