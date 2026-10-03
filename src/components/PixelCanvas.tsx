@@ -56,7 +56,9 @@ type PixelCanvasProps = {
     initialPixels: string[]
     onChange: (pixels: string[]) => void
     onRequestClear?: (clear: () => void) => void
+    onRequestFlush?: (flush: () => void) => void
   }
+  onionSkinPixels?: string[] | null
   canDraw: boolean
   chosenWord: string | null
   drawingEndsAt: string | null
@@ -297,6 +299,7 @@ export function PixelCanvas({
   customPaletteOptions,
   customPaletteSlot,
   localDrawing,
+  onionSkinPixels = null,
   canDraw,
   chosenWord,
   drawingEndsAt,
@@ -327,6 +330,7 @@ export function PixelCanvas({
   }, [onError, onSubmit, roundId])
   const pixelPalette = colorsForPalette(paletteSize)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const onionSkinCanvasRef = useRef<HTMLCanvasElement>(null)
   const canvasFrameRef = useRef<HTMLDivElement>(null)
   const pixelsRef = useRef<string[]>(
     Array.from({ length: canvasSize * canvasSize }, () => TRANSPARENT),
@@ -716,6 +720,7 @@ export function PixelCanvas({
 
   useEffect(() => {
     flushPendingChangesRef.current = flushPendingChanges
+    localDrawingRef.current?.onRequestFlush?.(() => flushPendingChangesRef.current())
   })
 
   const previewSelection = (point: PixelPoint) => {
@@ -1083,6 +1088,20 @@ export function PixelCanvas({
       })
     }
   }, [canvasSize, roundId])
+
+  useEffect(() => {
+    const context = onionSkinCanvasRef.current?.getContext('2d')
+    if (!context) return
+    context.clearRect(0, 0, canvasSize, canvasSize)
+    if (!onionSkinPixels || onionSkinPixels.length !== canvasSize * canvasSize) return
+    context.globalAlpha = 0.28
+    onionSkinPixels.forEach((color, index) => {
+      if (color === TRANSPARENT) return
+      context.fillStyle = color
+      context.fillRect(index % canvasSize, Math.floor(index / canvasSize), 1, 1)
+    })
+    context.globalAlpha = 1
+  }, [canvasSize, onionSkinPixels, roundId])
 
   useEffect(() => {
     if (!allowColorMixer && !pixelPalette.some((color) => color.hex === activeColor)) {
@@ -1937,6 +1956,15 @@ export function PixelCanvas({
                 top: `${(brushPreviewBounds.top / canvasSize) * 100}%`,
                 width: `${((brushPreviewBounds.right - brushPreviewBounds.left + 1) / canvasSize) * 100}%`,
               }}
+            />
+          ) : null}
+          {onionSkinPixels ? (
+            <canvas
+              aria-hidden="true"
+              className="onion-skin-canvas"
+              height={canvasSize}
+              ref={onionSkinCanvasRef}
+              width={canvasSize}
             />
           ) : null}
           <canvas

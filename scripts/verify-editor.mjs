@@ -94,7 +94,7 @@ test('the regular toolbar omits its duplicate pan hand and enlarges the drawn co
   assert.match(canvasSource, />Kijelölésben<\/button>/)
 })
 
-test('advanced drawing tools are enabled only in the standalone editor', async () => {
+test('advanced drawing tools are enabled in the editor and both challenges', async () => {
   const [
     canvasSource,
     drawingEditorSource,
@@ -115,7 +115,13 @@ test('advanced drawing tools are enabled only in the standalone editor', async (
 
   assert.match(canvasSource, /allowEditorTools = false/)
   assert.match(drawingEditorSource, /<PixelCanvas[\s\S]*?allowEditorTools/)
-  for (const source of [appSource, weeklySource, monthlySource, feedSource, profileSource]) {
+  assert.match(weeklySource, /<PixelCanvas[\s\S]*?allowEditorTools/)
+  assert.match(monthlySource, /<PixelCanvas[\s\S]*?allowEditorTools/)
+  assert.match(weeklySource, /useChallengeEditorPalettes/)
+  assert.match(monthlySource, /useChallengeEditorPalettes/)
+  assert.match(weeklySource, /<ChallengePalettePicker/)
+  assert.match(monthlySource, /<ChallengePalettePicker/)
+  for (const source of [appSource, feedSource, profileSource]) {
     assert.doesNotMatch(source, /allowEditorTools/)
   }
 })
@@ -274,11 +280,11 @@ test('the editor uses one share menu for the feed and both challenge entries', a
   assert.match(editorSource, /deleteOwnEditorGallerySlot\(slotIndex\)/)
   assert.match(editorSource, /A mentett kép a vásznon lévő rajz helyére kerül/)
   assert.match(editorSource, /<WeeklyArtwork[^>]*pixels=\{slot\.pixels\}/)
-  assert.match(editorSource, /onLoadFromGallery=\{\(\) => void openGalleryAction\('load'\)\}/)
-  assert.match(editorSource, /onSaveToGallery=\{\(\) => void openGalleryAction\('save'\)\}/)
+  assert.match(editorSource, /onLoadFromGallery=\{animationMode \? undefined : \(\) => void openGalleryAction\('load'\)\}/)
+  assert.match(editorSource, /onSaveToGallery=\{animationMode \? undefined : \(\) => void openGalleryAction\('save'\)\}/)
   assert.match(canvasSource, />Mentés<\/button>/)
   assert.match(canvasSource, />Betöltés<\/button>/)
-  assert.match(editorSource, /galleryAction === 'save' \? 'Rajz mentése' : 'Rajz betöltése'/)
+  assert.match(editorSource, /saveGalleryAction \? 'Rajz mentése' : 'Rajz betöltése'/)
   assert.match(cssSource, /\.editor-own-gallery-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,/)
   assert.match(gallerySource, /'weekly' \| 'monthly' \| 'feed'/)
   assert.match(gallerySource, /view="challenges"/)

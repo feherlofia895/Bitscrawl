@@ -900,6 +900,15 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_own_editor_animations: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          fps: number
+          frames: Json
+          slot_index: number
+          updated_at: string
+        }[]
+      }
       get_gallery_comments: {
         Args: { target_challenge_id: number; target_kind: string }
         Returns: {
@@ -1096,6 +1105,10 @@ export type Database = {
         Args: { target_slot: number }
         Returns: boolean
       }
+      delete_own_editor_animation_slot: {
+        Args: { target_slot: number }
+        Returns: boolean
+      }
       delete_own_editor_palette: {
         Args: { target_slot: number }
         Returns: boolean
@@ -1146,6 +1159,10 @@ export type Database = {
       }
       save_own_editor_gallery_slot: {
         Args: { drawing_pixels: Json; requested_palette_size: number; target_slot: number }
+        Returns: string
+      }
+      save_own_editor_animation_slot: {
+        Args: { animation_frames: Json; requested_fps: number; target_slot: number }
         Returns: string
       }
       save_own_editor_palette: {

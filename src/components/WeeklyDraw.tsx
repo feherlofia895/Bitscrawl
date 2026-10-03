@@ -38,10 +38,11 @@ import {
 import { createDrawingSaveQueue } from '../lib/drawingSaveQueue'
 import { clearChallengeDraft, loadChallengeDraft, saveChallengeDraft } from '../lib/challengeDrafts'
 import { loadMonthlyChallenges, type MonthlyChallenge } from '../lib/monthly'
-import type { EditorPaletteSize } from '../lib/palette'
 import { moderateDeleteContent } from '../lib/moderation'
 import { useModeratorAccess } from '../hooks/useModeratorAccess'
+import { useChallengeEditorPalettes } from '../hooks/useChallengeEditorPalettes'
 import { AdminArtworkReactions } from './AdminArtworkReactions'
+import { ChallengePalettePicker } from './ChallengePalettePicker'
 
 const blankAccount: WeeklyAccountState = {
   draftPixels: null,
@@ -81,8 +82,6 @@ function WeeklyDrawContent({ currentMonthlyChallenge, currentWeeklyChallenge, mo
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [showSubmit, setShowSubmit] = useState(false)
-  const [paletteSize, setPaletteSize] = useState<EditorPaletteSize>(32)
-  const [customPaletteActive, setCustomPaletteActive] = useState(false)
   const [loadedChallengeId, setLoadedChallengeId] = useState<number | null>(null)
   const [moderationTarget, setModerationTarget] = useState<WeeklyGalleryEntry | null>(null)
   const pixelsRef = useRef(emptyDrawing())
@@ -95,6 +94,10 @@ function WeeklyDrawContent({ currentMonthlyChallenge, currentWeeklyChallenge, mo
   const gallerySortRef = useRef(sort)
   const discoverySeedRef = useRef(discoverySeed)
   const isModerator = useModeratorAccess(user?.id)
+  const palette = useChallengeEditorPalettes(
+    user?.id && account.profileName ? `${user.id}:${account.profileName}` : 'local',
+    32,
+  )
   userIdRef.current = user?.id ?? null
   selectedIdRef.current = selectedId
   galleryPageRef.current = galleryPage
@@ -498,27 +501,35 @@ function WeeklyDrawContent({ currentMonthlyChallenge, currentWeeklyChallenge, mo
             <div><p className="step-label">A te rajzod</p><h2>Rajzold le: {challenge?.prompt}</h2></div>
             <button className="primary-button" disabled={busy || !pixelsRef.current.some(color => color !== 'transparent')} onClick={() => setShowSubmit(true)} type="button">Nevezés beküldése</button>
           </div>
-          <fieldset className="palette-mode-fieldset editor-palette-picker">
-            <legend>Színpaletta</legend>
-            <div className="palette-mode-buttons">
-              <button aria-pressed={!customPaletteActive && paletteSize === 12} onClick={() => { setCustomPaletteActive(false); setPaletteSize(12) }} type="button">12 szín · alap</button>
-              <button aria-pressed={!customPaletteActive && paletteSize === 32} onClick={() => { setCustomPaletteActive(false); setPaletteSize(32) }} type="button">32 szín · bővített</button>
-              <button aria-pressed={customPaletteActive} onClick={() => setCustomPaletteActive(true)} type="button">Egyéni paletta</button>
-            </div>
-          </fieldset>
+          <ChallengePalettePicker
+            activePaletteSlot={palette.activePaletteSlot}
+            customPaletteActive={palette.customPaletteActive}
+            customPalettes={palette.customPalettes}
+            onPaletteChange={palette.selectPalette}
+            onSlotChange={palette.selectCustomPaletteSlot}
+            paletteSize={palette.paletteSize}
+            status={palette.paletteSyncStatus}
+          />
           <PixelCanvas
             allowColorMixer
+            allowEditorTools
             canDraw={!busy}
             chosenWord={challenge?.prompt ?? null}
-            customPaletteActive={customPaletteActive}
+            customPaletteActive={palette.customPaletteActive}
+            customPaletteColors={palette.activeCustomPalette.colors}
+            customPaletteOptions={palette.customPaletteOptions}
+            customPaletteSlot={palette.activePaletteSlot}
             drawingEndsAt={challenge?.ends_at ?? null}
             events={[]}
             localDrawing={{ initialPixels: account.draftPixels ?? emptyDrawing(), onChange: handleDrawingChange }}
             onError={error => setStatus(errorMessage(error))}
-            onCustomPaletteActiveChange={setCustomPaletteActive}
-            onPaletteSizeChange={size => { setCustomPaletteActive(false); setPaletteSize(size === 32 ? 32 : 12) }}
+            onCustomPaletteActiveChange={palette.setCustomPaletteActive}
+            onCustomPaletteColorSave={palette.saveCustomColor}
+            onCustomPaletteColorsChange={palette.updateCustomPaletteColors}
+            onCustomPaletteSlotChange={palette.selectCustomPaletteSlot}
+            onPaletteSizeChange={size => palette.selectPalette(String(size))}
             onSubmit={async () => undefined}
-            paletteSize={paletteSize}
+            paletteSize={palette.paletteSize}
             roundId={challenge?.challenge_id ?? 0}
             serverNow={challenge?.server_now ?? ''}
           />

@@ -43,7 +43,8 @@ import { moderateDeleteContent } from '../lib/moderation'
 import { useModeratorAccess } from '../hooks/useModeratorAccess'
 import { ConfirmModal } from './ConfirmModal'
 import { AdminArtworkReactions } from './AdminArtworkReactions'
-import type { EditorPaletteSize } from '../lib/palette'
+import { useChallengeEditorPalettes } from '../hooks/useChallengeEditorPalettes'
+import { ChallengePalettePicker } from './ChallengePalettePicker'
 
 const blankAccount: MonthlyAccountState = {
   entryId: null,
@@ -103,8 +104,6 @@ export function MonthlyDraw({
   const [discoverySeed, setDiscoverySeed] = useState(createDiscoverySeed)
   const [loadedChallengeId, setLoadedChallengeId] = useState<number | null>(null)
   const [moderationTarget, setModerationTarget] = useState<MonthlyGalleryEntry | null>(null)
-  const [paletteSize, setPaletteSize] = useState<EditorPaletteSize>(12)
-  const [customPaletteActive, setCustomPaletteActive] = useState(false)
   const pixelsRef = useRef(emptyDrawing())
   const mountedRef = useRef(true)
   const loadVersionRef = useRef(0)
@@ -115,6 +114,10 @@ export function MonthlyDraw({
   const gallerySortRef = useRef(sort)
   const discoverySeedRef = useRef(discoverySeed)
   const isModerator = useModeratorAccess(user?.id)
+  const palette = useChallengeEditorPalettes(
+    user?.id && account.profileName ? `${user.id}:${account.profileName}` : 'local',
+    12,
+  )
   userIdRef.current = user?.id ?? null
   selectedIdRef.current = selectedId
   galleryPageRef.current = galleryPage
@@ -454,7 +457,53 @@ export function MonthlyDraw({
 
     {!loading && challenge && !accountReady ? <section className="weekly-account-card"><div><h2>A mentett rajz nem töltődött be</h2><p>A szerkesztőt addig nem nyitjuk meg, hogy a meglévő rajzod biztonságban maradjon.</p></div><button disabled={busy} onClick={() => void chooseChallenge(challenge.challenge_id)} type="button">Betöltés újra</button></section> : null}
 
-    {mode === 'challenge' && canEdit && user && account.profileName ? <section className="weekly-editor"><div className="weekly-section-heading"><div><p className="step-label">A te havi rajzod · {challenge?.canvas_size}×{challenge?.canvas_size}</p><h2>Rajzold le: {challenge?.prompt}</h2><p>Minden változtatás automatikusan mentődik.</p></div>{account.submittedAt ? <span className="weekly-status weekly-status-active">Beküldve · még szerkeszthető</span> : <button className="primary-button" disabled={busy || !pixelsRef.current.some(pixel => pixel !== 'transparent')} onClick={() => void handleSubmit()} type="button">Beküldés</button>}</div><fieldset className="palette-mode-fieldset editor-palette-picker"><legend>Színpaletta</legend><div className="palette-mode-buttons"><button aria-pressed={!customPaletteActive && paletteSize === 12} onClick={() => { setCustomPaletteActive(false); setPaletteSize(12) }} type="button">12 szín · alap</button><button aria-pressed={!customPaletteActive && paletteSize === 32} onClick={() => { setCustomPaletteActive(false); setPaletteSize(32) }} type="button">32 szín · bővített</button><button aria-pressed={customPaletteActive} onClick={() => setCustomPaletteActive(true)} type="button">Egyéni paletta</button></div></fieldset><PixelCanvas allowColorMixer canvasSize={challenge?.canvas_size ?? 32} canDraw={!busy} chosenWord={challenge?.prompt ?? null} customPaletteActive={customPaletteActive} drawingEndsAt={account.submittedAt ? challenge?.submission_ends_at ?? null : challenge?.ends_at ?? null} events={[]} localDrawing={{ initialPixels: account.entryPixels ?? emptyDrawing(challenge?.canvas_size ?? 32), onChange: handleDrawingChange }} onCustomPaletteActiveChange={setCustomPaletteActive} onError={error => setStatus(errorMessage(error))} onPaletteSizeChange={size => { setCustomPaletteActive(false); setPaletteSize(size === 32 ? 32 : 12) }} onSubmit={handleSubmit} paletteSize={paletteSize} roundId={challenge?.challenge_id ?? 0} serverNow={challenge?.server_now ?? ''} /></section> : null}
+    {mode === 'challenge' && canEdit && user && account.profileName ? (
+      <section className="weekly-editor">
+        <div className="weekly-section-heading">
+          <div>
+            <p className="step-label">A te havi rajzod · {challenge?.canvas_size}×{challenge?.canvas_size}</p>
+            <h2>Rajzold le: {challenge?.prompt}</h2>
+            <p>Minden változtatás automatikusan mentődik.</p>
+          </div>
+          {account.submittedAt
+            ? <span className="weekly-status weekly-status-active">Beküldve · még szerkeszthető</span>
+            : <button className="primary-button" disabled={busy || !pixelsRef.current.some(pixel => pixel !== 'transparent')} onClick={() => void handleSubmit()} type="button">Beküldés</button>}
+        </div>
+        <ChallengePalettePicker
+          activePaletteSlot={palette.activePaletteSlot}
+          customPaletteActive={palette.customPaletteActive}
+          customPalettes={palette.customPalettes}
+          onPaletteChange={palette.selectPalette}
+          onSlotChange={palette.selectCustomPaletteSlot}
+          paletteSize={palette.paletteSize}
+          status={palette.paletteSyncStatus}
+        />
+        <PixelCanvas
+          allowColorMixer
+          allowEditorTools
+          canvasSize={challenge?.canvas_size ?? 32}
+          canDraw={!busy}
+          chosenWord={challenge?.prompt ?? null}
+          customPaletteActive={palette.customPaletteActive}
+          customPaletteColors={palette.activeCustomPalette.colors}
+          customPaletteOptions={palette.customPaletteOptions}
+          customPaletteSlot={palette.activePaletteSlot}
+          drawingEndsAt={account.submittedAt ? challenge?.submission_ends_at ?? null : challenge?.ends_at ?? null}
+          events={[]}
+          localDrawing={{ initialPixels: account.entryPixels ?? emptyDrawing(challenge?.canvas_size ?? 32), onChange: handleDrawingChange }}
+          onCustomPaletteActiveChange={palette.setCustomPaletteActive}
+          onCustomPaletteColorSave={palette.saveCustomColor}
+          onCustomPaletteColorsChange={palette.updateCustomPaletteColors}
+          onCustomPaletteSlotChange={palette.selectCustomPaletteSlot}
+          onError={error => setStatus(errorMessage(error))}
+          onPaletteSizeChange={size => palette.selectPalette(String(size))}
+          onSubmit={handleSubmit}
+          paletteSize={palette.paletteSize}
+          roundId={challenge?.challenge_id ?? 0}
+          serverNow={challenge?.server_now ?? ''}
+        />
+      </section>
+    ) : null}
 
     {mode === 'challenge' && !canEdit && account.submittedAt && account.entryPixels ? <section className="weekly-submitted"><WeeklyArtwork label="A havi rajzod" pixels={account.entryPixels} /><div><p className="step-label">{statusLabel}</p><h2>A beküldött rajzod biztonságban van</h2><p>A szerkesztési határidő után a beadott kép már nem módosítható. Az új nevezők a kihívás végéig még beküldhetnek.</p></div></section> : null}
 

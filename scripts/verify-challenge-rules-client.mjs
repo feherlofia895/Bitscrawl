@@ -92,18 +92,20 @@ test('registration keeps the confirmation fallback without creating a profile ea
 })
 
 test('both challenges expose official and custom palettes, and monthly entries remain open during voting', async () => {
-  const [weekly, editor, monthly, pixelCanvas] = await Promise.all([
+  const [weekly, editor, monthly, pixelCanvas, palettePicker] = await Promise.all([
     readFile(new URL('../src/components/WeeklyDraw.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/components/DrawingEditor.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/components/MonthlyDraw.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/components/PixelCanvas.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/ChallengePalettePicker.tsx', import.meta.url), 'utf8'),
   ])
   assert.match(weekly, /allowColorMixer/)
-  assert.match(weekly, /useState<EditorPaletteSize>\(32\)/)
+  assert.match(weekly, /useChallengeEditorPalettes\([\s\S]*?32,[\s\S]*?\)/)
   assert.match(monthly, /allowColorMixer/)
-  assert.match(monthly, /useState<EditorPaletteSize>\(12\)/)
-  assert.match(weekly, /Egyéni paletta/)
-  assert.match(monthly, /Egyéni paletta/)
+  assert.match(monthly, /useChallengeEditorPalettes\([\s\S]*?12,[\s\S]*?\)/)
+  assert.match(weekly, /<ChallengePalettePicker/)
+  assert.match(monthly, /<ChallengePalettePicker/)
+  assert.match(palettePicker, /Egyéni paletta/)
   assert.match(editor, /challenge_status === 'drawing' \|\| challenge\.challenge_status === 'voting'/)
   assert.match(editor, /A kevert színeket a heti és havi kihívás fogadja/)
   assert.match(monthly, /account\.submittedAt \? challenge\?\.submission_ends_at[^:]+: challenge\?\.ends_at/)

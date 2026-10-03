@@ -41,6 +41,8 @@ async function editor({ initial = drawing.emptyDrawing(), slots = [], loadError 
     react,
     'react/jsx-runtime': { jsx: (type, props) => ({ type, props }), jsxs: (type, props) => ({ type, props }), Fragment: 'Fragment' },
     './PixelCanvas': { PixelCanvas: 'PixelCanvas' },
+    './EditorAnimationControls': { EditorAnimationControls: 'EditorAnimationControls' },
+    './EditorAnimationThumbnail': { EditorAnimationThumbnail: 'EditorAnimationThumbnail' },
     './ConfirmModal': { ConfirmModal: 'ConfirmModal' },
     './WeeklyArtwork': { WeeklyArtwork: 'WeeklyArtwork' },
     '../lib/drawing': drawing,
@@ -65,6 +67,21 @@ async function editor({ initial = drawing.emptyDrawing(), slots = [], loadError 
       saveOwnEditorPalette: async () => 'local',
       deleteOwnEditorPalette: async () => 'local',
     },
+    '../lib/editorAnimation': {
+      addAnimationFrame: frames => [...frames, drawing.emptyDrawing()].slice(0, 3),
+      deleteAnimationFrame: frames => frames.length > 1 ? frames.slice(0, -1) : frames,
+      loadEditorAnimation: pixels => ({ activeFrameIndex: 0, fps: 4, frames: [[...pixels]], onionSkin: true }),
+      normalizeEditorAnimation: value => value,
+      replaceAnimationFrame: (frames, index, pixels) => frames.map((frame, frameIndex) => frameIndex === index ? [...pixels] : [...frame]),
+      saveEditorAnimation: () => true,
+    },
+    '../lib/editorAnimationGallery': {
+      deleteOwnEditorAnimationSlot: async () => true,
+      editorAnimationGalleryEndpointIsMissing: () => false,
+      loadOwnEditorAnimations: async () => [],
+      saveOwnEditorAnimationSlot: async () => true,
+    },
+    '../lib/editorGif': { createEditorAnimationGifBlob: () => new Blob() },
   }
   const source = await readFile(new URL('../src/components/DrawingEditor.tsx', import.meta.url), 'utf8')
   const output = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText

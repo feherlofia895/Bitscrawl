@@ -53,12 +53,14 @@ test('editor drafts and PNG rasterization accept a mixed custom color', () => {
   assert.deepEqual([...rasterizeDrawing(pixels, 1).data.slice(0, 4)], [18, 52, 86, 128])
 })
 
-test('the mixer is available in the editor and both challenge canvases', async () => {
-  const [editor, pixelCanvas, weekly, monthly] = await Promise.all([
+test('the mixer and saved custom palettes are available in the editor and both challenge canvases', async () => {
+  const [editor, pixelCanvas, weekly, monthly, challengePicker, challengePalettes] = await Promise.all([
     readSource('../src/components/DrawingEditor.tsx'),
     readSource('../src/components/PixelCanvas.tsx'),
     readSource('../src/components/WeeklyDraw.tsx'),
     readSource('../src/components/MonthlyDraw.tsx'),
+    readSource('../src/components/ChallengePalettePicker.tsx'),
+    readSource('../src/hooks/useChallengeEditorPalettes.ts'),
   ])
 
   assert.match(editor, /allowColorMixer/)
@@ -77,6 +79,10 @@ test('the mixer is available in the editor and both challenge canvases', async (
   assert.match(pixelCanvas, /Az Egyéni paletta még üres/)
   assert.match(weekly, /allowColorMixer/)
   assert.match(monthly, /allowColorMixer/)
-  assert.match(weekly, /Egyéni paletta/)
-  assert.match(monthly, /Egyéni paletta/)
+  assert.match(weekly, /customPaletteColors=\{palette\.activeCustomPalette\.colors\}/)
+  assert.match(monthly, /customPaletteColors=\{palette\.activeCustomPalette\.colors\}/)
+  assert.match(challengePicker, /<option value="custom">Egyéni paletta<\/option>/)
+  assert.match(challengePalettes, /useState\(true\)/)
+  assert.match(challengePalettes, /loadOwnEditorPalettes/)
+  assert.match(challengePalettes, /saveOwnEditorPalette/)
 })
