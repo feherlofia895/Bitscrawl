@@ -26,8 +26,8 @@ Jelölések:
   A mobilos fejléc 320×700-as szimulált nézetben kilógás nélkül működik; a mentés,
   betöltés és GIF-export a közös Megosztás / mentés menüben található.
 - [x] A fenti csomag buildje, lintje, szerkesztő-, animáció-, GIF- és galériatesztjei
-  sikeresek. A jelenlegi GitHub- és Cloudflare-kiadás a `364c377` commitból éles;
-  ebben már az adminos előszoba-moderálás is benne van.
+  sikeresek. A GitHub `main` a `7255bb0` merge commitnál tart; a Cloudflare Pagesen
+  a PWA-frissítési jelzést is tartalmazó `fbabe0a` build éles.
 - [>] A fizikai telefonos animációs alappróba és a PWA iPhone-telepítés sikeres;
   a billentyűzetes és hálózatkimaradási eset, valamint az Android/asztali PWA-próba
   még külön ellenőrzendő.
