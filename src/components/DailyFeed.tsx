@@ -1,0 +1,417 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { User } from '@supabase/supabase-js'
+import { emptyDrawing } from '../lib/drawing'
+import {
+  addDailyFeedComment,
+  deleteOwnDailyFeedPost,
+  FEED_DAILY_POST_LIMIT,
+  FEED_DESCRIPTION_MAX_LENGTH,
+  FEED_DESCRIPTION_MAX_LINES,
+  limitFeedDescription,
+  loadDailyFeed,
+  loadDailyFeedAccountState,
+  parseFeedPixels,
+  publishDailyFeedPost,
+  setDailyFeedLike,
+  updateDailyFeedComment,
+  type DailyFeedAccountState,
+  type DailyFeedPost,
+} from '../lib/feed'
+import { getWeeklyUser } from '../lib/weekly'
+import { GalleryComments } from './GalleryComments'
+import { GalleryNavigation } from './GalleryNavigation'
+import { GalleryPagination } from './GalleryPagination'
+import { ConfirmModal } from './ConfirmModal'
+import { PixelCanvas } from './PixelCanvas'
+import { ProfileAvatar } from './ProfileAvatar'
+import { ProfilePreviewButton } from './ProfilePreviewButton'
+import { ArtworkPreview } from './ArtworkPreview'
+import type { GallerySort } from '../lib/galleryComments'
+import { moderateDeleteContent } from '../lib/moderation'
+import { useModeratorAccess } from '../hooks/useModeratorAccess'
+import { AdminArtworkReactions } from './AdminArtworkReactions'
+
+const draftPrefix = 'bitscrawl-feed-draft:'
+
+type LocalFeedDraft = { description: string; pixels: string[] }
+
+function createDiscoverySeed() {
+  return Math.floor(Math.random() * 2_147_483_647)
+}
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'A Rajzfal művelete nem sikerült.'
+}
+
+function dateLabel(value: string) {
+  return new Intl.DateTimeFormat('hu-HU', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+}
+
+function loadLocalDraft(userId: string): LocalFeedDraft | null {
+  try {
+    const stored = localStorage.getItem(`${draftPrefix}${userId}`)
+    if (!stored) return null
+    const parsed = JSON.parse(stored)
+    const legacyPixels = parseFeedPixels(parsed)
+    if (legacyPixels) return { description: '', pixels: legacyPixels }
+    if (!parsed || typeof parsed !== 'object') return null
+    const pixels = parseFeedPixels(parsed.pixels)
+    return pixels ? { description: limitFeedDescription(String(parsed.description ?? '')), pixels } : null
+  } catch {
+    return null
+  }
+}
+
+function saveLocalDraft(userId: string, pixels: string[], description: string) {
+  try {
+    localStorage.setItem(`${draftPrefix}${userId}`, JSON.stringify({ description, pixels }))
+    return true
+  } catch {
+    return false
+  }
+}
+
+export function DailyFeed({
+  onBack,
+  onSelectWeekly,
+}: {
+  onBack: () => void
+  onSelectWeekly: () => void
+}) {
+  const [posts, setPosts] = useState<DailyFeedPost[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [page, setPage] = useState(1)
+  const [sort, setSort] = useState<GallerySort>('newest')
+  const [discoverySeed, setDiscoverySeed] = useState(createDiscoverySeed)
+  const [user, setUser] = useState<User | null>(null)
+  const [account, setAccount] = useState<DailyFeedAccountState | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState(false)
+  const [editorOpen, setEditorOpen] = useState(false)
+  const [editingPostId, setEditingPostId] = useState<number | null>(null)
+  const [description, setDescription] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState<DailyFeedPost | null>(null)
+  const [revision, setRevision] = useState(0)
+  const [status, setStatus] = useState('A Rajzfal betöltése…')
+  const pixelsRef = useRef(emptyDrawing())
+  const sortRef = useRef<GallerySort>('newest')
+  const discoverySeedRef = useRef(discoverySeed)
+  const isModerator = useModeratorAccess(user?.id)
+
+  const refresh = useCallback(async (requestedPage: number, knownUser?: User | null) => {
+    const currentUser = knownUser === undefined ? await getWeeklyUser() : knownUser
+    if (!currentUser) {
+      setUser(null)
+      setPosts([])
+      setTotalCount(0)
+      setAccount(null)
+      return
+    }
+    const [feedPage, nextAccount] = await Promise.all([
+      loadDailyFeed(requestedPage, sortRef.current, discoverySeedRef.current),
+      loadDailyFeedAccountState(),
+    ])
+    setUser(currentUser)
+    setPosts(feedPage.posts)
+    setTotalCount(feedPage.totalCount)
+    setAccount(nextAccount)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    void refresh(1).then(() => {
+      if (!cancelled) setStatus('A Rajzfal naprakész.')
+    }).catch(error => {
+      if (!cancelled) setStatus(errorMessage(error))
+    }).finally(() => {
+      if (!cancelled) setLoading(false)
+    })
+    return () => { cancelled = true }
+  }, [refresh])
+
+  const changePage = async (nextPage: number) => {
+    setLoading(true)
+    setPage(nextPage)
+    try {
+      await refresh(nextPage, user)
+      setStatus('A Rajzfal oldala betöltve.')
+    } catch (error) {
+      setStatus(errorMessage(error))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSort = async (nextSort: GallerySort) => {
+    const nextSeed = nextSort === 'discovery' ? createDiscoverySeed() : discoverySeedRef.current
+    sortRef.current = nextSort
+    discoverySeedRef.current = nextSeed
+    setSort(nextSort)
+    setDiscoverySeed(nextSeed)
+    setPage(1)
+    setLoading(true)
+    try {
+      await refresh(1, user)
+      setStatus('A Rajzfal rendezése frissült.')
+    } catch (error) {
+      setStatus(errorMessage(error))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDrawingChange = useCallback((pixels: string[]) => {
+    pixelsRef.current = pixels
+    const saved = user ? saveLocalDraft(user.id, pixels, description) : false
+    setStatus(saved ? 'A rajz helyben mentve. Közzétételre vár.' : 'A rajz még nincs közzétéve.')
+  }, [description, user])
+
+  const handleDescriptionChange = (value: string) => {
+    const nextDescription = limitFeedDescription(value)
+    setDescription(nextDescription)
+    if (user) saveLocalDraft(user.id, pixelsRef.current, nextDescription)
+  }
+
+  const publish = async () => {
+    setBusy(true)
+    try {
+      await publishDailyFeedPost(pixelsRef.current, editingPostId, description)
+      if (user) localStorage.removeItem(`${draftPrefix}${user.id}`)
+      setPage(1)
+      await refresh(1, user)
+      setEditorOpen(false)
+      setEditingPostId(null)
+      setDescription('')
+      pixelsRef.current = emptyDrawing()
+      setRevision(value => value + 1)
+      setStatus(editingPostId ? 'A képed frissítve.' : 'A mai képed megjelent a Rajzfalon!')
+    } catch (error) {
+      setStatus(errorMessage(error))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const startNewPost = () => {
+    if (!user || (account?.todayPostCount ?? 0) >= FEED_DAILY_POST_LIMIT) return
+    const draft = loadLocalDraft(user.id)
+    pixelsRef.current = draft?.pixels ?? emptyDrawing()
+    setDescription(draft?.description ?? '')
+    setEditingPostId(null)
+    setRevision(value => value + 1)
+    setEditorOpen(true)
+    setStatus(`Ma még ${FEED_DAILY_POST_LIMIT - (account?.todayPostCount ?? 0)} képet tehetsz közzé.`)
+  }
+
+  const startEditingPost = (post: DailyFeedPost) => {
+    pixelsRef.current = [...post.pixels]
+    setDescription(post.description)
+    setEditingPostId(post.post_id)
+    setRevision(value => value + 1)
+    setEditorOpen(true)
+    setStatus('A kiválasztott saját képedet szerkeszted.')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleDelete = async (post: DailyFeedPost) => {
+    setBusy(true)
+    const deletedToday = post.is_own && account?.postDate === post.post_date
+    try {
+      if (post.is_own) await deleteOwnDailyFeedPost(post.post_id)
+      else await moderateDeleteContent('feed-post', post.post_id)
+      if (deletedToday && user) {
+        saveLocalDraft(user.id, post.pixels, post.description)
+        pixelsRef.current = [...post.pixels]
+        setDescription(post.description)
+        setEditingPostId(null)
+        setRevision(value => value + 1)
+        setEditorOpen(true)
+      }
+      setPage(1)
+      await refresh(1, user)
+      setStatus(deletedToday
+        ? 'A képed törölve. A napi hely felszabadult, a rajzot piszkozatként megtartottuk.'
+        : post.is_own ? 'A saját képed törölve.' : 'A Rajzfal-kép moderátorként törölve.')
+    } catch (error) {
+      setStatus(errorMessage(error))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleLike = async (post: DailyFeedPost) => {
+    setBusy(true)
+    try {
+      await setDailyFeedLike(post.post_id, !post.has_liked)
+      await refresh(page, user)
+      setStatus(post.has_liked ? 'A kedvelést visszavontad.' : 'Kedvelés elmentve.')
+    } catch (error) {
+      setStatus(errorMessage(error))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleComment = async (postId: number, content: string) => {
+    setBusy(true)
+    try {
+      await addDailyFeedComment(postId, content)
+      await refresh(page, user)
+      setStatus('A hozzászólásod megmaradt a kép alatt.')
+    } catch (error) {
+      setStatus(errorMessage(error))
+      throw error
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleCommentUpdate = async (commentId: number, content: string) => {
+    setBusy(true)
+    try {
+      await updateDailyFeedComment(commentId, content)
+      await refresh(page, user)
+      setStatus('A hozzászólás módosításai elmentve.')
+    } catch (error) {
+      setStatus(errorMessage(error))
+      throw error
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleCommentDelete = async (commentId: number) => {
+    setBusy(true)
+    try {
+      await moderateDeleteContent('feed-comment', commentId)
+      await refresh(page, user)
+      setStatus('A hozzászólás moderátorként törölve.')
+    } catch (error) {
+      setStatus(errorMessage(error))
+      throw error
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return <section className="weekly-page daily-feed-page" aria-labelledby="daily-feed-title">
+    <header className="weekly-header">
+      <div>
+        <p className="step-label">Közösségi rajzok</p>
+        <h1 id="daily-feed-title">Rajzfal</h1>
+        <p>Naponta három saját 32×32-es képet tehetsz közzé.</p>
+      </div>
+      <button disabled={busy} onClick={onBack} type="button">Vissza a főmenübe</button>
+    </header>
+
+    {!loading && !user ? <section className="weekly-account-card">
+      <div><p className="step-label">Bejelentkezés szükséges</p><h2>A Rajzfal csak belépés után látható</h2><p>Belépéshez vagy regisztrációhoz nyisd meg a profilodat a jobb felső sarokban.</p></div>
+    </section> : null}
+
+    {user && account ? <><section className={`feed-composer${editorOpen ? ' is-editor-open' : ''}`}>
+      <div className="feed-composer-heading">
+        <div>
+          <p className="step-label">A mai képed</p>
+          <h2>Ma {account.todayPostCount}/{FEED_DAILY_POST_LIMIT} képet tettél közzé</h2>
+          <p>{account.todayPostCount >= FEED_DAILY_POST_LIMIT ? 'A három napi hely betelt. Töröld az egyik saját képet, ha újat szeretnél feltölteni.' : `Még ${FEED_DAILY_POST_LIMIT - account.todayPostCount} képet oszthatsz meg ma.`}</p>
+        </div>
+        <div className="feed-composer-actions">
+          {editorOpen ? <button disabled={busy} onClick={() => setEditorOpen(false)} type="button">Rajzoló bezárása</button> : null}
+          <button className="primary-button" disabled={busy || account.todayPostCount >= FEED_DAILY_POST_LIMIT} onClick={startNewPost} type="button">Új kép rajzolása</button>
+        </div>
+      </div>
+      <div className="profile-feed-stats">
+        <span><strong>{account.receivedLikeCount}</strong> kapott kedvelés</span>
+      </div>
+      {editorOpen ? <div className="feed-composer-canvas">
+        <PixelCanvas
+          canDraw={!busy}
+          chosenWord={null}
+          drawingEndsAt={null}
+          events={[]}
+          localDrawing={{ initialPixels: pixelsRef.current, onChange: handleDrawingChange }}
+          onError={error => setStatus(errorMessage(error))}
+          onSubmit={publish}
+          paletteSize={32}
+          roundId={revision}
+          serverNow=""
+        />
+        <label className="feed-description-field">
+          <span>Képleírás <small>(nem kötelező)</small></span>
+          <textarea
+            maxLength={FEED_DESCRIPTION_MAX_LENGTH}
+            onChange={event => handleDescriptionChange(event.target.value)}
+            placeholder="Írj legfeljebb három rövid sort a képedről…"
+            rows={FEED_DESCRIPTION_MAX_LINES}
+            value={description}
+          />
+          <small>{description.length}/{FEED_DESCRIPTION_MAX_LENGTH} karakter · legfeljebb {FEED_DESCRIPTION_MAX_LINES} sor</small>
+        </label>
+        <button className="primary-button feed-publish-button" disabled={busy || !pixelsRef.current.some(pixel => pixel !== 'transparent')} onClick={() => void publish()} type="button">
+          {busy ? 'Mentés…' : editingPostId ? 'Kép frissítése' : 'Közzététel'}
+        </button>
+      </div> : null}
+    </section>
+
+    <section className="weekly-gallery" aria-labelledby="feed-gallery-title">
+      <div className="weekly-section-heading">
+        <div><p className="step-label">Közösségi rajzok</p><h2 id="feed-gallery-title">Rajzfal</h2></div>
+        <div className="gallery-heading-controls">
+          <GalleryNavigation busy={busy} onSelectChallenges={onSelectWeekly} onSelectWall={() => undefined} view="wall" />
+        </div>
+      </div>
+      <div className="gallery-subcontrols">
+        <label className="field weekly-sort"><span>Sorrend</span><select disabled={loading} onChange={event => void handleSort(event.target.value as GallerySort)} value={sort}><option value="newest">Legújabb</option><option value="likes">Legkedveltebb</option><option value="discovery">Felfedezés</option></select></label>
+      </div>
+      {posts.length ? <>
+        <div className="weekly-gallery-grid">{posts.map(post => <article className="weekly-entry feed-entry" key={post.post_id}>
+          <ArtworkPreview label={`${post.author_name} rajzfalképe`} pixels={post.pixels} />
+          <div className="weekly-entry-meta">
+            <ProfilePreviewButton className="weekly-entry-author" name={post.author_name} pixels={post.authorAvatar} receivedLikes={post.author_received_likes}>
+              <ProfileAvatar label={`${post.author_name} profilképe`} pixels={post.authorAvatar} />
+              <strong>{post.author_name}</strong>
+            </ProfilePreviewButton>
+            <div className="entry-reaction-summary">
+              <span>{post.like_count} kedvelés</span>
+              {isModerator ? <AdminArtworkReactions count={post.like_count} key={`${post.post_id}:${post.like_count}`} kind="feed-post" targetId={post.post_id} /> : null}
+            </div>
+          </div>
+          <time className="feed-entry-date" dateTime={post.updated_at}>{dateLabel(post.updated_at)}</time>
+          {post.description ? <p className="feed-entry-description">{post.description}</p> : null}
+          <div className="feed-entry-actions">
+            {post.is_own ? <>
+              <button disabled={busy} onClick={() => startEditingPost(post)} type="button">Szerkesztés</button>
+              <button className="feed-delete-button" disabled={busy} onClick={() => setDeleteTarget(post)} type="button">Törlés</button>
+            </> : isModerator ? <button className="moderation-delete-button" disabled={busy} onClick={() => setDeleteTarget(post)} type="button">Admin: törlés</button> : null}
+            <button
+              aria-label={post.is_own ? 'A saját képedet nem kedvelheted' : post.has_liked ? 'Kedvelés visszavonása' : 'Kép kedvelése'}
+              aria-pressed={post.has_liked}
+              className={`feed-like-button${post.has_liked ? ' is-liked' : ''}`}
+              disabled={busy || !user || post.is_own}
+              onClick={() => void handleLike(post)}
+              title={post.is_own ? 'A saját képedet nem kedvelheted' : post.has_liked ? 'Kedvelés visszavonása' : 'Kedvelem'}
+              type="button"
+            >❤</button>
+          </div>
+          <GalleryComments artworkAuthor={post.author_name} busy={busy} canModerate={isModerator} comments={post.comments} isSignedIn={Boolean(user && account)} onDelete={handleCommentDelete} onSubmit={content => handleComment(post.post_id, content)} onUpdate={handleCommentUpdate} reactionKind="feed" />
+        </article>)}</div>
+        <GalleryPagination currentPage={page} onPageChange={changePage} totalItems={totalCount} />
+      </> : <p className="weekly-empty">Még nincs kép a Rajzfalon. Lehetsz te az első!</p>}
+    </section>
+    <p className="status-message weekly-message" aria-live="polite">{status}</p>
+    {deleteTarget ? <ConfirmModal
+      confirmLabel="Kép törlése"
+      isBusy={busy}
+      message={deleteTarget.is_own
+        ? 'A kép a kedveléseivel és a kommentjeivel együtt végleg törlődik. Ha ez egy mai kép, a napi hely azonnal felszabadul.'
+        : `${deleteTarget.author_name} képe a kedveléseivel és a kommentjeivel együtt végleg törlődik.`}
+      onCancel={() => setDeleteTarget(null)}
+      onConfirm={() => {
+        const target = deleteTarget
+        setDeleteTarget(null)
+        void handleDelete(target)
+      }}
+      title={deleteTarget.is_own ? 'Törlöd a saját képedet?' : 'Moderátorként törlöd ezt a képet?'}
+    /> : null}</> : null}
+  </section>
+}

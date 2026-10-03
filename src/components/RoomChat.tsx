@@ -2,15 +2,18 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
 import type { RoomMessage } from '../lib/lobby'
 import type { RoomPlayer } from '../lib/lobby'
+import { parseAvatarPixels } from '../lib/profile'
+import { ProfilePreviewButton } from './ProfilePreviewButton'
 
 type RoomChatProps = {
+  avoidGuessBar?: boolean
   messages: RoomMessage[]
   onError: (error: unknown) => void
   onSubmit: (message: string) => Promise<number>
   players: RoomPlayer[]
 }
 
-export function RoomChat({ messages, onError, onSubmit, players }: RoomChatProps) {
+export function RoomChat({ avoidGuessBar = false, messages, onError, onSubmit, players }: RoomChatProps) {
   const initialMobile = window.matchMedia('(max-width: 760px)').matches
   const [message, setMessage] = useState(
     () => window.sessionStorage.getItem('bitscrawl-room-chat-draft') ?? '',
@@ -116,15 +119,13 @@ export function RoomChat({ messages, onError, onSubmit, players }: RoomChatProps
     }
   }
 
-  const playerName = (userId: string) =>
-    players.find((player) => player.user_id === userId)?.display_name ??
-    'Játékos'
+  const playerProfile = (userId: string) => players.find((player) => player.user_id === userId)
 
   const chatPanel = (
     <section
       aria-labelledby="room-chat-title"
       aria-modal={isMobile && isOpen ? 'true' : undefined}
-      className={`room-chat${isOpen ? ' is-open' : ''}`}
+      className={`room-chat${isOpen ? ' is-open' : ''}${avoidGuessBar ? ' has-guess-bar' : ''}`}
       role={isMobile ? 'dialog' : undefined}
     >
       <div className="round-chat-heading">
@@ -149,12 +150,16 @@ export function RoomChat({ messages, onError, onSubmit, players }: RoomChatProps
         {messages.length === 0 ? (
           <p className="empty-chat">Még nincs üzenet. Köszönj a többieknek!</p>
         ) : (
-          messages.map((roomMessage) => (
-            <p className="round-message" key={roomMessage.id}>
-              <strong>{playerName(roomMessage.sender_user_id)}</strong>
+          messages.map((roomMessage) => {
+            const sender = playerProfile(roomMessage.sender_user_id)
+            const senderName = sender?.display_name ?? 'Játékos'
+            return <p className="round-message" key={roomMessage.id}>
+              <ProfilePreviewButton className="chat-profile-trigger" name={senderName} pixels={parseAvatarPixels(sender?.avatar_pixels ?? null)}>
+                <strong>{senderName}</strong>
+              </ProfilePreviewButton>
               <span>{roomMessage.content}</span>
             </p>
-          ))
+          })
         )}
       </div>
 
@@ -191,7 +196,7 @@ export function RoomChat({ messages, onError, onSubmit, players }: RoomChatProps
     <>
       <button
         aria-expanded={isOpen}
-        className="mobile-chat-toggle"
+        className={`mobile-chat-toggle${avoidGuessBar ? ' has-guess-bar' : ''}`}
         onClick={openPanel}
         type="button"
       >

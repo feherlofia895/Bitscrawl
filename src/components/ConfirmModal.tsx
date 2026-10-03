@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useRef } from 'react'
 
 type ConfirmModalProps = {
   cancelLabel?: string
@@ -20,31 +20,74 @@ export function ConfirmModal({
   title,
 }: ConfirmModalProps) {
   const cancelButtonRef = useRef<HTMLButtonElement>(null)
-  const onCancelRef = useRef(onCancel)
+  const dialogRef = useRef<HTMLElement>(null)
+  const modalId = useId()
+  const callbacksRef = useRef({ onCancel, onConfirm, isBusy })
+  const pendingActionRef = useRef<'cancel' | 'confirm'>('cancel')
+  const mountedRef = useRef(false)
+  const closingRef = useRef(false)
+  const finishedRef = useRef(false)
+  const previousStateRef = useRef<Record<string, unknown>>({})
+  const previousFocusRef = useRef<HTMLElement | null>(null)
+  const requestCloseRef = useRef<(action: 'cancel' | 'confirm') => void>(() => {})
 
   useEffect(() => {
-    onCancelRef.current = onCancel
-  }, [onCancel])
+    callbacksRef.current = { onCancel, onConfirm, isBusy }
+  }, [onCancel, onConfirm, isBusy])
 
   useEffect(() => {
-    cancelButtonRef.current?.focus()
-    if (window.history.state?.bitscrawlModal !== 'confirm') {
-      window.history.pushState({ bitscrawlModal: 'confirm' }, '')
+    mountedRef.current = true
+    if (!previousFocusRef.current && document.activeElement instanceof HTMLElement) {
+      previousFocusRef.current = document.activeElement
     }
-
-    const requestCancel = () => {
-      if (window.history.state?.bitscrawlModal === 'confirm') {
+    cancelButtonRef.current?.focus()
+    const ownsHistoryEntry = () => window.history.state?.bitscrawlConfirmId === modalId
+    // Reuse the marker during React StrictMode's setup/cleanup/setup cycle.
+    if (!ownsHistoryEntry()) {
+      previousStateRef.current = window.history.state ?? {}
+      window.history.pushState({ ...previousStateRef.current, bitscrawlModal: 'confirm', bitscrawlConfirmId: modalId }, '')
+    }
+    const finish = () => {
+      if (finishedRef.current) return
+      finishedRef.current = true
+      const callbacks = callbacksRef.current
+      if (pendingActionRef.current === 'confirm') callbacks.onConfirm()
+      else callbacks.onCancel()
+    }
+    const requestClose = (action: 'cancel' | 'confirm') => {
+      if (callbacksRef.current.isBusy || closingRef.current) return
+      closingRef.current = true
+      pendingActionRef.current = action
+      if (ownsHistoryEntry()) {
         window.history.back()
       } else {
-        onCancelRef.current()
+        finish()
       }
     }
+    requestCloseRef.current = requestClose
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !isBusy) requestCancel()
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        requestClose('cancel')
+      }
+      if (event.key === 'Tab') {
+        const buttons = dialogRef.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')
+        if (!buttons?.length) return
+        const first = buttons[0]
+        const last = buttons[buttons.length - 1]
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault()
+          last.focus()
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault()
+          first.focus()
+        }
+      }
     }
     const handlePopState = () => {
-      if (!isBusy) onCancelRef.current()
+      if (ownsHistoryEntry()) return
+      if (!callbacksRef.current.isBusy) finish()
     }
 
     window.addEventListener('keydown', handleKeyDown)
@@ -52,8 +95,14 @@ export function ConfirmModal({
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('popstate', handlePopState)
+      mountedRef.current = false
+      queueMicrotask(() => {
+        if (mountedRef.current) return
+        if (ownsHistoryEntry()) window.history.replaceState(previousStateRef.current, '')
+        if (previousFocusRef.current?.isConnected) previousFocusRef.current.focus()
+      })
     }
-  }, [isBusy])
+  }, [modalId])
 
   return (
     <div
@@ -63,20 +112,14 @@ export function ConfirmModal({
       className="modal-backdrop"
       role="dialog"
     >
-      <section className="confirm-modal">
+      <section className="confirm-modal" ref={dialogRef}>
         <p className="step-label">Megerősítés</p>
         <h2 id="confirm-modal-title">{title}</h2>
         <p id="confirm-modal-message">{message}</p>
         <div className="confirm-modal-actions">
           <button
             disabled={isBusy}
-            onClick={() => {
-              if (window.history.state?.bitscrawlModal === 'confirm') {
-                window.history.back()
-              } else {
-                onCancel()
-              }
-            }}
+            onClick={() => requestCloseRef.current('cancel')}
             ref={cancelButtonRef}
             type="button"
           >
@@ -85,12 +128,7 @@ export function ConfirmModal({
           <button
             className="confirm-danger-button"
             disabled={isBusy}
-            onClick={() => {
-              if (window.history.state?.bitscrawlModal === 'confirm') {
-                window.history.replaceState({}, '')
-              }
-              onConfirm()
-            }}
+            onClick={() => requestCloseRef.current('confirm')}
             type="button"
           >
             {isBusy ? 'Kilépés…' : confirmLabel}
