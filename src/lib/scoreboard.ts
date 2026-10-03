@@ -14,17 +14,6 @@ export type ScoreboardEntry = {
   challengesEntered: number
 }
 
-export type HallOfFameEntry = {
-  challengeKind: 'weekly' | 'monthly'
-  periodKey: string
-  challengePrompt: string
-  placement: 1 | 2 | 3
-  displayName: string
-  avatarPixels: string[] | null
-  points: number
-  awardedAt: string
-}
-
 export async function loadLifetimeScoreboard(limit = 100): Promise<ScoreboardEntry[]> {
   const { data, error } = await supabase.rpc('get_lifetime_scoreboard', {
     requested_limit: limit,
@@ -43,24 +32,5 @@ export async function loadLifetimeScoreboard(limit = 100): Promise<ScoreboardEnt
     silverCount: Number(entry.silver_count),
     bronzeCount: Number(entry.bronze_count),
     challengesEntered: Number(entry.challenges_entered),
-  }))
-}
-
-export async function loadChallengeHallOfFame(limit = 30): Promise<HallOfFameEntry[]> {
-  const { data, error } = await supabase.rpc('get_challenge_hall_of_fame', {
-    requested_limit: limit,
-  })
-
-  if (error) throw error
-
-  return (data ?? []).map((entry) => ({
-    challengeKind: entry.challenge_kind as 'weekly' | 'monthly',
-    periodKey: entry.period_key,
-    challengePrompt: entry.challenge_prompt,
-    placement: Number(entry.placement) as 1 | 2 | 3,
-    displayName: entry.display_name,
-    avatarPixels: parseAvatarPixels(entry.avatar_pixels),
-    points: Number(entry.points),
-    awardedAt: entry.awarded_at,
   }))
 }

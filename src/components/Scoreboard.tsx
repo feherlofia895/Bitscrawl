@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react'
 import {
   loadLifetimeScoreboard,
-  loadChallengeHallOfFame,
-  type HallOfFameEntry,
   type ScoreboardEntry,
 } from '../lib/scoreboard'
-import { loadWeeklyChallenges } from '../lib/weekly'
 import { ProfileAvatar } from './ProfileAvatar'
 import { ProfilePreviewButton } from './ProfilePreviewButton'
 
@@ -19,42 +16,37 @@ function medalSummary(entry: ScoreboardEntry) {
   return medals.length > 0 ? medals.join(' · ') : 'Még nincs dobogós helyezés'
 }
 
-function periodLabel(entry: HallOfFameEntry, weekLabels: Record<string, string>) {
-  if (entry.challengeKind === 'weekly') return weekLabels[entry.periodKey] ?? entry.periodKey
+function medalCount(entry: ScoreboardEntry) {
+  return entry.goldCount + entry.silverCount + entry.bronzeCount
+}
 
-  const monthStart = new Date(`${entry.periodKey}-01T00:00:00Z`)
-  if (Number.isNaN(monthStart.getTime())) return entry.periodKey
-  return new Intl.DateTimeFormat('hu-HU', {
-    year: 'numeric',
-    month: 'long',
-    timeZone: 'UTC',
-  }).format(monthStart)
+function bestPlacement(entry: ScoreboardEntry) {
+  if (entry.goldCount > 0) return 1
+  if (entry.silverCount > 0) return 2
+  return 3
+}
+
+function compareMedalists(first: ScoreboardEntry, second: ScoreboardEntry) {
+  return second.goldCount - first.goldCount ||
+    second.silverCount - first.silverCount ||
+    second.bronzeCount - first.bronzeCount ||
+    second.totalPoints - first.totalPoints ||
+    first.displayName.localeCompare(second.displayName, 'hu')
 }
 
 export function Scoreboard({ onBack }: { onBack: () => void }) {
   const [entries, setEntries] = useState<ScoreboardEntry[]>([])
-  const [hallOfFame, setHallOfFame] = useState<HallOfFameEntry[]>([])
-  const [weekLabels, setWeekLabels] = useState<Record<string, string>>({})
   const [errorMessage, setErrorMessage] = useState('')
   const [isLoading, setIsLoading] = useState(true)
+  const medalists = entries.filter(entry => medalCount(entry) > 0).sort(compareMedalists)
 
   useEffect(() => {
     let cancelled = false
 
-    Promise.all([
-      loadLifetimeScoreboard(),
-      loadChallengeHallOfFame(),
-      loadWeeklyChallenges().catch(() => []),
-    ])
-      .then(([scoreboard, podiums, challenges]) => {
+    loadLifetimeScoreboard()
+      .then((scoreboard) => {
         if (!cancelled) {
           setEntries(scoreboard)
-          setHallOfFame(podiums)
-          setWeekLabels(Object.fromEntries(
-            [...challenges]
-              .sort((first, second) => Date.parse(first.starts_at) - Date.parse(second.starts_at))
-              .map((challenge, index) => [challenge.week_key, `${index + 1}. hét`]),
-          ))
         }
       })
       .catch(() => {
@@ -85,26 +77,29 @@ export function Scoreboard({ onBack }: { onBack: () => void }) {
         <span>Minden kapott szavazat +1 pont. Dobogós bónusz jelenleg nincs.</span>
       </div>
 
-      {!isLoading && !errorMessage && hallOfFame.length > 0 ? (
+      {!isLoading && !errorMessage && medalists.length > 0 ? (
         <section className="hall-of-fame" aria-labelledby="hall-of-fame-title">
           <div className="scoreboard-section-heading">
-            <p className="step-label">A kihívások dobogósai</p>
+            <p className="step-label">Érmes játékosok</p>
             <h2 id="hall-of-fame-title">A legmenőbbek</h2>
           </div>
           <ol className="hall-of-fame-grid">
-            {hallOfFame.map((entry) => (
-              <li className="hall-of-fame-card" data-placement={entry.placement} key={`${entry.challengeKind}-${entry.periodKey}-${entry.placement}-${entry.displayName}`}>
-                <span className="hall-of-fame-medal" aria-label={`${entry.placement}. hely`}>
-                  {entry.placement === 1 ? '🥇' : entry.placement === 2 ? '🥈' : '🥉'}
-                </span>
-                <ProfilePreviewButton className="hall-of-fame-profile-trigger" name={entry.displayName} pixels={entry.avatarPixels}>
-                  <ProfileAvatar label={`${entry.displayName} profilképe`} pixels={entry.avatarPixels} />
-                  <strong className="hall-of-fame-player-name">{entry.displayName}</strong>
-                </ProfilePreviewButton>
-                <strong>{entry.points} pont</strong>
-                <span>{entry.challengePrompt} · {periodLabel(entry, weekLabels)}</span>
-              </li>
-            ))}
+            {medalists.map((entry) => {
+              const placement = bestPlacement(entry)
+              return (
+                <li className="hall-of-fame-card" data-placement={placement} key={entry.displayName}>
+                  <span className="hall-of-fame-medal" aria-label={`Legjobb helyezés: ${placement}.`}>
+                    {placement === 1 ? '🥇' : placement === 2 ? '🥈' : '🥉'}
+                  </span>
+                  <ProfilePreviewButton className="hall-of-fame-profile-trigger" name={entry.displayName} pixels={entry.avatarPixels}>
+                    <ProfileAvatar label={`${entry.displayName} profilképe`} pixels={entry.avatarPixels} />
+                    <strong className="hall-of-fame-player-name">{entry.displayName}</strong>
+                  </ProfilePreviewButton>
+                  <strong>{medalCount(entry)} érem</strong>
+                  <span>{medalSummary(entry)} · {entry.totalPoints} pont</span>
+                </li>
+              )
+            })}
           </ol>
         </section>
       ) : null}

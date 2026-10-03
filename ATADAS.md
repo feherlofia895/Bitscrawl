@@ -43,7 +43,8 @@ Titkot vagy `service_role` kulcsot soha ne tegyél kliensoldali fájlba, commitb
 - A klasszikus online játék 2–6 játékost, kódos szobát, hostkezelést, szerveroldali
   szókiosztást, köridőt, pontozást, újracsatlakozást és teljes meccsciklust kezel.
 - Van párhuzamos rajzverseny, heti és havi kihívás, szavazás, archív galéria,
-  Dicsőségfal, örökranglista és „A legmenőbbek” dobogós nézet.
+  Dicsőségfal és örökranglista. „A legmenőbbek” összesített nézetben csak az érmes
+  játékosokat mutatja, mindenkit egyetlen kártyán az összes érmével.
 - A rajzfal napi három képet, leírást, kedvelést, kommentet és kommentkedvelést
   támogat. A képek, kommentek és visszajelzések adminisztrátorként moderálhatók.
 - A profilok rajzolt avatárt, nyilvános statisztikát, trófeákat és három,
