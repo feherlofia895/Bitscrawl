@@ -55,11 +55,15 @@ test('the PNG install icons have the advertised pixel sizes', async () => {
 })
 
 test('the production service worker stays network-only and updates without stale caches', async () => {
-  const [worker, main, installHook, app] = await Promise.all([
+  const [worker, main, installHook, updateHook, bugReports, adminFeedback, app, config] = await Promise.all([
     readFile(new URL('../public/service-worker.js', import.meta.url), 'utf8'),
     readFile(new URL('../src/main.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/hooks/usePwaInstall.ts', import.meta.url), 'utf8'),
+    readFile(new URL('../src/hooks/usePwaUpdate.ts', import.meta.url), 'utf8'),
+    readFile(new URL('../src/lib/bugReports.ts', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/AdminFeedbackCenter.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/App.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../vite.config.ts', import.meta.url), 'utf8'),
   ])
 
   assert.match(worker, /skipWaiting\(\)/)
@@ -70,6 +74,19 @@ test('the production service worker stays network-only and updates without stale
   assert.match(main, /serviceWorker\.register\('\/service-worker\.js', \{ updateViaCache: 'none' \}\)/)
   assert.match(installHook, /beforeinstallprompt/)
   assert.match(installHook, /appinstalled/)
+  assert.match(config, /fileName: 'build-info\.json'/)
+  assert.match(config, /__BITSCRAWL_BUILD_ID__/)
+  assert.match(updateHook, /fetch\(`\/build-info\.json\?t=\$\{Date\.now\(\)\}`/)
+  assert.match(updateHook, /cache: 'no-store'/)
+  assert.match(updateHook, /visibilitychange/)
+  assert.match(updateHook, /document\.visibilityState === 'visible'/)
+  assert.match(updateHook, /window\.location\.reload\(\)/)
+  assert.doesNotMatch(updateHook, /controllerchange/)
+  assert.match(bugReports, /build_id: __BITSCRAWL_BUILD_ID__/)
+  assert.match(adminFeedback, /build_id: 'Build'/)
+  assert.match(app, /Új Bitscrawl-verzió érhető el/)
+  assert.match(app, /onClick=\{pwaUpdate\.reload\}/)
+  assert.match(app, /Build \{pwaUpdate\.buildId\}/)
   assert.match(app, /Főképernyőhöz adás/)
   assert.match(app, /pwaInstall\.install\(\)/)
 })

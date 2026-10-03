@@ -85,6 +85,7 @@ import { checkSupabaseConnection } from './lib/supabase'
 import { loadOwnProfile, parseAvatarPixels, type PlayerProfile } from './lib/profile'
 import { useModeratorAccess } from './hooks/useModeratorAccess'
 import { usePwaInstall } from './hooks/usePwaInstall'
+import { usePwaUpdate } from './hooks/usePwaUpdate'
 
 type BackendStatus = 'checking' | 'online' | 'reconnecting' | 'offline'
 type HomeView = 'main' | 'play' | 'editor' | 'challenge' | 'gallery' | 'scoreboard' | 'create' | 'join' | 'settings' | 'profile' | 'admin'
@@ -193,6 +194,7 @@ function App() {
     () => window.localStorage.getItem('bitscrawl-reduce-motion') === 'true',
   )
   const pwaInstall = usePwaInstall()
+  const pwaUpdate = usePwaUpdate()
   const [roomCode, setRoomCode] = useState(getInitialRoomCode)
   const [message, setMessage] = useState(guestNamePrompt)
   const [backendStatus, setBackendStatus] =
@@ -1080,6 +1082,13 @@ function App() {
         </div>
       </header>
 
+      {pwaUpdate.updateAvailable ? (
+        <section className="pwa-update-notice" aria-live="polite" aria-label="Alkalmazásfrissítés">
+          <span>Új Bitscrawl-verzió érhető el</span>
+          <button onClick={pwaUpdate.reload} type="button">Frissítés</button>
+        </section>
+      ) : null}
+
       <MusicPlayer />
 
       {lobby ? (
@@ -1853,7 +1862,7 @@ function App() {
                     <h3 id="info-title">Információk</h3>
                     <p>Rajzolj a 32×32-es vásznon, a többiek pedig próbálják időben megfejteni a szót.</p>
                     <p>A szobák 2–6 játékosra készülnek. A játékhoz internetkapcsolat szükséges.</p>
-                    <p className="info-version">Bitscrawl · korai prototípus</p>
+                    <p className="info-version">Bitscrawl · korai prototípus · Build {pwaUpdate.buildId}</p>
                   </section>
                   <button className="home-back-button" onClick={closeHomeView} type="button">
                     Vissza a főmenübe

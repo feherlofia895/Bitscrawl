@@ -43,9 +43,12 @@ Titkot vagy `service_role` kulcsot soha ne tegyél kliensoldali fájlba, commitb
 - A klasszikus online játék 2–6 játékost, kódos szobát, hostkezelést, szerveroldali
   szókiosztást, köridőt, pontozást, újracsatlakozást és teljes meccsciklust kezel.
 - Van párhuzamos rajzverseny, heti és havi kihívás, szavazás, archív galéria,
-  Dicsőségfal, örökranglista és „A legmenőbbek” dobogós nézet.
+  Dicsőségfal és örökranglista. „A legmenőbbek” összesített nézetben csak az érmes
+  játékosokat mutatja, mindenkit egyetlen kártyán az összes érmével.
 - A rajzfal napi három képet, leírást, kedvelést, kommentet és kommentkedvelést
   támogat. A képek, kommentek és visszajelzések adminisztrátorként moderálhatók.
+- Mobilon az előszoba-chat „Most online” része alapból összecsukott, a címsorával
+  nyitható és zárható, így az üzenetek több helyet kapnak.
 - A profilok rajzolt avatárt, nyilvános statisztikát, trófeákat és három,
   profillal szinkronizált, legfeljebb 16 színes egyéni palettát kezelnek.
 - A Szerkesztőben és a heti/havi kihívásban elérhető a pipetta, újra, 1×/2×/3×
@@ -90,11 +93,13 @@ Titkot vagy `service_role` kulcsot soha ne tegyél kliensoldali fájlba, commitb
 - iPhone-on az alkalmazásváltóban teljesen bezárt, majd újranyitott PWA biztosan az
   aktuális klienst tölti be. Ikon- vagy manifestcsere az iOS erős gyorsítótára miatt
   esetenként törlést és újbóli „Főképernyőhöz adás” műveletet igényelhet.
-- Tervezett kis fejlesztés: látható
-  `Új Bitscrawl-verzió érhető el – Frissítés` jelzés. Induláskor és előtérbe
-  kerüléskor keressen új buildet, de aktív rajzolást vagy játékot soha ne töltsön
-  újra automatikusan. A gomb csak felhasználói kattintásra frissítsen.
-- A kliens kapjon látható buildazonosítót. A frissítési folyamatot valós A → B
+- Elkészült és Cloudflare Pagesre élesedett a látható
+  `Új Bitscrawl-verzió érhető el – Frissítés` jelzés.
+  Induláskor és előtérbe kerüléskor hálózatról ellenőrzi a `build-info.json` fájlt,
+  de aktív rajzolást vagy játékot soha nem tölt újra automatikusan. A gomb csak
+  felhasználói kattintásra frissít.
+- A kliens buildazonosítója a Beállításokban, a hibajelentések technikai adatai között
+  és az admin visszajelzőközpontban is látható. A frissítési folyamatot még valós A → B
   kiadással kell iPhone-on, majd Android Chrome-on és asztali Chrome/Edge alatt
   ellenőrizni. A részletes feladatok a `PLAN.txt` elején vannak.
 
@@ -196,7 +201,7 @@ dinamikusan betölteni.
 
 ## Még nyitott ellenőrzések
 
-- PWA látható verziófrissítési jelzés és buildazonosító.
+- Telepített PWA valós A → B frissítési próbája az éles `fbabe0a` buildre.
 - Telepített PWA valós A → B frissítési próba iPhone-on.
 - Android Chrome és asztali Chrome/Edge PWA-telepítés/frissítés.
 - Fizikai telefonos billentyűzet- és hálózatkimaradási esetek.

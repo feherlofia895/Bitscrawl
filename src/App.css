@@ -102,6 +102,39 @@ footer {
   clip-path: var(--pixel-corner);
 }
 
+.pwa-update-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 10px;
+  padding: 10px 12px 10px 14px;
+  color: var(--ink);
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  clip-path: var(--pixel-corner);
+}
+
+.pwa-update-notice span,
+.pwa-update-notice button {
+  font-family: var(--pixel-font);
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.pwa-update-notice button {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 7px 11px;
+  color: var(--paper);
+  background: var(--violet-dark);
+  border: 2px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
 .music-player-copy {
   display: grid;
   min-width: 0;
@@ -1069,6 +1102,48 @@ footer {
   text-transform: uppercase;
 }
 
+.online-profile-toggle {
+  width: 100%;
+  min-height: 0;
+  padding: 0 0 10px;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid var(--ink);
+  box-shadow: none;
+  clip-path: none;
+  cursor: default;
+  text-align: left;
+  transform: none;
+}
+
+.online-profile-toggle-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.online-profile-toggle-icon {
+  display: none;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  color: var(--ink);
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.online-profile-content {
+  display: grid;
+  min-height: 0;
+}
+
+.online-profile-content[hidden] {
+  display: none;
+}
+
 .online-profile-list {
   display: grid;
   align-content: start;
@@ -1258,6 +1333,27 @@ footer {
     grid-template-columns: 1fr;
     grid-template-rows: minmax(150px, .75fr) minmax(280px, 1.4fr);
     overflow-y: auto;
+  }
+
+  .active-users-layout.has-collapsed-online {
+    grid-template-rows: auto minmax(280px, 1fr);
+  }
+
+  .online-profile-section:not(.is-open) {
+    grid-template-rows: auto;
+  }
+
+  .online-profile-section:not(.is-open) .online-profile-toggle {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+
+  .online-profile-toggle {
+    cursor: pointer;
+  }
+
+  .online-profile-toggle-icon {
+    display: grid;
   }
 
   .online-profile-section,
@@ -6458,6 +6554,15 @@ canvas.player-avatar {
 
   .app-shell {
     padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .pwa-update-notice {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pwa-update-notice button {
+    width: 100%;
   }
 
   .music-player {

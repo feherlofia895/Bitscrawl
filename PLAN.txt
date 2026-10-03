@@ -7,6 +7,11 @@ Jelölések:
 [ ] még hátra van
 
 2026-10-03-i aktuális állapot:
+- [x] A Dicsőségfal „A legmenőbbek” része már nem sorolja fel külön minden hét és
+  hónap dobogósait. Csak a legalább egy érmet szerzett játékosok látszanak, mindenki
+  egyszer, az összesített arany-, ezüst- és bronzérmeivel.
+- [x] A mobilos előszoba-chatben a „Most online” játékoslista alapból összecsukott,
+  a fejlécével nyitható és zárható, így több hely marad a chatüzeneteknek.
 - [x] Az admin az előszoba-chat minden üzeneténél külön, megerősített Törlés gombot
   kapott. A jogosultságot továbbra is a szerveroldali, privát adminlista ellenőrzi;
   közvetlen táblatörlési jog nem került a klienshez. A `martinteteme` profil 497
@@ -26,8 +31,8 @@ Jelölések:
   A mobilos fejléc 320×700-as szimulált nézetben kilógás nélkül működik; a mentés,
   betöltés és GIF-export a közös Megosztás / mentés menüben található.
 - [x] A fenti csomag buildje, lintje, szerkesztő-, animáció-, GIF- és galériatesztjei
-  sikeresek. A jelenlegi GitHub- és Cloudflare-kiadás a `364c377` commitból éles;
-  ebben már az adminos előszoba-moderálás is benne van.
+  sikeresek. A GitHub `main` a `7255bb0` merge commitnál tart; a Cloudflare Pagesen
+  a PWA-frissítési jelzést is tartalmazó `fbabe0a` build éles.
 - [>] A fizikai telefonos animációs alappróba és a PWA iPhone-telepítés sikeres;
   a billentyűzetes és hálózatkimaradási eset, valamint az Android/asztali PWA-próba
   még külön ellenőrzendő.
@@ -44,11 +49,11 @@ Jelölések:
 
 KÖVETKEZŐ KIS PWA-FEJLESZTÉS – LÁTHATÓ VERZIÓFRISSÍTÉS
 
-- [ ] Induláskor és az alkalmazás újbóli előtérbe kerülésekor ellenőrizzük, van-e
+- [x] Induláskor és az alkalmazás újbóli előtérbe kerülésekor ellenőrizzük, van-e
   új kiadás. Ha igen, jelenjen meg: `Új Bitscrawl-verzió érhető el – Frissítés`.
-- [ ] A Frissítés gomb tudatos felhasználói műveletre töltse újra az alkalmazást;
+- [x] A Frissítés gomb tudatos felhasználói műveletre töltse újra az alkalmazást;
   aktív rajzolás, nevezés vagy multiplayer-kör közben ne legyen automatikus reload.
-- [ ] A kiadás kapjon kliensből olvasható buildazonosítót, hogy a támogatásnál és a
+- [x] A kiadás kapjon kliensből olvasható buildazonosítót, hogy a támogatásnál és a
   hibajelentésekben látható legyen, pontosan melyik verzió fut az eszközön.
 - [ ] Fizikai iPhone-on egy valós A → B Cloudflare-kiadással ellenőrizni kell, hogy
   a telepített PWA jelzi és a gombbal betölti az új verziót. Utána Android Chrome és
