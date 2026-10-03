@@ -201,8 +201,7 @@ dinamikusan betölteni.
 
 ## Még nyitott ellenőrzések
 
-- Telepített PWA valós A → B frissítési próbája az éles `fbabe0a` buildre.
-- Telepített PWA valós A → B frissítési próba iPhone-on.
+- Telepített PWA valós A → B frissítési próbája iPhone-on az éles `bf1f8e1` buildre.
 - Android Chrome és asztali Chrome/Edge PWA-telepítés/frissítés.
 - Fizikai telefonos billentyűzet- és hálózatkimaradási esetek.
 - Két réteg visszafelé kompatibilis mentési formátuma és adatbázis-migrációja.
