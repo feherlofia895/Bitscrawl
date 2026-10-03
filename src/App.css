@@ -4520,6 +4520,12 @@ button,
   }
 }
 
+@media (min-width: 321px) and (max-width: 760px) {
+  .topbar-statuses {
+    padding-top: 48px;
+  }
+}
+
 .profile-menu-button {
   min-height: 0;
   display: inline-flex;
@@ -6097,11 +6103,15 @@ canvas.player-avatar {
 
   .brand {
     justify-content: center;
+    padding-right: 96px;
+    padding-left: 8px;
+    box-sizing: border-box;
   }
 
   .topbar-statuses {
     align-items: stretch;
     width: 100%;
+    padding-top: 8px;
   }
 
   .backend-badge,

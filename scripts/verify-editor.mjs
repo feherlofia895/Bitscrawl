@@ -320,6 +320,9 @@ test('very narrow mobile layouts can shrink below 320px without clipping editor 
   assert.match(appCss, /@media \(max-width: 320px\)[\s\S]*?\.tool-buttons\s*\{[^}]*width:\s*100%;[^}]*min-width:\s*0;[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*42px\)\)/)
   assert.match(appCss, /@media \(max-width: 320px\)[\s\S]*?\.drawing-palette\[data-palette-size='12'\]\s*\{[^}]*grid-template-columns:\s*repeat\(6,\s*16px\);[^}]*grid-template-rows:\s*repeat\(2,\s*16px\)/)
   assert.match(appCss, /@media \(max-width: 320px\)[\s\S]*?\.gallery-comments-heading[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\) auto/)
+  assert.match(appCss, /@media \(min-width: 321px\) and \(max-width: 760px\)\s*\{\s*\.topbar-statuses\s*\{[^}]*padding-top:\s*48px;/)
+  assert.match(appCss, /@media \(max-width: 320px\)[\s\S]*?\.brand\s*\{[^}]*padding-right:\s*96px;[^}]*box-sizing:\s*border-box;/)
+  assert.match(appCss, /@media \(max-width: 320px\)[\s\S]*?\.topbar-statuses\s*\{[^}]*padding-top:\s*8px;/)
 })
 
 test('the lobby button shows unread chat without moving and profile previews expose avatar likes', async () => {
