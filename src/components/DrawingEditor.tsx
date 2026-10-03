@@ -845,11 +845,33 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
         <div className="editor-actions">
           <button onClick={onBack} type="button">{text.backPlay}</button>
           <button onClick={startNewDrawing} disabled={exporting} type="button">{text.newDrawing}</button>
-          <details className="editor-share-menu" hidden={animationMode} onToggle={event => {
+          <details className="editor-share-menu" onToggle={event => {
             if (event.target === event.currentTarget && event.currentTarget.open) void refreshShareState()
           }} ref={shareMenuRef}>
-            <summary aria-disabled={exporting || sharing}>Megosztás / nevezés</summary>
+            <summary aria-disabled={exporting || sharing}>
+              {animationMode ? 'Megosztás / mentés' : 'Megosztás / nevezés'}
+            </summary>
             <div className="editor-share-options">
+              {animationMode ? (
+                <div className="editor-animation-share-options">
+                  <strong>Animáció mentése</strong>
+                  <button className="primary-button" disabled={exporting} onClick={() => void downloadGif()} type="button">
+                    {exporting ? 'GIF készítése…' : 'GIF export · 256×256'}
+                  </button>
+                  {shareLoading ? <p>Lehetőségek betöltése…</p> : !shareState.signedIn || !shareState.profileReady ? (
+                    <p>Az animációs galériához jelentkezz be, és mentsd el a profilodat.</p>
+                  ) : <>
+                    <button disabled={galleryActionLoading || sharing} onClick={() => void openGalleryAction('animation-save')} type="button">
+                      Mentés az animációs galériába
+                    </button>
+                    <button disabled={galleryActionLoading || sharing} onClick={() => void openGalleryAction('animation-load')} type="button">
+                      Betöltés az animációs galériából ({shareState.animationSlots.length}/2)
+                    </button>
+                    {shareState.animationUnavailableMessage ? <small>{shareState.animationUnavailableMessage}</small> : null}
+                  </>}
+                  <small>A GIF a részben áttetsző színeket 50% alatt teljesen átlátszóként menti.</small>
+                </div>
+              ) : <>
               <div className="editor-export-options">
                 <strong>Kép mentése</strong>
                 <label className="field">
@@ -915,6 +937,7 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
                 </details>
                 {shareState.feedUnavailableMessage ? <small>{shareState.feedUnavailableMessage}</small> : null}
                 {!serverPaletteReady ? <small>A kevert színeket a heti és havi kihívás fogadja; a Rajzfal, a profilkép és a saját galéria továbbra is a 32 hivatalos színt használja.</small> : null}
+              </>}
               </>}
               {status !== text.local ? <p className="status-message editor-share-status" role="status">{status}</p> : null}
             </div>
@@ -985,21 +1008,15 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
       {animationMode ? (
         <EditorAnimationControls
           activeFrameIndex={activeAnimationFrame}
-          exporting={exporting}
           fps={animationFps}
           frames={animationFrames}
-          galleryBusy={galleryActionLoading || sharing}
           onionSkin={onionSkin}
           onAddFrame={() => addFrame(false)}
           onDeleteFrame={removeActiveFrame}
           onDuplicateFrame={() => addFrame(true)}
-          onExportGif={() => void downloadGif()}
           onFpsChange={fps => updateAnimationSettings(fps, onionSkin)}
-          onLoadFromGallery={() => void openGalleryAction('animation-load')}
           onOnionSkinChange={active => updateAnimationSettings(animationFps, active)}
-          onSaveToGallery={() => void openGalleryAction('animation-save')}
           onSelectFrame={showAnimationFrame}
-          savedAnimationCount={shareState.animationSlots.length}
         />
       ) : null}
       <PixelCanvas

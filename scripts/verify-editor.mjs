@@ -255,7 +255,7 @@ test('the editor uses one share menu for the feed and both challenge entries', a
     readFile(new URL('../src/App.css', import.meta.url), 'utf8'),
     readFile(new URL('../src/components/PixelCanvas.tsx', import.meta.url), 'utf8'),
   ])
-  assert.match(editorSource, /<summary[^>]*>Megosztás \/ nevezés<\/summary>/)
+  assert.match(editorSource, /<summary[^>]*>[\s\S]*?animationMode \? 'Megosztás \/ mentés' : 'Megosztás \/ nevezés'[\s\S]*?<\/summary>/)
   const shareMenuIndex = editorSource.indexOf('<details className="editor-share-menu"')
   const exportActionIndex = editorSource.indexOf('onClick={() => void downloadPng()}')
   assert.ok(shareMenuIndex >= 0 && exportActionIndex > shareMenuIndex)

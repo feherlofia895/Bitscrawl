@@ -3045,7 +3045,7 @@ button,
 
 .editor-animation-controls {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   margin: 18px 0;
   padding: clamp(14px, 3vw, 20px);
   background: color-mix(in srgb, var(--olive) 55%, var(--paper));
@@ -3054,9 +3054,9 @@ button,
 }
 
 .editor-animation-heading {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 18px;
 }
 
@@ -3070,9 +3070,10 @@ button,
 }
 
 .editor-animation-preview {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto auto 42px;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .editor-animation-preview .weekly-artwork,
@@ -3091,20 +3092,49 @@ button,
   image-rendering: pixelated;
 }
 
-.editor-animation-preview button,
-.editor-animation-actions button {
-  min-height: 40px;
-  padding: 7px 10px;
-  color: var(--ink);
-  background: var(--paper);
-  border: 2px solid var(--ink);
-  box-shadow: 2px 2px 0 var(--ink);
+.editor-animation-speed {
+  display: grid;
+  gap: 4px;
+  min-width: 104px;
   font-family: var(--pixel-font);
-  font-size: .62rem;
+  font-size: .56rem;
   font-weight: 900;
 }
 
-.editor-animation-preview button[aria-pressed='true'] {
+.editor-animation-speed select {
+  min-height: 38px;
+  padding: 6px 8px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  font: 900 .58rem/1.2 var(--pixel-font);
+}
+
+.editor-animation-play-button,
+.editor-animation-actions button {
+  display: grid;
+  width: 42px;
+  min-width: 42px;
+  min-height: 42px;
+  height: 42px;
+  padding: 9px;
+  place-items: center;
+  color: var(--ink);
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  image-rendering: pixelated;
+}
+
+.editor-animation-play-button svg,
+.editor-animation-actions button svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
+.editor-animation-play-button[aria-pressed='true'],
+.editor-animation-actions button[aria-pressed='true'] {
   background: var(--mint);
 }
 
@@ -3136,83 +3166,95 @@ button,
 
 .editor-animation-actions {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-}
-
-.editor-animation-actions label {
-  display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 8px;
-  min-height: 40px;
-  font-family: var(--pixel-font);
-  font-size: .62rem;
-  font-weight: 900;
-}
-
-.editor-animation-storage-actions {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  padding-top: 12px;
-  border-top: 2px solid var(--ink);
-}
-
-.editor-animation-storage-actions button {
-  min-height: 44px;
-  padding: 7px 10px;
-  color: var(--ink);
-  background: var(--yellow);
-  border: 2px solid var(--ink);
-  box-shadow: 2px 2px 0 var(--ink);
-  font-family: var(--pixel-font);
-  font-size: .62rem;
-  font-weight: 900;
-}
-
-.editor-animation-storage-actions small {
-  grid-column: 1 / -1;
-  line-height: 1.35;
 }
 
 .editor-animation-onion-skin {
-  padding: 6px 9px;
-  background: var(--paper);
-  border: 2px solid var(--ink);
+  margin-left: auto;
 }
 
 @media (max-width: 560px) {
-  .editor-animation-heading,
-  .editor-animation-preview,
-  .editor-animation-actions {
-    align-items: stretch;
+  .editor-animation-controls {
+    gap: 9px;
+    padding: 10px;
   }
 
   .editor-animation-heading {
-    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .editor-animation-heading-copy {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .editor-animation-heading-copy .step-label,
+  .editor-animation-heading-copy > p:last-child {
+    display: none;
   }
 
   .editor-animation-preview {
-    justify-content: space-between;
+    grid-template-columns: 54px minmax(92px, 1fr) 38px;
+    gap: 7px;
+  }
+
+  .editor-animation-preview .weekly-artwork {
+    width: 54px;
+    height: 54px;
+  }
+
+  .editor-animation-speed {
+    min-width: 0;
+  }
+
+  .editor-animation-speed select {
+    width: 100%;
+    min-height: 36px;
+    padding-inline: 5px;
+  }
+
+  .editor-animation-play-button {
+    width: 38px;
+    min-width: 38px;
+    min-height: 38px;
+    height: 38px;
+    padding: 8px;
+  }
+
+  .editor-animation-frames {
+    flex-wrap: nowrap;
+    gap: 7px;
+    padding: 3px 3px 5px;
+    overflow-x: auto;
+  }
+
+  .editor-animation-frame {
+    flex: 0 0 auto;
+    grid-template-columns: auto;
+    gap: 3px;
+    padding: 4px;
+  }
+
+  .editor-animation-frame .weekly-artwork {
+    width: 48px;
+    height: 48px;
   }
 
   .editor-animation-actions {
-    display: grid;
-    grid-template-columns: 1fr;
+    gap: 7px;
   }
 
-  .editor-animation-actions button,
-  .editor-animation-actions label {
-    width: 100%;
-  }
-
-  .editor-animation-storage-actions {
-    grid-template-columns: 1fr;
-  }
-
-  .editor-animation-storage-actions small {
-    grid-column: auto;
+  .editor-animation-actions button {
+    width: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    height: 40px;
+    padding: 8px;
   }
 }
 
@@ -4019,6 +4061,19 @@ button,
 
 .editor-export-options .field { min-width: 0; }
 .editor-export-options .primary-button { width: 100%; }
+
+.editor-animation-share-options {
+  display: grid;
+  gap: 8px;
+}
+
+.editor-animation-share-options > strong {
+  font: 900 .7rem/1.2 var(--pixel-font);
+}
+
+.editor-animation-share-options > small {
+  line-height: 1.35;
+}
 
 .editor-share-status {
   padding: 8px 10px;
