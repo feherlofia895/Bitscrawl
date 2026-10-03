@@ -90,11 +90,12 @@ Titkot vagy `service_role` kulcsot soha ne tegyél kliensoldali fájlba, commitb
 - iPhone-on az alkalmazásváltóban teljesen bezárt, majd újranyitott PWA biztosan az
   aktuális klienst tölti be. Ikon- vagy manifestcsere az iOS erős gyorsítótára miatt
   esetenként törlést és újbóli „Főképernyőhöz adás” műveletet igényelhet.
-- Tervezett kis fejlesztés: látható
-  `Új Bitscrawl-verzió érhető el – Frissítés` jelzés. Induláskor és előtérbe
-  kerüléskor keressen új buildet, de aktív rajzolást vagy játékot soha ne töltsön
-  újra automatikusan. A gomb csak felhasználói kattintásra frissítsen.
-- A kliens kapjon látható buildazonosítót. A frissítési folyamatot valós A → B
+- Helyben elkészült a látható `Új Bitscrawl-verzió érhető el – Frissítés` jelzés.
+  Induláskor és előtérbe kerüléskor hálózatról ellenőrzi a `build-info.json` fájlt,
+  de aktív rajzolást vagy játékot soha nem tölt újra automatikusan. A gomb csak
+  felhasználói kattintásra frissít.
+- A kliens buildazonosítója a Beállításokban, a hibajelentések technikai adatai között
+  és az admin visszajelzőközpontban is látható. A frissítési folyamatot még valós A → B
   kiadással kell iPhone-on, majd Android Chrome-on és asztali Chrome/Edge alatt
   ellenőrizni. A részletes feladatok a `PLAN.txt` elején vannak.
 
@@ -196,7 +197,7 @@ dinamikusan betölteni.
 
 ## Még nyitott ellenőrzések
 
-- PWA látható verziófrissítési jelzés és buildazonosító.
+- PWA látható verziófrissítési jelzés és buildazonosító valós kiadás előtti ellenőrzése.
 - Telepített PWA valós A → B frissítési próba iPhone-on.
 - Android Chrome és asztali Chrome/Edge PWA-telepítés/frissítés.
 - Fizikai telefonos billentyűzet- és hálózatkimaradási esetek.

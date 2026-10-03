@@ -44,11 +44,11 @@ Jelölések:
 
 KÖVETKEZŐ KIS PWA-FEJLESZTÉS – LÁTHATÓ VERZIÓFRISSÍTÉS
 
-- [ ] Induláskor és az alkalmazás újbóli előtérbe kerülésekor ellenőrizzük, van-e
+- [x] Induláskor és az alkalmazás újbóli előtérbe kerülésekor ellenőrizzük, van-e
   új kiadás. Ha igen, jelenjen meg: `Új Bitscrawl-verzió érhető el – Frissítés`.
-- [ ] A Frissítés gomb tudatos felhasználói műveletre töltse újra az alkalmazást;
+- [x] A Frissítés gomb tudatos felhasználói műveletre töltse újra az alkalmazást;
   aktív rajzolás, nevezés vagy multiplayer-kör közben ne legyen automatikus reload.
-- [ ] A kiadás kapjon kliensből olvasható buildazonosítót, hogy a támogatásnál és a
+- [x] A kiadás kapjon kliensből olvasható buildazonosítót, hogy a támogatásnál és a
   hibajelentésekben látható legyen, pontosan melyik verzió fut az eszközön.
 - [ ] Fizikai iPhone-on egy valós A → B Cloudflare-kiadással ellenőrizni kell, hogy
   a telepített PWA jelzi és a gombbal betölti az új verziót. Utána Android Chrome és

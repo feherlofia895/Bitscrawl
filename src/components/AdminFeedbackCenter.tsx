@@ -41,6 +41,7 @@ function technicalEntries(report: AdminFeedbackReport) {
   if (!context || Array.isArray(context) || typeof context !== 'object') return []
 
   const labels: Record<string, string> = {
+    build_id: 'Build',
     captured_at: 'Rögzítve',
     language: 'Nyelv',
     online: 'Online',

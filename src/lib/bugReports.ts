@@ -17,6 +17,7 @@ type SubmitBugReportInput = {
 export async function submitBugReport(input: SubmitBugReportInput) {
   const user = await ensurePlayerSession()
   const technicalContext: Json = {
+    build_id: __BITSCRAWL_BUILD_ID__,
     captured_at: new Date().toISOString(),
     language: navigator.language,
     online: navigator.onLine,

@@ -102,6 +102,39 @@ footer {
   clip-path: var(--pixel-corner);
 }
 
+.pwa-update-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 10px;
+  padding: 10px 12px 10px 14px;
+  color: var(--ink);
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  clip-path: var(--pixel-corner);
+}
+
+.pwa-update-notice span,
+.pwa-update-notice button {
+  font-family: var(--pixel-font);
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.pwa-update-notice button {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 7px 11px;
+  color: var(--paper);
+  background: var(--violet-dark);
+  border: 2px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
 .music-player-copy {
   display: grid;
   min-width: 0;
@@ -6458,6 +6491,15 @@ canvas.player-avatar {
 
   .app-shell {
     padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .pwa-update-notice {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pwa-update-notice button {
+    width: 100%;
   }
 
   .music-player {
