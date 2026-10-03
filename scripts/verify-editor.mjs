@@ -78,6 +78,8 @@ test('the regular toolbar omits its duplicate pan hand and enlarges the drawn co
   assert.match(css, /\.tool-buttons \.tool-sprite-button\s*\{[^}]*width:\s*42px[^}]*height:\s*48px/)
   assert.match(css, /background-size:\s*78px 384px/)
   assert.match(css, /\.immersive-side-controls \.tool-sprite-button,[\s\S]*?\.immersive-tool-menu \.tool-sprite-button\s*\{[^}]*width:\s*42px[^}]*height:\s*48px[^}]*background-size:\s*78px 384px/)
+  assert.match(css, /\.tool-buttons \.tool-icon-button,[\s\S]*?\.immersive-tool-menu \.tool-icon-button\s*\{[^}]*width:\s*42px[^}]*height:\s*48px/)
+  assert.match(css, /\.tool-buttons \.tool-icon-button img,[\s\S]*?\.immersive-tool-menu \.tool-icon-button img\s*\{[^}]*width:\s*27px[^}]*height:\s*27px/)
   assert.match(css, /\.immersive-side-controls \.tool-sprite-button\[aria-pressed='true'\],[\s\S]*?background-image:\s*url\('\/ui\/toolbar-normal\.png'\)[^}]*outline:\s*3px solid var\(--blue\)/)
   assert.match(css, /\.tool-buttons \.tool-sprite-button\[aria-pressed='true'\][\s\S]*?background-image:\s*url\('\/ui\/toolbar-normal\.png'\)[^}]*outline:\s*3px solid var\(--blue\)/)
   assert.match(css, /\.tool-buttons button\[aria-pressed='true'\]\s*\{[^}]*background-color:\s*var\(--mint\)/)
@@ -310,19 +312,25 @@ test('the mobile lobby chat keeps its composer inside the panel', async () => {
 })
 
 test('very narrow mobile layouts can shrink below 320px without clipping editor controls', async () => {
-  const [appCss, rootCss] = await Promise.all([
+  const [appCss, rootCss, appSource] = await Promise.all([
     readFile(new URL('../src/App.css', import.meta.url), 'utf8'),
     readFile(new URL('../src/index.css', import.meta.url), 'utf8'),
+    readFile(new URL('../src/App.tsx', import.meta.url), 'utf8'),
   ])
 
   assert.match(rootCss, /html\s*\{[^}]*min-width:\s*0;/)
   assert.match(rootCss, /body\s*\{[^}]*min-width:\s*0;/)
+  assert.match(appSource, /className="topbar-brand-logo" src="\/bitscrawl-logo\.png"/)
+  assert.match(appSource, /<div className="environment-badge">[\s\S]*?className="backend-badge"[\s\S]*?className="prototype-badge"/)
   assert.match(appCss, /@media \(max-width: 320px\)[\s\S]*?\.tool-buttons\s*\{[^}]*width:\s*100%;[^}]*min-width:\s*0;[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*42px\)\)/)
   assert.match(appCss, /@media \(max-width: 320px\)[\s\S]*?\.drawing-palette\[data-palette-size='12'\]\s*\{[^}]*grid-template-columns:\s*repeat\(6,\s*16px\);[^}]*grid-template-rows:\s*repeat\(2,\s*16px\)/)
   assert.match(appCss, /@media \(max-width: 320px\)[\s\S]*?\.gallery-comments-heading[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\) auto/)
-  assert.match(appCss, /@media \(min-width: 321px\) and \(max-width: 760px\)\s*\{\s*\.topbar-statuses\s*\{[^}]*padding-top:\s*48px;/)
-  assert.match(appCss, /@media \(max-width: 320px\)[\s\S]*?\.brand\s*\{[^}]*padding-right:\s*96px;[^}]*box-sizing:\s*border-box;/)
-  assert.match(appCss, /@media \(max-width: 320px\)[\s\S]*?\.topbar-statuses\s*\{[^}]*padding-top:\s*8px;/)
+  assert.match(appCss, /@media \(max-width: 760px\)[\s\S]*?\.topbar-statuses\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\) 38px;/)
+  assert.match(appCss, /@media \(max-width: 760px\)[\s\S]*?\.environment-badge\s*\{[^}]*display:\s*flex;[^}]*min-height:\s*38px;/)
+  assert.match(appCss, /@media \(max-width: 760px\)[\s\S]*?\.profile-menu-button > span:last-child\s*\{[^}]*display:\s*none;/)
+  assert.match(appCss, /\.weekly-gallery,\s*\.weekly-challenge-card,\s*\.current-challenges-card,\s*\.scoreboard-heading\s*\{[^}]*background-clip:\s*padding-box;[^}]*border-image-slice:\s*16;/)
+  assert.match(appCss, /\.weekly-gallery::before,[\s\S]*?\.scoreboard-heading::after\s*\{[^}]*width:\s*14px;[^}]*height:\s*16px;/)
+  assert.match(appCss, /@media \(max-width: 700px\)[\s\S]*?\.current-challenges-card li\s*\{[^}]*grid-template-columns:\s*10px minmax\(0,\s*1fr\);/)
 })
 
 test('the lobby button shows unread chat without moving and profile previews expose avatar likes', async () => {

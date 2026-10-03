@@ -1031,10 +1031,7 @@ function App() {
     <main className="app-shell" data-reduced-motion={reduceMotion}>
       <header className="topbar">
         <a className="brand" href="#top" aria-label="Bitscrawl kezdőlap">
-          <span className="brand-mark" aria-hidden="true">
-            ?
-          </span>
-          <span>Bitscrawl</span>
+          <img alt="" aria-hidden="true" className="topbar-brand-logo" src="/bitscrawl-logo.png" />
         </a>
         <button
           aria-label="Beállítások"
@@ -1053,15 +1050,17 @@ function App() {
           />
         ) : null}
         <div className="topbar-statuses">
-          <span
-            className="backend-badge"
-            data-status={homeView === 'editor' && !lobby ? 'online' : backendStatus}
-            aria-live="polite"
-          >
-            <span className="status-dot" aria-hidden="true" />
-            {homeView === 'editor' && !lobby ? editorText.localMode : backendStatusLabels[backendStatus]}
-          </span>
-          <span className="prototype-badge">Korai prototípus</span>
+          <div className="environment-badge">
+            <span
+              className="backend-badge"
+              data-status={homeView === 'editor' && !lobby ? 'online' : backendStatus}
+              aria-live="polite"
+            >
+              <span className="status-dot" aria-hidden="true" />
+              {homeView === 'editor' && !lobby ? editorText.localMode : backendStatusLabels[backendStatus]}
+            </span>
+            <span className="prototype-badge">Korai prototípus</span>
+          </div>
           <button
             aria-label={weeklyUserLabel === 'Vendég' ? 'Profil és belépés' : `Saját profil: ${weeklyUserLabel}`}
             className="user-badge profile-menu-button"
