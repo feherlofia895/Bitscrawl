@@ -17,7 +17,7 @@ Nyilvános tesztváltozat: **https://bitscrawl.pages.dev/**
 - csak a rajzoló számára látható szóválasztás
 - host által kapcsolható egyszemélyes teszt mód
 - egyszemélyes teszt módban korlátlan rajzidő
-- 32×32-as HTML Canvas ceruzával, radírral és nyolcszínű palettával
+- 32×32-as HTML Canvas több rajzeszközzel és 12 színű alappalettával
 - szerver által ellenőrzött, változásalapú élő pixelrajzolás
 - valós idejű chat és szerveroldali, ékezetfüggetlen megfejtés-ellenőrzés
 - szerver által felügyelt 90 másodperces köridő és gyors, 15 másodperces tesztidő
@@ -77,6 +77,22 @@ npm run deploy
 A parancs előbb elkészíti a `dist` mappát, majd feltölti a `main` production
 ágra. A publikus cím HTTPS-t használ, és nem szükséges hozzá saját domain.
 
+## Telepítés alkalmazásként (PWA)
+
+A nyilvános Bitscrawl kezdőképernyőre vagy asztalra telepíthető, de továbbra is
+internetkapcsolatot igényel. A service worker szándékosan nem tárol offline
+alkalmazáscsomagot: minden megnyitáskor a hálózatról kéri az aktuális változatot,
+így nem keveredik régi kliens az élő multiplayerrel.
+
+- iPhone/iPad Safariban: **Megosztás → Főképernyőhöz adás**.
+- Android Chrome-ban: **Menü → Alkalmazás telepítése** vagy **Hozzáadás a
+  kezdőképernyőhöz**.
+- Asztali Chrome/Edge alatt: a címsor telepítésikonja vagy a böngésző
+  **Telepítés** menüpontja.
+
+A Beállítások oldal jelzi, ha a böngésző közvetlen telepítőgombot biztosít, iPhone-on
+pedig megmutatja a kézi lépéseket.
+
 ## Ellenőrzés
 
 ```bash
@@ -97,6 +113,12 @@ A multiplayer-jogosultságok és az egyszemélyes korlátlan idő ellenőrzése:
 
 ```bash
 node --env-file=.env.local scripts/verify-multiplayer-security.mjs
+```
+
+A háromjátékos, kilenckörös teljes meccsszimuláció futtatása:
+
+```bash
+npm run test:three-player
 ```
 
 Az adatbázis változásai a `supabase/migrations` mappában találhatók.

@@ -8,7 +8,32 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "test:editor": "node --test scripts/verify-editor.mjs",
+    "test:color-mixer": "node --test scripts/verify-color-mixer.mjs",
+    "test:editor-gallery": "node --test scripts/verify-editor-gallery-flow.mjs",
+    "test:editor-palettes": "node --test scripts/verify-editor-palettes-client.mjs scripts/verify-editor-palettes-local.mjs",
+    "test:editor-animation": "node --test scripts/verify-editor-animation.mjs",
+    "test:editor-animation-gallery": "node --test scripts/verify-editor-animation-gallery-local.mjs scripts/verify-editor-gif.mjs",
+    "test:gallery-controls": "node --test scripts/verify-gallery-controls.mjs",
+    "test:comment-likes": "node --test scripts/verify-comment-likes-local.mjs scripts/verify-comment-likes-client.mjs",
+    "test:moderation": "node --test scripts/verify-moderation-local.mjs scripts/verify-moderation-client.mjs",
+    "test:admin-feedback": "node --test scripts/verify-admin-feedback-client.mjs scripts/verify-moderation-local.mjs",
+    "test:scoreboard": "node --test scripts/verify-scoreboard-local.mjs scripts/verify-scoreboard-client.mjs",
+    "test:score-integrity": "node --test scripts/verify-score-integrity-local.mjs",
+    "test:monthly-score": "node --test scripts/verify-monthly-score-local.mjs",
+    "test:monthly-transition": "node --test scripts/verify-monthly-transition-local.mjs",
+    "test:challenge-rules": "node --test scripts/verify-challenge-rules-local.mjs scripts/verify-challenge-rules-client.mjs",
+    "test:round-duration:local": "node --test scripts/verify-round-duration-local.mjs",
+    "test:round-duration:live": "node --env-file=.env.local scripts/verify-round-duration-live.mjs",
+    "test:palette-hide:local": "node --test scripts/verify-palette-hide-local.mjs",
+    "test:pwa": "node --test scripts/verify-pwa.mjs",
+    "test:weekly-drawing:local": "node --test scripts/verify-weekly-drawing-local.mjs",
+    "test:drawing-safety": "node --test scripts/verify-drawing-safety.mjs",
+    "test:pixel-network": "node --test scripts/verify-pixel-network.mjs",
     "test:leave-room": "node --env-file=.env.local scripts/verify-leave-room.mjs",
+    "test:bug-reports": "node --env-file=.env.local scripts/verify-bug-reports.mjs",
+    "test:four-player": "node --env-file=.env.local scripts/verify-four-player-game.mjs",
+    "test:three-player": "node --env-file=.env.local scripts/verify-four-player-game.mjs 3",
     "test:palette-modes": "node --env-file=.env.local scripts/verify-palette-modes.mjs",
     "deploy": "npm run build && wrangler pages deploy dist --project-name bitscrawl --branch main"
   },
@@ -18,6 +43,7 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
@@ -25,6 +51,6 @@
     "oxlint": "^1.75.0",
     "typescript": "~6.0.2",
     "vite": "^8.2.0",
-    "wrangler": "4.120.0"
+    "wrangler": "4.135.0"
   }
 }
