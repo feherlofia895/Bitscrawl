@@ -11,6 +11,7 @@
     "test:editor": "node --test scripts/verify-editor.mjs",
     "test:color-mixer": "node --test scripts/verify-color-mixer.mjs",
     "test:editor-gallery": "node --test scripts/verify-editor-gallery-flow.mjs",
+    "test:editor-palettes": "node --test scripts/verify-editor-palettes-client.mjs scripts/verify-editor-palettes-local.mjs",
     "test:gallery-controls": "node --test scripts/verify-gallery-controls.mjs",
     "test:comment-likes": "node --test scripts/verify-comment-likes-local.mjs scripts/verify-comment-likes-client.mjs",
     "test:moderation": "node --test scripts/verify-moderation-local.mjs scripts/verify-moderation-client.mjs",

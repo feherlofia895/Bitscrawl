@@ -891,6 +891,15 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_own_editor_palettes: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          colors: Json
+          name: string
+          slot_index: number
+          updated_at: string
+        }[]
+      }
       get_gallery_comments: {
         Args: { target_challenge_id: number; target_kind: string }
         Returns: {
@@ -1087,6 +1096,10 @@ export type Database = {
         Args: { target_slot: number }
         Returns: boolean
       }
+      delete_own_editor_palette: {
+        Args: { target_slot: number }
+        Returns: boolean
+      }
       set_daily_feed_like: {
         Args: { like_enabled: boolean; target_post_id: number }
         Returns: { active_like_count: number; liked: boolean }[]
@@ -1133,6 +1146,10 @@ export type Database = {
       }
       save_own_editor_gallery_slot: {
         Args: { drawing_pixels: Json; requested_palette_size: number; target_slot: number }
+        Returns: string
+      }
+      save_own_editor_palette: {
+        Args: { palette_colors: Json; requested_name: string; target_slot: number }
         Returns: string
       }
       set_weekly_vote: {

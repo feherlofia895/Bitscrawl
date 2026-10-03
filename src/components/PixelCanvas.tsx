@@ -22,7 +22,7 @@ import {
 } from '../lib/drawing'
 import { editorText } from '../lib/editorText'
 import { createPixelSendQueue } from '../lib/pixelSendQueue'
-import { isHexColor } from '../lib/colorMixer'
+import { isHexColor, movePaletteColor, removePaletteColor } from '../lib/colorMixer'
 import { ColorMixer } from './ColorMixer'
 
 const TRANSPARENT = 'transparent'
@@ -37,7 +37,7 @@ function loadMixedColors() {
   try {
     const stored: unknown = JSON.parse(localStorage.getItem(MIXED_COLORS_STORAGE_KEY) ?? '[]')
     return Array.isArray(stored)
-      ? stored.filter((color): color is string => typeof color === 'string' && isHexColor(color)).slice(0, 8)
+      ? stored.filter((color): color is string => typeof color === 'string' && isHexColor(color)).slice(0, 16)
       : []
   } catch {
     return []
@@ -49,6 +49,9 @@ type PixelCanvasProps = {
   allowEditorTools?: boolean
   canvasSize?: DrawingSize
   customPaletteActive?: boolean
+  customPaletteColors?: string[]
+  customPaletteOptions?: Array<{ label: string; slotIndex: number }>
+  customPaletteSlot?: number
   localDrawing?: {
     initialPixels: string[]
     onChange: (pixels: string[]) => void
@@ -61,6 +64,9 @@ type PixelCanvasProps = {
   onError: (error: unknown) => void
   onImmersiveChange?: (isImmersive: boolean) => void
   onCustomPaletteActiveChange?: (active: boolean) => void
+  onCustomPaletteColorSave?: (color: string) => void
+  onCustomPaletteColorsChange?: (colors: string[]) => void
+  onCustomPaletteSlotChange?: (slotIndex: number) => void
   onLoadFromGallery?: () => void
   onPaletteSizeChange?: (size: PaletteSize) => void
   onSaveToGallery?: () => void
@@ -287,6 +293,9 @@ export function PixelCanvas({
   allowEditorTools = false,
   canvasSize = 32,
   customPaletteActive = false,
+  customPaletteColors,
+  customPaletteOptions,
+  customPaletteSlot,
   localDrawing,
   canDraw,
   chosenWord,
@@ -295,6 +304,9 @@ export function PixelCanvas({
   onError,
   onImmersiveChange,
   onCustomPaletteActiveChange,
+  onCustomPaletteColorSave,
+  onCustomPaletteColorsChange,
+  onCustomPaletteSlotChange,
   onLoadFromGallery,
   onPaletteSizeChange,
   onSaveToGallery,
@@ -344,6 +356,7 @@ export function PixelCanvas({
   const clearTouchHandledAtRef = useRef<number | null>(null)
   const [activeColor, setActiveColor] = useState(pixelPalette[0].hex)
   const [isColorMixerOpen, setIsColorMixerOpen] = useState(false)
+  const [isCustomPaletteEditing, setIsCustomPaletteEditing] = useState(false)
   const [mixedColors, setMixedColors] = useState<string[]>(() => allowColorMixer ? loadMixedColors() : [])
   const [activeTool, setActiveTool] = useState<DrawingTool>('pencil')
   const [brushSize, setBrushSize] = useState<BrushSize>(1)
@@ -374,8 +387,9 @@ export function PixelCanvas({
     null,
   )
   const drawingColor = activeTool === 'eraser' ? TRANSPARENT : activeColor
+  const effectiveCustomColors = customPaletteColors ?? mixedColors
   const visiblePalette = customPaletteActive && allowColorMixer
-    ? mixedColors.map(hex => ({ hex, name: 'Egyéni szín' }))
+    ? effectiveCustomColors.map(hex => ({ hex, name: 'Egyéni szín' }))
     : pixelPalette
 
   const chooseColor = (color: string) => {
@@ -385,8 +399,31 @@ export function PixelCanvas({
   }
 
   const saveMixedColor = (color: string) => {
-    setMixedColors((current) => [color, ...current.filter(saved => saved !== color)].slice(0, 8))
+    if (onCustomPaletteColorSave) onCustomPaletteColorSave(color)
+    else setMixedColors((current) => [color, ...current.filter(saved => saved !== color)].slice(0, 16))
     chooseColor(color)
+  }
+
+  const commitCustomColors = (colors: string[]) => {
+    if (onCustomPaletteColorsChange) onCustomPaletteColorsChange(colors)
+    else setMixedColors(colors)
+  }
+
+  const activeCustomColorIndex = effectiveCustomColors.findIndex(
+    color => color.toLowerCase() === activeColor.toLowerCase(),
+  )
+
+  const reorderActiveCustomColor = (offset: -1 | 1) => {
+    if (activeCustomColorIndex < 0) return
+    commitCustomColors(movePaletteColor(effectiveCustomColors, activeColor, offset))
+  }
+
+  const deleteActiveCustomColor = () => {
+    if (activeCustomColorIndex < 0) return
+    const colors = removePaletteColor(effectiveCustomColors, activeColor)
+    commitCustomColors(colors)
+    const nextColor = colors[Math.min(activeCustomColorIndex, colors.length - 1)]
+    if (nextColor) setActiveColor(nextColor)
   }
 
   const maximumZoom = () => {
@@ -1054,11 +1091,19 @@ export function PixelCanvas({
   }, [activeColor, allowColorMixer, paletteSize, pixelPalette])
 
   useEffect(() => {
-    if (!allowColorMixer) return
+    if (!allowColorMixer || customPaletteColors) return
     try {
       localStorage.setItem(MIXED_COLORS_STORAGE_KEY, JSON.stringify(mixedColors))
     } catch { /* The mixer still works for the current session without storage. */ }
-  }, [allowColorMixer, mixedColors])
+  }, [allowColorMixer, customPaletteColors, mixedColors])
+
+  useEffect(() => {
+    if (!customPaletteActive || effectiveCustomColors.length === 0) setIsCustomPaletteEditing(false)
+  }, [customPaletteActive, effectiveCustomColors.length])
+
+  useEffect(() => {
+    setIsCustomPaletteEditing(false)
+  }, [customPaletteSlot])
 
   useEffect(() => {
     events.forEach((event) => {
@@ -1277,6 +1322,47 @@ export function PixelCanvas({
     </div>
   )
 
+  const customPaletteControls = (immersive = false) => (
+    <div className={`custom-palette-controls${immersive ? ' is-immersive' : ''}`}>
+      <span>
+        {activeCustomColorIndex < 0 ? 'Válassz egy színt a rendezéshez.' : `${activeCustomColorIndex + 1}. szín kijelölve`}
+      </span>
+      <div>
+        <button
+          aria-label="Szín mozgatása balra"
+          disabled={activeCustomColorIndex <= 0}
+          onClick={() => reorderActiveCustomColor(-1)}
+          type="button"
+        >← Balra</button>
+        <button
+          aria-label="Szín mozgatása jobbra"
+          disabled={activeCustomColorIndex < 0 || activeCustomColorIndex >= effectiveCustomColors.length - 1}
+          onClick={() => reorderActiveCustomColor(1)}
+          type="button"
+        >Jobbra →</button>
+        <button
+          aria-label="Szín törlése az egyéni palettáról"
+          className="custom-palette-delete"
+          disabled={activeCustomColorIndex < 0}
+          onClick={deleteActiveCustomColor}
+          type="button"
+        >Törlés</button>
+      </div>
+    </div>
+  )
+
+  const customPaletteEditor = (immersive = false) => (
+    <div className={`custom-palette-editor${immersive ? ' is-immersive' : ''}`}>
+      <button
+        aria-expanded={isCustomPaletteEditing}
+        className="custom-palette-edit-toggle"
+        onClick={() => setIsCustomPaletteEditing(current => !current)}
+        type="button"
+      >{isCustomPaletteEditing ? 'Szerkesztés bezárása' : 'Paletta szerkesztése'}</button>
+      {isCustomPaletteEditing ? customPaletteControls(immersive) : null}
+    </div>
+  )
+
   const editor = (
     <section
       aria-label={isImmersive ? 'Teljes képernyős pixelvászon' : undefined}
@@ -1413,10 +1499,11 @@ export function PixelCanvas({
                 type="button"
               />
             ))}
-            {customPaletteActive && mixedColors.length === 0 ? (
+            {customPaletteActive && effectiveCustomColors.length === 0 ? (
               <small className="custom-palette-empty">Még nincs kikevert szín.</small>
             ) : null}
           </div>
+          {customPaletteActive && effectiveCustomColors.length > 0 ? customPaletteEditor() : null}
           {allowColorMixer ? (
             <div className="editor-color-mixer">
               <div className="editor-color-mixer-bar">
@@ -1646,29 +1733,39 @@ export function PixelCanvas({
               {isImmersivePaletteOpen ? (
                 allowColorMixer ? createPortal(
                   <div className="immersive-palette-popover">
-                    <div aria-label="Paletta kiválasztása" className="immersive-palette-tabs">
-                      <button
-                        aria-pressed={!customPaletteActive && paletteSize === 12}
-                        onClick={() => {
+                    <label className="immersive-palette-select">
+                      <span>Paletta</span>
+                      <select
+                        aria-label="Paletta kiválasztása teljes nézetben"
+                        onChange={(event) => {
+                          if (event.target.value === 'custom') {
+                            onCustomPaletteActiveChange?.(true)
+                            return
+                          }
                           onCustomPaletteActiveChange?.(false)
-                          onPaletteSizeChange?.(12)
+                          onPaletteSizeChange?.(event.target.value === '32' ? 32 : 12)
                         }}
-                        type="button"
-                      >Alap</button>
-                      <button
-                        aria-pressed={!customPaletteActive && paletteSize === 32}
-                        onClick={() => {
-                          onCustomPaletteActiveChange?.(false)
-                          onPaletteSizeChange?.(32)
-                        }}
-                        type="button"
-                      >Bővített</button>
-                      <button
-                        aria-pressed={customPaletteActive}
-                        onClick={() => onCustomPaletteActiveChange?.(true)}
-                        type="button"
-                      >Egyéni</button>
-                    </div>
+                        value={customPaletteActive ? 'custom' : String(paletteSize)}
+                      >
+                        <option value="custom">Egyéni paletta</option>
+                        <option value="12">12 szín · alap</option>
+                        <option value="32">32 szín · bővített</option>
+                      </select>
+                    </label>
+                    {customPaletteActive && Boolean(customPaletteOptions?.length) && customPaletteSlot ? (
+                      <label className="immersive-palette-select immersive-custom-palette-select">
+                        <span>Saját paletta</span>
+                        <select
+                          aria-label="Saját paletta kiválasztása teljes nézetben"
+                          onChange={event => onCustomPaletteSlotChange?.(Number(event.target.value))}
+                          value={customPaletteSlot}
+                        >
+                          {(customPaletteOptions ?? []).map(option => (
+                            <option key={option.slotIndex} value={option.slotIndex}>{option.label}</option>
+                          ))}
+                        </select>
+                      </label>
+                    ) : null}
                     <div
                       aria-label={customPaletteActive ? 'Egyéni paletta' : `${paletteSize} színű paletta`}
                       className="immersive-palette-menu"
@@ -1685,10 +1782,11 @@ export function PixelCanvas({
                           type="button"
                         />
                       ))}
-                      {customPaletteActive && mixedColors.length === 0 ? (
+                      {customPaletteActive && effectiveCustomColors.length === 0 ? (
                         <small className="immersive-custom-empty">Az Egyéni paletta még üres.</small>
                       ) : null}
                     </div>
+                    {customPaletteActive && effectiveCustomColors.length > 0 ? customPaletteEditor(true) : null}
                     <button
                       aria-expanded={isColorMixerOpen}
                       className="immersive-mixer-toggle"

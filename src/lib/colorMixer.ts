@@ -9,6 +9,19 @@ export function isHexColor(value: string) {
   return HEX_COLOR.test(value)
 }
 
+export function movePaletteColor(colors: string[], color: string, offset: -1 | 1) {
+  const index = colors.findIndex(item => item.toLowerCase() === color.toLowerCase())
+  const target = index + offset
+  if (index < 0 || target < 0 || target >= colors.length) return [...colors]
+  const reordered = [...colors]
+  ;[reordered[index], reordered[target]] = [reordered[target], reordered[index]]
+  return reordered
+}
+
+export function removePaletteColor(colors: string[], color: string) {
+  return colors.filter(item => item.toLowerCase() !== color.toLowerCase())
+}
+
 export type HslaColor = {
   hue: number
   saturation: number

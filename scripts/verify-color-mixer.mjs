@@ -8,7 +8,13 @@ import {
   parseDrawingDraft,
   rasterizeDrawing,
 } from '../src/lib/drawing.ts'
-import { hexToHsla, hslaToHex, normalizeHexColor } from '../src/lib/colorMixer.ts'
+import {
+  hexToHsla,
+  hslaToHex,
+  movePaletteColor,
+  normalizeHexColor,
+  removePaletteColor,
+} from '../src/lib/colorMixer.ts'
 
 const readSource = path => readFile(new URL(path, import.meta.url), 'utf8')
 
@@ -23,6 +29,15 @@ test('converts HSL controls and preserves alpha in eight-digit hex colors', () =
   assert.deepEqual(hexToHsla('#00ff0080'), {
     hue: 120, saturation: 100, lightness: 50, alpha: 50,
   })
+})
+
+test('custom palette colors can be reordered and removed without mutating the source', () => {
+  const colors = ['#111111', '#222222', '#333333']
+  assert.deepEqual(movePaletteColor(colors, '#222222', -1), ['#222222', '#111111', '#333333'])
+  assert.deepEqual(movePaletteColor(colors, '#222222', 1), ['#111111', '#333333', '#222222'])
+  assert.deepEqual(movePaletteColor(colors, '#111111', -1), colors)
+  assert.deepEqual(removePaletteColor(colors, '#222222'), ['#111111', '#333333'])
+  assert.deepEqual(colors, ['#111111', '#222222', '#333333'])
 })
 
 test('editor drafts and PNG rasterization accept a mixed custom color', () => {
@@ -56,7 +71,9 @@ test('the mixer is available in the editor and both challenge canvases', async (
   assert.match(mixer, /alpha: 100/)
   assert.doesNotMatch(mixer, /B szín aránya|Első keverési szín|Második keverési szín/)
   assert.match(editor, /Egyéni paletta/)
-  assert.match(pixelCanvas, /immersive-palette-tabs/)
+  assert.match(pixelCanvas, /Paletta kiválasztása teljes nézetben/)
+  assert.match(pixelCanvas, /Paletta szerkesztése/)
+  assert.match(pixelCanvas, /isCustomPaletteEditing \? customPaletteControls/)
   assert.match(pixelCanvas, /Az Egyéni paletta még üres/)
   assert.match(weekly, /allowColorMixer/)
   assert.match(monthly, /allowColorMixer/)

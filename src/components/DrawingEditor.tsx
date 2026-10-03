@@ -25,6 +25,18 @@ import {
   type EditorGallerySlot,
   type EditorGallerySlotIndex,
 } from '../lib/editorGallery'
+import {
+  deleteOwnEditorPalette,
+  EDITOR_PALETTE_COLOR_LIMIT,
+  loadLocalEditorPalettes,
+  loadOwnEditorPalettes,
+  sanitizeEditorPaletteColors,
+  sanitizeEditorPaletteName,
+  saveLocalEditorPalettes,
+  saveOwnEditorPalette,
+  type EditorCustomPalette,
+  type EditorPaletteSlotIndex,
+} from '../lib/editorPalettes'
 
 const STORAGE_KEY = 'bitscrawl-editor-v1'
 const serverColors = new Set(['transparent', ...editorPalette32.map(color => color.hex)])
@@ -67,7 +79,10 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
   const [revision, setRevision] = useState(0)
   const [scale, setScale] = useState(1)
   const [paletteSize, setPaletteSize] = useState<EditorPaletteSize>(initial.paletteSize)
-  const [customPaletteActive, setCustomPaletteActive] = useState(false)
+  const [customPaletteActive, setCustomPaletteActive] = useState(true)
+  const [customPalettes, setCustomPalettes] = useState(loadLocalEditorPalettes)
+  const [activePaletteSlot, setActivePaletteSlot] = useState<EditorPaletteSlotIndex>(1)
+  const [paletteSyncStatus, setPaletteSyncStatus] = useState('Saját paletták betöltése…')
   const [dirty, setDirty] = useState(!initial.exported)
   const [status, setStatus] = useState<string>(initial.storageAvailable ? text.local : text.storageError)
   const [exporting, setExporting] = useState(false)
@@ -88,6 +103,8 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
     action: () => void
   } | null>(null)
   const mountedRef = useRef(true)
+  const customPaletteTouchedRef = useRef(false)
+  const paletteSaveQueueRef = useRef<Promise<unknown>>(Promise.resolve())
   const shareMenuRef = useRef<HTMLDetailsElement>(null)
   const galleryCloseRef = useRef<HTMLButtonElement>(null)
   const galleryPreviousFocusRef = useRef<HTMLElement | null>(null)
@@ -95,6 +112,22 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
   useEffect(() => {
     mountedRef.current = true
     return () => { mountedRef.current = false }
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    void loadOwnEditorPalettes()
+      .then(result => {
+        if (!active || !mountedRef.current) return
+        if (!customPaletteTouchedRef.current) setCustomPalettes(result.palettes)
+        setPaletteSyncStatus(result.storage === 'cloud' ? 'Profillal szinkronizálva.' : 'Ezen az eszközön mentve.')
+      })
+      .catch(error => {
+        if (active && mountedRef.current) {
+          setPaletteSyncStatus(error instanceof Error ? error.message : 'A profilszinkron most nem érhető el.')
+        }
+      })
+    return () => { active = false }
   }, [])
 
   useEffect(() => {
@@ -161,6 +194,89 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
     setPaletteSize(nextPalette)
     if (persist(pixelsRef.current, !dirty, nextPalette)) setStatus(text.local)
   }
+
+  const activeCustomPalette = customPalettes[activePaletteSlot - 1]
+
+  const replaceCustomPalette = (palette: EditorCustomPalette) => {
+    customPaletteTouchedRef.current = true
+    setCustomPalettes(current => {
+      const next = current.map(item => item.slotIndex === palette.slotIndex ? palette : item)
+      saveLocalEditorPalettes(next)
+      return next
+    })
+  }
+
+  const queueCustomPaletteSave = (palette: EditorCustomPalette) => {
+    setPaletteSyncStatus('Paletta mentése…')
+    paletteSaveQueueRef.current = paletteSaveQueueRef.current
+      .catch(() => undefined)
+      .then(() => saveOwnEditorPalette(palette))
+      .then(storage => {
+        if (mountedRef.current) {
+          setPaletteSyncStatus(storage === 'cloud' ? 'Profillal szinkronizálva.' : 'Ezen az eszközön mentve.')
+        }
+      })
+      .catch(error => {
+        if (mountedRef.current) {
+          setPaletteSyncStatus(error instanceof Error ? error.message : 'A paletta mentése nem sikerült.')
+        }
+      })
+  }
+
+  const updateCustomPaletteColors = (colors: string[]) => {
+    const normalizedColors = sanitizeEditorPaletteColors(colors)
+    const palette = { ...activeCustomPalette, colors: normalizedColors }
+    replaceCustomPalette(palette)
+    queueCustomPaletteSave(palette)
+  }
+
+  const saveCustomColor = (color: string) => {
+    const colors = [
+      color,
+      ...activeCustomPalette.colors.filter(saved => saved.toLowerCase() !== color.toLowerCase()),
+    ]
+    updateCustomPaletteColors(colors)
+  }
+
+  const updateCustomPaletteName = (name: string) => {
+    replaceCustomPalette({ ...activeCustomPalette, name: name.slice(0, 24) })
+  }
+
+  const saveCustomPaletteName = () => {
+    const palette = {
+      ...activeCustomPalette,
+      name: sanitizeEditorPaletteName(activeCustomPalette.name, activeCustomPalette.slotIndex),
+    }
+    replaceCustomPalette(palette)
+    queueCustomPaletteSave(palette)
+  }
+
+  const clearCustomPalette = async (slotIndex: EditorPaletteSlotIndex) => {
+    customPaletteTouchedRef.current = true
+    setPaletteSyncStatus('Paletta ürítése…')
+    const cleared = loadLocalEditorPalettes().map(palette => palette.slotIndex === slotIndex
+      ? { ...palette, colors: [], name: `Saját paletta ${slotIndex}`, updatedAt: null }
+      : palette)
+    setCustomPalettes(cleared)
+    saveLocalEditorPalettes(cleared)
+    try {
+      const storage = await deleteOwnEditorPalette(slotIndex)
+      if (mountedRef.current) {
+        setPaletteSyncStatus(storage === 'cloud' ? 'A paletta kiürítve és szinkronizálva.' : 'A paletta ezen az eszközön kiürítve.')
+      }
+    } catch (error) {
+      if (mountedRef.current) {
+        setPaletteSyncStatus(error instanceof Error ? error.message : 'A paletta ürítése nem sikerült.')
+      }
+    }
+  }
+
+  const requestClearCustomPalette = () => setConfirmation({
+    title: `${activeCustomPalette.name || `Saját paletta ${activePaletteSlot}`} kiürítése?`,
+    message: 'A palettáról minden elmentett szín törlődik. A vásznon lévő rajz nem változik.',
+    label: 'Kiürítés',
+    action: () => { void clearCustomPalette(activePaletteSlot) },
+  })
 
   const refreshShareState = useCallback(async () => {
     setShareLoading(true)
@@ -358,6 +474,7 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
     const pixels = [...slot.pixels]
     pixelsRef.current = pixels
     setPaletteSize(slot.paletteSize)
+    setCustomPaletteActive(false)
     setServerPaletteReady(pixels.every(color => serverColors.has(color)))
     setDirty(true)
     const storedLocally = persist(pixels, false, slot.paletteSize)
@@ -522,17 +639,53 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
         </div>
         <fieldset className="palette-mode-fieldset editor-palette-picker">
           <legend>{text.palette}</legend>
-          <div className="palette-mode-buttons">
-            <button aria-pressed={!customPaletteActive && paletteSize === 12} onClick={() => changePalette(12)} type="button">
-              {text.paletteBase}
-            </button>
-            <button aria-pressed={!customPaletteActive && paletteSize === 32} onClick={() => changePalette(32)} type="button">
-              {text.paletteExpanded}
-            </button>
-            <button aria-pressed={customPaletteActive} onClick={() => setCustomPaletteActive(true)} type="button">
-              Egyéni paletta
-            </button>
-          </div>
+          <label className="editor-palette-select">
+            <span>Paletta</span>
+            <select
+              aria-label="Paletta kiválasztása"
+              onChange={event => {
+                if (event.target.value === 'custom') setCustomPaletteActive(true)
+                else changePalette(event.target.value === '32' ? 32 : 12)
+              }}
+              value={customPaletteActive ? 'custom' : String(paletteSize)}
+            >
+              <option value="custom">Egyéni paletta</option>
+              <option value="12">{text.paletteBase}</option>
+              <option value="32">{text.paletteExpanded}</option>
+            </select>
+          </label>
+          {customPaletteActive ? (
+            <div className="editor-custom-palette-manager">
+              <label className="editor-palette-select">
+                <span>Saját paletta</span>
+                <select
+                  aria-label="Saját paletta kiválasztása"
+                  onChange={event => setActivePaletteSlot(Number(event.target.value) as EditorPaletteSlotIndex)}
+                  value={activePaletteSlot}
+                >
+                  {customPalettes.map(palette => (
+                    <option key={palette.slotIndex} value={palette.slotIndex}>
+                      {palette.name || `Saját paletta ${palette.slotIndex}`} · {palette.colors.length}/{EDITOR_PALETTE_COLOR_LIMIT}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="editor-palette-name-row">
+                <label>
+                  <span>Paletta neve</span>
+                  <input
+                    aria-label="Saját paletta neve"
+                    maxLength={24}
+                    onChange={event => updateCustomPaletteName(event.target.value)}
+                    value={activeCustomPalette.name}
+                  />
+                </label>
+                <button onClick={saveCustomPaletteName} type="button">Név mentése</button>
+                <button disabled={activeCustomPalette.colors.length === 0} onClick={requestClearCustomPalette} type="button">Kiürítés</button>
+              </div>
+              <small aria-live="polite">{activeCustomPalette.colors.length}/{EDITOR_PALETTE_COLOR_LIMIT} szín · {paletteSyncStatus}</small>
+            </div>
+          ) : null}
         </fieldset>
       </div>
       <PixelCanvas
@@ -543,9 +696,20 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
         drawingEndsAt={null}
         events={[]}
         customPaletteActive={customPaletteActive}
+        customPaletteColors={activeCustomPalette.colors}
+        customPaletteOptions={customPalettes.map(palette => ({
+          label: `${palette.name || `Saját paletta ${palette.slotIndex}`} · ${palette.colors.length}/${EDITOR_PALETTE_COLOR_LIMIT}`,
+          slotIndex: palette.slotIndex,
+        }))}
+        customPaletteSlot={activePaletteSlot}
         onError={() => setStatus(text.storageError)}
         onLoadFromGallery={() => void openGalleryAction('load')}
         onCustomPaletteActiveChange={setCustomPaletteActive}
+        onCustomPaletteColorSave={saveCustomColor}
+        onCustomPaletteColorsChange={updateCustomPaletteColors}
+        onCustomPaletteSlotChange={slotIndex => {
+          if (slotIndex === 1 || slotIndex === 2 || slotIndex === 3) setActivePaletteSlot(slotIndex)
+        }}
         onPaletteSizeChange={size => changePalette(size === 32 ? 32 : 12)}
         onSaveToGallery={() => void openGalleryAction('save')}
         onSubmit={async () => undefined}

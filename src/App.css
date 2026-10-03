@@ -1837,6 +1837,82 @@ footer {
   background: var(--olive);
 }
 
+.editor-palette-select {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.editor-palette-select > span,
+.editor-palette-name-row label > span,
+.immersive-palette-select > span {
+  font-family: var(--pixel-font);
+  font-size: .62rem;
+  font-weight: 900;
+}
+
+.editor-palette-select select,
+.editor-palette-name-row input,
+.immersive-palette-select select {
+  width: 100%;
+  min-height: 42px;
+  padding: 7px 10px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  font-family: var(--pixel-font);
+  font-size: .68rem;
+  font-weight: 900;
+}
+
+.editor-custom-palette-manager {
+  display: grid;
+  grid-template-columns: minmax(190px, .8fr) minmax(0, 1.8fr);
+  gap: 8px 12px;
+  padding-top: 10px;
+  border-top: 2px solid color-mix(in srgb, var(--ink) 55%, transparent);
+}
+
+.editor-custom-palette-manager > small {
+  grid-column: 1 / -1;
+  font-family: var(--pixel-font);
+  font-size: .58rem;
+}
+
+.editor-palette-name-row {
+  display: grid;
+  grid-template-columns: minmax(130px, 1fr) auto auto;
+  gap: 7px;
+  align-items: end;
+}
+
+.editor-palette-name-row label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.editor-palette-name-row button {
+  min-height: 42px;
+  padding: 6px 10px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  font-family: var(--pixel-font);
+  font-size: .58rem;
+}
+
+.editor-palette-name-row button:last-child {
+  background: var(--coral);
+}
+
+.editor-palette-name-row button:disabled {
+  opacity: .45;
+  box-shadow: none;
+}
+
 .canvas-view-controls {
   display: flex;
   flex-wrap: wrap;
@@ -3487,11 +3563,13 @@ button,
   z-index: 1300;
   top: max(8px, env(safe-area-inset-top));
   right: max(72px, calc(62px + env(safe-area-inset-right)));
-  bottom: max(8px, env(safe-area-inset-bottom));
+  bottom: auto;
   display: grid;
+  grid-auto-rows: max-content;
+  align-content: start;
   gap: 8px;
   width: min(520px, calc(100vw - 84px));
-  max-height: none;
+  max-height: calc(100dvh - max(16px, env(safe-area-inset-top) + env(safe-area-inset-bottom)));
   padding: 8px;
   overflow-y: auto;
   color: var(--ink);
@@ -3515,13 +3593,6 @@ button,
   box-shadow: none;
 }
 
-.immersive-palette-tabs {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 5px;
-}
-
-.immersive-palette-tabs button,
 .immersive-mixer-toggle {
   display: grid;
   width: 100%;
@@ -3536,8 +3607,17 @@ button,
   place-items: center;
 }
 
-.immersive-palette-tabs button[aria-pressed='true'] {
-  background: var(--mint);
+.immersive-palette-select {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.immersive-palette-select select {
+  min-height: 36px;
+  padding: 5px 8px;
+  font-size: .58rem;
 }
 
 .immersive-palette-menu[data-palette-size='custom'] {
@@ -5710,6 +5790,86 @@ canvas.player-avatar {
   opacity: .7;
 }
 
+.custom-palette-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 6px;
+  background: color-mix(in srgb, var(--paper) 80%, var(--mint));
+  border: 2px solid var(--ink);
+}
+
+.custom-palette-editor {
+  display: grid;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.custom-palette-editor.is-immersive {
+  width: 100%;
+}
+
+.custom-palette-edit-toggle {
+  width: fit-content;
+  min-height: 34px;
+  padding: 6px 10px;
+  color: var(--ink);
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  font-family: var(--pixel-font);
+  font-size: .58rem;
+}
+
+.custom-palette-edit-toggle[aria-expanded='true'] {
+  background: var(--mint);
+}
+
+.custom-palette-editor.is-immersive .custom-palette-edit-toggle {
+  width: 100%;
+}
+
+.custom-palette-controls > span {
+  font-family: var(--pixel-font);
+  font-size: .56rem;
+  font-weight: 900;
+}
+
+.custom-palette-controls > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.custom-palette-controls button {
+  min-height: 32px;
+  padding: 5px 8px;
+  color: var(--ink);
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  font-family: var(--pixel-font);
+  font-size: .55rem;
+}
+
+.custom-palette-controls .custom-palette-delete {
+  background: var(--coral);
+}
+
+.custom-palette-controls button:disabled {
+  opacity: .42;
+  box-shadow: none;
+}
+
+.custom-palette-controls.is-immersive {
+  justify-content: space-between;
+  width: 100%;
+}
+
 .editor-color-mixer {
   width: min(100%, 640px);
 }
@@ -6012,8 +6172,33 @@ canvas.player-avatar {
     height: 22px;
   }
 
-  .editor-palette-picker .palette-mode-buttons {
+  .editor-custom-palette-manager,
+  .editor-palette-name-row {
     grid-template-columns: 1fr;
+  }
+
+  .editor-palette-name-row button {
+    width: 100%;
+  }
+
+  .immersive-palette-select {
+    grid-template-columns: 1fr;
+  }
+
+  .custom-palette-controls,
+  .custom-palette-editor,
+  .custom-palette-controls > div {
+    width: 100%;
+  }
+
+  .custom-palette-controls > div {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .custom-palette-controls button {
+    width: 100%;
+    padding-inline: 4px;
   }
 
   .drawing-palette[data-palette-size='32'] {

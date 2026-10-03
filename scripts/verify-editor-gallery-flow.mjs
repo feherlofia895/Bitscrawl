@@ -55,6 +55,16 @@ async function editor({ initial = drawing.emptyDrawing(), slots = [], loadError 
       saveOwnEditorGallerySlot: async (...args) => { saved.push(args) },
       editorGalleryEndpointIsMissing: () => false,
     },
+    '../lib/editorPalettes': {
+      EDITOR_PALETTE_COLOR_LIMIT: 16,
+      loadLocalEditorPalettes: () => [1, 2, 3].map(slotIndex => ({ colors: [], name: `Saját paletta ${slotIndex}`, slotIndex, updatedAt: null })),
+      loadOwnEditorPalettes: async () => ({ palettes: [1, 2, 3].map(slotIndex => ({ colors: [], name: `Saját paletta ${slotIndex}`, slotIndex, updatedAt: null })), storage: 'local' }),
+      sanitizeEditorPaletteColors: colors => [...new Set(colors)].slice(0, 16),
+      sanitizeEditorPaletteName: (name, slotIndex) => name.trim() || `Saját paletta ${slotIndex}`,
+      saveLocalEditorPalettes: () => true,
+      saveOwnEditorPalette: async () => 'local',
+      deleteOwnEditorPalette: async () => 'local',
+    },
   }
   const source = await readFile(new URL('../src/components/DrawingEditor.tsx', import.meta.url), 'utf8')
   const output = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText
