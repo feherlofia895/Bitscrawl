@@ -262,6 +262,7 @@ export type Database = {
           host_user_id: string
           id: number
           max_players: number
+          palette_id: string
           palette_size: number
           started_at: string | null
           status: string
@@ -278,6 +279,7 @@ export type Database = {
           host_user_id: string
           id?: never
           max_players?: number
+          palette_id?: string
           palette_size?: number
           started_at?: string | null
           status?: string
@@ -294,6 +296,7 @@ export type Database = {
           host_user_id?: string
           id?: never
           max_players?: number
+          palette_id?: string
           palette_size?: number
           started_at?: string | null
           status?: string
@@ -800,6 +803,21 @@ export type Database = {
       mark_global_lobby_read: {
         Args: Record<PropertyKey, never>
         Returns: number
+      }
+      create_room_with_palette_settings: {
+        Args: {
+          duration_seconds?: number
+          player_name: string
+          requested_competition_draw_seconds?: number
+          requested_competition_round_count?: number
+          requested_game_mode?: string
+          requested_palette_size?: number
+        }
+        Returns: {
+          player_id: number
+          room_code: string
+          room_id: number
+        }[]
       }
       moderate_delete_lobby_message: {
         Args: { target_message_id: number }

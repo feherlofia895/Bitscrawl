@@ -9,7 +9,7 @@ import {
   type CompetitionRoundCount,
   type GameMode,
 } from './gameMode'
-import type { RoomPaletteSize } from './palette'
+import type { SelectableRoomPaletteSize } from './palette'
 import { DEFAULT_ROUND_DURATION, isRoundDuration, roundDurationText, type RoundDuration } from './roundDuration'
 import { ensurePlayerSession, supabase } from './supabase'
 
@@ -49,12 +49,14 @@ export type CreateRoomSettings = {
   competitionDrawDuration: CompetitionDrawDuration
   competitionRoundCount: CompetitionRoundCount
   gameMode: GameMode
+  paletteSize: SelectableRoomPaletteSize
 }
 
 const defaultCreateRoomSettings: CreateRoomSettings = {
   competitionDrawDuration: DEFAULT_COMPETITION_DRAW_DURATION,
   competitionRoundCount: DEFAULT_COMPETITION_ROUND_COUNT,
   gameMode: 'classic',
+  paletteSize: 12,
 }
 
 const lobbyErrorMessages: Record<string, string> = {
@@ -129,14 +131,31 @@ async function getRoomEntry(
 
     if (action === 'create') {
       let { data, error } = await supabase
-        .rpc('create_room_with_settings', {
+        .rpc('create_room_with_palette_settings', {
           duration_seconds: roundDuration,
           player_name: playerName,
           requested_competition_draw_seconds: settings.competitionDrawDuration,
           requested_competition_round_count: settings.competitionRoundCount,
           requested_game_mode: settings.gameMode,
+          requested_palette_size: settings.paletteSize,
         })
         .single()
+
+      // Keep the 12-color mode usable until the palette migration is deployed.
+      if (error?.code === 'PGRST202') {
+        if (settings.paletteSize !== 12) throw new Error('PALETTE_SIZE_UNAVAILABLE')
+        const settingsResult = await supabase
+          .rpc('create_room_with_settings', {
+            duration_seconds: roundDuration,
+            player_name: playerName,
+            requested_competition_draw_seconds: settings.competitionDrawDuration,
+            requested_competition_round_count: settings.competitionRoundCount,
+            requested_game_mode: settings.gameMode,
+          })
+          .single()
+        data = settingsResult.data
+        error = settingsResult.error
+      }
 
       // Keep classic rooms usable until the competition settings migration is deployed.
       if (error?.code === 'PGRST202') {
@@ -311,7 +330,7 @@ export async function setRoomTestMode(roomId: number, enabled: boolean) {
 
 export async function setRoomPaletteSize(
   roomId: number,
-  paletteSize: RoomPaletteSize,
+  paletteSize: SelectableRoomPaletteSize,
 ) {
   try {
     await ensurePlayerSession()

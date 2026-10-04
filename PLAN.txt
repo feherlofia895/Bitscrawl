@@ -114,9 +114,8 @@ KÖVETKEZŐ KIS PWA-FEJLESZTÉS – LÁTHATÓ VERZIÓFRISSÍTÉS
   aktív rajzolás, nevezés vagy multiplayer-kör közben ne legyen automatikus reload.
 - [x] A kiadás kapjon kliensből olvasható buildazonosítót, hogy a támogatásnál és a
   hibajelentésekben látható legyen, pontosan melyik verzió fut az eszközön.
-- [ ] Fizikai iPhone-on egy valós A → B Cloudflare-kiadással ellenőrizni kell, hogy
-  a telepített PWA jelzi és a gombbal betölti az új verziót. Utána Android Chrome és
-  asztali Chrome/Edge telepített módban is fusson le ugyanaz a próba.
+- [x] A telepített PWA valós kiadásváltáskor jelzi az új Bitscrawl-verziót, és a
+  Frissítés gombbal betölti. A próba telefonon és számítógépen is sikerült.
 
 KIEMELT FEJLESZTÉS – KÉT RÉTEG A SZERKESZTŐBEN
 
@@ -967,8 +966,8 @@ Első működő eszköztár-bővítés (2026-09-19):
   áthelyezés egyetlen lépésben visszavonható.
 - A közös rajzmotoros megoldás a Szerkesztőben és a klasszikus játékban is használható;
   a kijelölt pixelek mozgatására automatizált helyi próba készült.
-- A saját 32 színű paletta megtervezése, verziózott tárolása és szerveroldali engedélyezése
-  még ennek a mérföldkőnek a következő része.
+- A saját 32 színű paletta megtervezése, verziózott tárolása és szerveroldali
+  engedélyezése 2026-10-04-én a játékszobákhoz is elkészült.
 
 Szerkesztői 32 színű paletta (2026-09-20):
 - A helyi Szerkesztőben elkészült a 12 színű alap- és a 32 színű bővített paletta
@@ -979,8 +978,16 @@ Szerkesztői 32 színű paletta (2026-09-20):
 - Az új színek a PNG-exportban, a helyi mentésben, a teljes nézetben és mobilos
   elrendezésben is támogatottak. A 12/32 színkészletet és a mentés visszatöltését
   automatizált teszt ellenőrzi.
-- A 32 színű mód játékszobákba vitele, verziózott szerveroldali palettaazonosítója
-  és multiplayer-ellenőrzése továbbra is külön következő lépés.
+- 2026-10-04: a 32 színű mód a klasszikus és a párhuzamos játékszobákban is
+  választható. A host létrehozáskor és a váróban állíthatja, elindított meccsnél
+  pedig már nem módosítható.
+- A szerver a `base-12-v1`, `legacy-16-v1` és `editor-32-v1` verziózott
+  palettaazonosító alapján ellenőrzi a pixeleket. A közös adatbázisvédelmet a
+  klasszikus és a verseny rajzeseményei is használják; tetszőleges kevert színt
+  egyik mód sem fogad el.
+- A régi 16 színű szobák továbbra is lejátszhatók, de új szobánál ez a korábbi
+  paletta nem kapcsolható vissza. A 12/32 színű és kompatibilitási eseteket
+  automatizált helyi adatbázispróba védi.
 
 Kibővített közös vászon és egyéni paletták (2026-10-03):
 - A Szerkesztő, a heti kihívás és a havi kihívás ugyanazokat a haladó eszközöket
@@ -992,9 +999,10 @@ Kibővített közös vászon és egyéni paletták (2026-10-03):
   16 rendezhető és törölhető színnel. Az alapértelmezett választás az Egyéni paletta.
 - A HSL+A színkeverő normál és teljes nézetben, asztali és mobil elrendezésben is
   elérhető; új keverésnél a fedettség 100%-ról indul.
-- A multiplayer-játékszobák továbbra is külön feladatot jelentenek: ott a
-  32/egyéni palettát szobabeállításhoz kötött, verziózott szerverellenőrzéssel kell
-  majd bekapcsolni.
+- A multiplayer-játékszobákban a 32 színű, verziózott paletta elkészült. A
+  játékosonként eltérő egyéni, kikevert paletták bevezetése továbbra is külön
+  feladat, mert a szobához rögzített pontos színlistát és annak szerverellenőrzését
+  is meg kell tervezni.
 
 
 [x] 13/G. HÁROMKÉPKOCKÁS ANIMÁCIÓS SZERKESZTŐ – ELSŐ VERZIÓ
@@ -1099,13 +1107,15 @@ Első PWA-alap (2026-09-20):
   512×512-es Android/PWA ikonja a fekete hátterű, három színes pixelkarom-vágásos
   Bitscrawl grafikára cserélődött. A manifest és az iPhone touch ikon a meglévő,
   szabványos fájlneveket használja tovább.
-- [ ] Éles Android Chrome telepítés és külön alkalmazásablak ellenőrzése.
+- [x] Éles Android/Samsung telepítés és külön alkalmazásablak ellenőrzése sikerült.
+  A Google adatvédelmi figyelmeztetése miatt a normál telepítés nem mindig indult el,
+  de a felhasználó által jóváhagyott kényszerített telepítés működött.
 - [x] Éles iPhone Safari Főképernyőhöz adás, egyedi ikon és standalone ablak
   ellenőrzése sikeres fizikai telefonon.
 - [x] Az első indításkor látott régi kérdőjeles ikon egyszerű oldalfrissítés után az
   új fekete, színes pixelkarom ikonra váltott; külön fájlnévcsere nem kellett.
-- [ ] Asztali Chrome/Edge telepítés, majd egy új kiadással az automatikus frissülés
-  ellenőrzése.
+- [x] Asztali telepítés és az új kiadás elérhetőségét jelző frissítési folyamat
+  ellenőrzése sikerült.
 
 - Web app manifest.
 - Bitscrawl név, színek és alkalmazásikonok.

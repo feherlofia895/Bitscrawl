@@ -512,7 +512,7 @@ test('room chat, correct guesses and drawing history use bounded cursor updates'
   for (let index = 0; index < 2; index += 1) {
     await db.query(
       'insert into public.round_draw_events (round_id, room_id, created_by, changes) values ($1, $2, $3, $4::jsonb)',
-      [round.id, room.room_id, host, JSON.stringify([{ x: index, y: 8, color: '#f4d35e' }])],
+      [round.id, room.room_id, host, JSON.stringify([{ x: index, y: 8, color: '#f5e57a' }])],
     )
   }
   const incrementalDrawing = await asUser(
@@ -527,7 +527,7 @@ test('room chat, correct guesses and drawing history use bounded cursor updates'
   for (let index = 0; index < 101; index += 1) {
     await db.query(
       'insert into public.round_draw_events (round_id, room_id, created_by, changes) values ($1, $2, $3, $4::jsonb)',
-      [round.id, room.room_id, host, JSON.stringify([{ x: 31, y: 31, color: index % 2 ? '#29293d' : '#f4d35e' }])],
+      [round.id, room.room_id, host, JSON.stringify([{ x: 31, y: 31, color: index % 2 ? '#242630' : '#f5e57a' }])],
     )
   }
   const backlogDrawing = await asUser(
@@ -539,7 +539,7 @@ test('room chat, correct guesses and drawing history use bounded cursor updates'
   assert(backlogDrawing[0].id > beforeBacklog)
   assert.equal(
     backlogDrawing[0].changes.find(change => change.x === 31 && change.y === 31).color,
-    '#f4d35e',
+    '#f5e57a',
   )
 
   await assert.rejects(

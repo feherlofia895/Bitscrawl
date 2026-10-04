@@ -47,18 +47,20 @@ const outsider = createTestClient()
 await Promise.all([signIn(host), signIn(outsider)])
 
 const room = await rpc(host, 'create_room', { player_name: 'Palette12' })
+let expandedRoom = null
 
 try {
   const defaultRoom = await host
     .from('rooms')
-    .select('palette_size')
+    .select('palette_id,palette_size')
     .eq('id', room.room_id)
     .single()
   if (defaultRoom.error) throw defaultRoom.error
   assert(defaultRoom.data.palette_size === 12, 'Az új szoba nem 12 színnel indul.')
+  assert(defaultRoom.data.palette_id === 'base-12-v1', 'Az új szoba palettaverziója hibás.')
 
   const outsiderChange = await outsider.rpc('set_room_palette_size', {
-    palette_size_value: 12,
+    palette_size_value: 32,
     target_room_id: room.room_id,
   })
   assert(outsiderChange.error?.message.includes('NOT_ROOM_HOST'), 'A kívülálló palettát váltott.')
@@ -72,15 +74,41 @@ try {
     'A rejtett bővített paletta új szobánál továbbra is kiválasztható.',
   )
 
-  const roundId = await startSoloRound(host, room.room_id)
+  const rejectedEditorColor = await host.rpc('submit_pixel_changes', {
+    pixel_changes: [{ x: 0, y: 0, color: '#c57ca8' }],
+    target_round_id: await startSoloRound(host, room.room_id),
+  })
+  assert(
+    rejectedEditorColor.error?.message.includes('PIXEL_CHANGES_INVALID'),
+    'A 12 színű szoba elfogadott egy 32 színű palettaszínt.',
+  )
 
-  const rejectedLegacyColor = await host.rpc('submit_pixel_changes', {
-    pixel_changes: [{ x: 0, y: 0, color: '#6446a6' }],
+  await host.rpc('leave_room', { target_room_id: room.room_id })
+  expandedRoom = await rpc(host, 'create_room', { player_name: 'Palette32' })
+  await rpc(host, 'set_room_palette_size', {
+    palette_size_value: 32,
+    target_room_id: expandedRoom.room_id,
+  })
+  const expandedStored = await host.from('rooms').select('palette_id,palette_size')
+    .eq('id', expandedRoom.room_id).single()
+  if (expandedStored.error) throw expandedStored.error
+  assert(expandedStored.data.palette_size === 32, 'A host nem tudta bekapcsolni a 32 színű módot.')
+  assert(expandedStored.data.palette_id === 'editor-32-v1', 'A 32 színű palettaverzió hibás.')
+
+  const roundId = await startSoloRound(host, expandedRoom.room_id)
+
+  await rpc(host, 'submit_pixel_changes', {
+    pixel_changes: [{ x: 0, y: 0, color: '#c57ca8' }],
+    target_round_id: roundId,
+  })
+
+  const rejectedCustomColor = await host.rpc('submit_pixel_changes', {
+    pixel_changes: [{ x: 1, y: 0, color: '#123456' }],
     target_round_id: roundId,
   })
   assert(
-    rejectedLegacyColor.error?.message.includes('PIXEL_CHANGES_INVALID'),
-    'A 12 színű szoba elfogadott egy régi bővített színt.',
+    rejectedCustomColor.error?.message.includes('PIXEL_CHANGES_INVALID'),
+    'A 32 színű szoba elfogadott egy nem engedélyezett kevert színt.',
   )
 
   await rpc(host, 'submit_pixel_changes', {
@@ -94,7 +122,7 @@ try {
 
   const rejectedOldColors = await host.rpc('submit_pixel_changes', {
     pixel_changes: [
-      { x: 3, y: 0, color: '#f7f3e8' },
+      { x: 3, y: 0, color: '#e8d7b8' },
       { x: 4, y: 0, color: '#7b8794' },
       { x: 5, y: 0, color: '#120d1c' },
     ],
@@ -107,7 +135,7 @@ try {
 
   const lateChange = await host.rpc('set_room_palette_size', {
     palette_size_value: 12,
-    target_room_id: room.room_id,
+    target_room_id: expandedRoom.room_id,
   })
   assert(
     lateChange.error?.message.includes('ROOM_ALREADY_STARTED'),
@@ -118,12 +146,15 @@ try {
     JSON.stringify({
       twelveColorBaseAccepted: true,
       event: 'palette-modes-ok',
+      expandedPaletteAccepted: true,
       hiddenPaletteBlocked: true,
       lateChangeBlocked: true,
-      oldColorsBlocked: true,
-      legacyColorBlockedIn12: true,
+      legacyColorsBlocked: true,
+      customColorBlockedIn32: true,
+      editorColorBlockedIn12: true,
     }),
   )
 } finally {
   await host.rpc('leave_room', { target_room_id: room.room_id })
+  if (expandedRoom) await host.rpc('leave_room', { target_room_id: expandedRoom.room_id })
 }

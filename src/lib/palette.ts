@@ -1,6 +1,19 @@
-export type RoomPaletteSize = 12 | 16
+export type RoomPaletteSize = 12 | 16 | 32
+export type SelectableRoomPaletteSize = 12 | 32
 export type EditorPaletteSize = 12 | 32
 export type PaletteSize = RoomPaletteSize | EditorPaletteSize
+
+export const roomPaletteSizes: SelectableRoomPaletteSize[] = [12, 32]
+
+export function isSelectableRoomPaletteSize(value: number): value is SelectableRoomPaletteSize {
+  return roomPaletteSizes.includes(value as SelectableRoomPaletteSize)
+}
+
+export function roomPaletteLabel(size: RoomPaletteSize) {
+  if (size === 32) return '32 szín · bővített'
+  if (size === 16) return '16 szín · korábbi'
+  return '12 szín · alap'
+}
 
 export type PaletteColor = {
   hex: string

@@ -73,6 +73,7 @@ import {
   restartGame,
   sendRoomMessage,
   resumeRoom,
+  setRoomPaletteSize,
   setRoomRoundDuration,
   setRoomTestMode,
   startGame,
@@ -81,7 +82,14 @@ import {
   type Lobby,
   type RoomMessage,
 } from './lib/lobby'
-import { basePalette, type RoomPaletteSize } from './lib/palette'
+import {
+  basePalette,
+  isSelectableRoomPaletteSize,
+  roomPaletteLabel,
+  roomPaletteSizes,
+  type RoomPaletteSize,
+  type SelectableRoomPaletteSize,
+} from './lib/palette'
 import { checkSupabaseConnection } from './lib/supabase'
 import { loadOwnProfile, parseAvatarPixels, type PlayerProfile } from './lib/profile'
 import { useModeratorAccess } from './hooks/useModeratorAccess'
@@ -178,11 +186,13 @@ function App() {
   const [playerName, setPlayerName] = useState('')
   const [newRoomDuration, setNewRoomDuration] = useState<RoundDuration>(DEFAULT_ROUND_DURATION)
   const [newRoomGameMode, setNewRoomGameMode] = useState<GameMode>('classic')
+  const [newRoomPaletteSize, setNewRoomPaletteSize] = useState<SelectableRoomPaletteSize>(12)
   const [competitionDrawDuration, setCompetitionDrawDuration] =
     useState<CompetitionDrawDuration>(DEFAULT_COMPETITION_DRAW_DURATION)
   const [competitionRoundCount, setCompetitionRoundCount] =
     useState<CompetitionRoundCount>(DEFAULT_COMPETITION_ROUND_COUNT)
   const [isChangingRoundDuration, setIsChangingRoundDuration] = useState(false)
+  const [isChangingPaletteSize, setIsChangingPaletteSize] = useState(false)
   const [homeView, setHomeView] = useState<HomeView>(historyHomeView)
   const [editorDirty, setEditorDirty] = useState(false)
   const [editorStorageAvailable, setEditorStorageAvailable] = useState(true)
@@ -713,6 +723,7 @@ function App() {
               competitionDrawDuration,
               competitionRoundCount,
               gameMode: newRoomGameMode,
+              paletteSize: newRoomPaletteSize,
             })
           : await joinRoom(effectivePlayerName, code ?? '')
       await hydrateLobby(entry)
@@ -819,6 +830,21 @@ function App() {
       setMessage(error instanceof Error ? error.message : roundDurationText.failed)
     } finally {
       setIsChangingRoundDuration(false)
+    }
+  }
+
+  const handlePaletteSizeChange = async (paletteSize: SelectableRoomPaletteSize) => {
+    if (!lobby || isChangingPaletteSize || lobby.room.palette_size === paletteSize) return
+    setIsChangingPaletteSize(true)
+    setMessage('A színpaletta frissítése…')
+    try {
+      await setRoomPaletteSize(lobby.room.id, paletteSize)
+      await refreshLobby()
+      setMessage(`A szoba palettája: ${roomPaletteLabel(paletteSize)}.`)
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Nem sikerült módosítani a színpalettát.')
+    } finally {
+      setIsChangingPaletteSize(false)
     }
   }
 
@@ -1117,6 +1143,7 @@ function App() {
                   {lobby.room.test_mode ? <><br />{roundDurationText.testOverride}</> : null}
                 </>
               )}
+              <br />Paletta: {roomPaletteLabel(lobby.room.palette_size as RoomPaletteSize)}
             </p>
             <button
               className="secondary-button copy-button"
@@ -1336,6 +1363,27 @@ function App() {
               </div>
             ) : isHost ? (
               <div className="start-game-controls">
+                <label className="field lobby-palette-field" htmlFor="waiting-room-palette">
+                  <span>Színpaletta</span>
+                  <select
+                    disabled={isChangingPaletteSize || isStartingGame}
+                    id="waiting-room-palette"
+                    onChange={(event) => {
+                      const paletteSize = Number(event.target.value)
+                      if (isSelectableRoomPaletteSize(paletteSize)) {
+                        void handlePaletteSizeChange(paletteSize)
+                      }
+                    }}
+                    value={lobby.room.palette_size}
+                  >
+                    {lobby.room.palette_size === 16 ? (
+                      <option disabled value={16}>16 szín · korábbi</option>
+                    ) : null}
+                    {roomPaletteSizes.map(size => (
+                      <option key={size} value={size}>{roomPaletteLabel(size)}</option>
+                    ))}
+                  </select>
+                </label>
                 {!roomIsCompetition && isRoundDuration(lobby.room.round_duration_seconds) ? (
                   <RoundDurationControl
                     value={lobby.room.round_duration_seconds}
@@ -1364,6 +1412,7 @@ function App() {
                   disabled={
                     isStartingGame ||
                     isChangingTestMode ||
+                    isChangingPaletteSize ||
                     isChangingRoundDuration ||
                     lobby.players.length < minimumPlayers
                   }
@@ -1673,6 +1722,24 @@ function App() {
                         >
                           <option value="classic">Klasszikus</option>
                           <option value="competition">Párhuzamos rajzverseny</option>
+                        </select>
+                      </label>
+                      <label className="field" htmlFor="room-palette-size">
+                        <span>Színpaletta</span>
+                        <select
+                          id="room-palette-size"
+                          disabled={isBusy || isRestoringRoom}
+                          onChange={(event) => {
+                            const paletteSize = Number(event.target.value)
+                            if (isSelectableRoomPaletteSize(paletteSize)) {
+                              setNewRoomPaletteSize(paletteSize)
+                            }
+                          }}
+                          value={newRoomPaletteSize}
+                        >
+                          {roomPaletteSizes.map(size => (
+                            <option key={size} value={size}>{roomPaletteLabel(size)}</option>
+                          ))}
                         </select>
                       </label>
                       {newRoomGameMode === 'classic' ? <label className="field" htmlFor="create-round-duration">

@@ -51,16 +51,66 @@ before(async () => {
 
 after(async () => { await db.close() })
 
-test('new rooms stay on the 12-color palette and cannot enable 16 colors', async () => {
+test('new rooms start with the versioned 12-color palette and may enable 32 colors', async () => {
   const [room] = await asUser(host, "select * from public.create_room('New12')")
-  const [created] = await asUser(host, 'select palette_size from public.rooms where id = $1', [room.room_id])
-  assert.equal(created.palette_size, 12)
+  const [created] = await asUser(host, 'select palette_id, palette_size from public.rooms where id = $1', [room.room_id])
+  assert.deepEqual(created, { palette_id: 'base-12-v1', palette_size: 12 })
+
+  await asUser(host, 'select * from public.set_room_palette_size($1::bigint, 32::smallint)', [room.room_id])
+  const [expanded] = await asUser(host, 'select palette_id, palette_size from public.rooms where id = $1', [room.room_id])
+  assert.deepEqual(expanded, { palette_id: 'editor-32-v1', palette_size: 32 })
+
   await assert.rejects(
     asUser(host, 'select * from public.set_room_palette_size($1::bigint, 16::smallint)', [room.room_id]),
     /PALETTE_SIZE_UNAVAILABLE/,
   )
   const [unchanged] = await asUser(host, 'select palette_size from public.rooms where id = $1', [room.room_id])
-  assert.equal(unchanged.palette_size, 12)
+  assert.equal(unchanged.palette_size, 32)
+})
+
+test('classic 32-color rooms accept only the versioned editor palette', async () => {
+  const [room] = await asUser(host,
+    "select * from public.create_room_with_palette_settings('Classic32', 90, 'classic', 90, 2, 32::smallint)")
+  await asUser(host, 'select * from public.set_room_test_mode($1, true)', [room.room_id])
+  await asUser(host, 'select * from public.start_game($1)', [room.room_id])
+  const [view] = await asUser(host, 'select * from public.get_round_view($1)', [room.room_id])
+  await asUser(host, 'select * from public.choose_round_word($1, $2)', [view.round_id, view.word_options[0]])
+
+  const [{ submit_pixel_changes: eventId }] = await asUser(
+    host,
+    'select public.submit_pixel_changes($1, $2::jsonb)',
+    [view.round_id, JSON.stringify([{ x: 0, y: 0, color: '#c57ca8' }])],
+  )
+  assert(Number(eventId) > 0)
+  await assert.rejects(
+    asUser(host, 'select public.submit_pixel_changes($1, $2::jsonb)', [
+      view.round_id,
+      JSON.stringify([{ x: 1, y: 0, color: '#123456' }]),
+    ]),
+    /PIXEL_CHANGES_INVALID/,
+  )
+})
+
+test('competition rooms use the same 32-color server guard', async () => {
+  const [room] = await asUser(host,
+    "select * from public.create_room_with_palette_settings('Competition32', 90, 'competition', 60, 1, 32::smallint)")
+  await asUser(outsider, 'select * from public.join_room($1, $2)', [room.room_code, 'PaletteGuest'])
+  await asUser(host, 'select * from public.start_competition_game($1)', [room.room_id])
+  const [view] = await asUser(host, 'select * from public.get_competition_round_view($1)', [room.room_id])
+
+  const [{ submit_competition_pixel_changes: eventId }] = await asUser(
+    host,
+    'select public.submit_competition_pixel_changes($1, $2::jsonb)',
+    [view.round_id, JSON.stringify([{ x: 0, y: 0, color: '#0f111a' }])],
+  )
+  assert(Number(eventId) > 0)
+  await assert.rejects(
+    asUser(outsider, 'select public.submit_competition_pixel_changes($1, $2::jsonb)', [
+      view.round_id,
+      JSON.stringify([{ x: 1, y: 0, color: '#abcdef' }]),
+    ]),
+    /PIXEL_CHANGES_INVALID/,
+  )
 })
 
 test('host authorization remains enforced for the remaining compatibility RPC', async () => {
@@ -99,4 +149,16 @@ test('the exposed palette RPC is invoker-only while the privileged helper stays 
   )).rows
   assert.equal(exposedDefiner, false)
   assert.equal(privateDefiner, true)
+
+  const [{ prosecdef: createDefiner, anon_execute: anonExecute, member_execute: memberExecute }] = (await db.query(`
+    select prosecdef,
+      has_function_privilege('anon', oid, 'EXECUTE') as anon_execute,
+      has_function_privilege('authenticated', oid, 'EXECUTE') as member_execute
+    from pg_proc
+    where oid = 'public.create_room_with_palette_settings(text,integer,text,integer,integer,smallint)'::regprocedure
+  `)).rows
+  assert.deepEqual(
+    { anon_execute: anonExecute, member_execute: memberExecute, prosecdef: createDefiner },
+    { anon_execute: false, member_execute: true, prosecdef: false },
+  )
 })
