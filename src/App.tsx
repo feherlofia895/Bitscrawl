@@ -29,6 +29,7 @@ import { WeeklyDraw } from './components/WeeklyDraw'
 import { ProfileAvatar } from './components/ProfileAvatar'
 import { ProfilePreviewButton } from './components/ProfilePreviewButton'
 import { ProfilePanel } from './components/ProfilePanel'
+import { PrivacyPolicy } from './components/PrivacyPolicy'
 import { Scoreboard } from './components/Scoreboard'
 import { MusicPlayer } from './components/MusicPlayer'
 import { RoomChat } from './components/RoomChat'
@@ -88,10 +89,10 @@ import { usePwaInstall } from './hooks/usePwaInstall'
 import { usePwaUpdate } from './hooks/usePwaUpdate'
 
 type BackendStatus = 'checking' | 'online' | 'reconnecting' | 'offline'
-type HomeView = 'main' | 'play' | 'editor' | 'challenge' | 'gallery' | 'scoreboard' | 'create' | 'join' | 'settings' | 'profile' | 'admin'
+type HomeView = 'main' | 'play' | 'editor' | 'challenge' | 'gallery' | 'scoreboard' | 'create' | 'join' | 'settings' | 'profile' | 'admin' | 'privacy'
 
 const homeViews = new Set<HomeView>([
-  'main', 'play', 'editor', 'challenge', 'gallery', 'scoreboard', 'create', 'join', 'settings', 'profile', 'admin',
+  'main', 'play', 'editor', 'challenge', 'gallery', 'scoreboard', 'create', 'join', 'settings', 'profile', 'admin', 'privacy',
 ])
 
 const homeViewParents: Record<Exclude<HomeView, 'main'>, HomeView> = {
@@ -105,6 +106,7 @@ const homeViewParents: Record<Exclude<HomeView, 'main'>, HomeView> = {
   settings: 'main',
   profile: 'main',
   admin: 'main',
+  privacy: 'main',
 }
 
 function historyState() {
@@ -1507,9 +1509,11 @@ function App() {
           </div>
         </section>
       ) : homeView === 'profile' ? (
-        <ProfilePanel onBack={closeHomeView} onProfileChange={handleProfileChange} />
+        <ProfilePanel onBack={closeHomeView} onOpenPrivacy={() => openHomeView('privacy')} onProfileChange={handleProfileChange} />
       ) : homeView === 'admin' ? (
         <AdminFeedbackCenter isAdmin={isModerator} onBack={closeHomeView} />
+      ) : homeView === 'privacy' ? (
+        <PrivacyPolicy onBack={closeHomeView} />
       ) : homeView === 'editor' ? (
         <DrawingEditor
           hasAdvancedAccess={Boolean(currentUserId && playerProfile)}
@@ -1519,9 +1523,9 @@ function App() {
           onStorageChange={setEditorStorageAvailable}
         />
       ) : homeView === 'challenge' ? (
-        <WeeklyDraw mode="challenge" onBack={closeHomeView} onOpenChallenge={() => openHomeView('challenge')} />
+        <WeeklyDraw mode="challenge" onBack={closeHomeView} onOpenChallenge={() => openHomeView('challenge')} onOpenPrivacy={() => openHomeView('privacy')} />
       ) : homeView === 'gallery' ? (
-        <WeeklyDraw mode="gallery" onBack={closeHomeView} onOpenChallenge={() => openHomeView('challenge')} />
+        <WeeklyDraw mode="gallery" onBack={closeHomeView} onOpenChallenge={() => openHomeView('challenge')} onOpenPrivacy={() => openHomeView('privacy')} />
       ) : homeView === 'scoreboard' ? (
         <Scoreboard onBack={closeHomeView} />
       ) : (
@@ -1882,6 +1886,11 @@ function App() {
 
       <footer>
         <span>Bitscrawl MVP</span>
+        {!lobby && homeView !== 'privacy' ? (
+          <button className="footer-link-button" onClick={() => openHomeView('privacy')} type="button">
+            Adatvédelmi tájékoztató
+          </button>
+        ) : null}
       </footer>
 
       <BugReport

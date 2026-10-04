@@ -45,6 +45,7 @@ import { ConfirmModal } from './ConfirmModal'
 import { AdminArtworkReactions } from './AdminArtworkReactions'
 import { useChallengeEditorPalettes } from '../hooks/useChallengeEditorPalettes'
 import { ChallengePalettePicker } from './ChallengePalettePicker'
+import { PrivacyNoticePrompt } from './PrivacyPolicy'
 
 const blankAccount: MonthlyAccountState = {
   entryId: null,
@@ -73,6 +74,7 @@ export function MonthlyDraw({
   mode,
   onBack,
   onOpenMonthlyChallenge,
+  onOpenPrivacy,
   onOpenWeeklyChallenge,
   onSelectFeed,
   onSelectWeekly,
@@ -82,6 +84,7 @@ export function MonthlyDraw({
   mode: 'challenge' | 'gallery'
   onBack: () => void
   onOpenMonthlyChallenge: () => void
+  onOpenPrivacy: () => void
   onOpenWeeklyChallenge: () => void
   onSelectFeed: () => void
   onSelectWeekly: () => void
@@ -453,6 +456,7 @@ export function MonthlyDraw({
       <label className="field"><span>Jelszó</span><input autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} minLength={6} onChange={event => setPassword(event.target.value)} type="password" value={password} /></label>
       <button className="primary-button" disabled={busy || !email || password.length < 6 || (authMode === 'register' && displayName.trim().length < 2)} onClick={() => void handleAuth()} type="button">{authMode === 'login' ? 'Belépés' : 'Regisztráció'}</button>
       <button disabled={busy} onClick={() => setAuthMode(current => current === 'login' ? 'register' : 'login')} type="button">{authMode === 'login' ? 'Még nincs fiókom' : 'Már van fiókom'}</button>
+      <PrivacyNoticePrompt onOpenPrivacy={onOpenPrivacy} />
     </div></section> : user && !loading && accountReady && !account.profileName ? <section className="weekly-account-card"><div><h2>Válassz megjelenített nevet</h2></div><div className="weekly-auth-form"><label className="field"><span>Megjelenített név</span><input maxLength={16} onChange={event => setDisplayName(event.target.value)} value={displayName} /></label><button className="primary-button" disabled={busy || displayName.trim().length < 2} onClick={() => void handleProfile()} type="button">Név mentése</button></div></section> : null}
 
     {!loading && challenge && !accountReady ? <section className="weekly-account-card"><div><h2>A mentett rajz nem töltődött be</h2><p>A szerkesztőt addig nem nyitjuk meg, hogy a meglévő rajzod biztonságban maradjon.</p></div><button disabled={busy} onClick={() => void chooseChallenge(challenge.challenge_id)} type="button">Betöltés újra</button></section> : null}

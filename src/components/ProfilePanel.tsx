@@ -13,13 +13,15 @@ import {
 import { ConfirmModal } from './ConfirmModal'
 import { PixelCanvas } from './PixelCanvas'
 import { ProfileAvatar } from './ProfileAvatar'
+import { PrivacyNoticePrompt } from './PrivacyPolicy'
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'A profilművelet nem sikerült.'
 }
 
-export function ProfilePanel({ onBack, onProfileChange }: {
+export function ProfilePanel({ onBack, onOpenPrivacy, onProfileChange }: {
   onBack: () => void
+  onOpenPrivacy: () => void
   onProfileChange: (profile: PlayerProfile | null) => void
 }) {
   const [user, setUser] = useState<User | null>(null)
@@ -174,6 +176,7 @@ export function ProfilePanel({ onBack, onProfileChange }: {
             <button disabled={busy} onClick={() => setAuthMode(mode => mode === 'login' ? 'register' : 'login')} type="button">
               {authMode === 'login' ? 'Még nincs fiókom' : 'Már van fiókom'}
             </button>
+            <PrivacyNoticePrompt onOpenPrivacy={onOpenPrivacy} />
           </div>
         </section>
       ) : (

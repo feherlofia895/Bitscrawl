@@ -43,6 +43,7 @@ import { useModeratorAccess } from '../hooks/useModeratorAccess'
 import { useChallengeEditorPalettes } from '../hooks/useChallengeEditorPalettes'
 import { AdminArtworkReactions } from './AdminArtworkReactions'
 import { ChallengePalettePicker } from './ChallengePalettePicker'
+import { PrivacyNoticePrompt } from './PrivacyPolicy'
 
 const blankAccount: WeeklyAccountState = {
   draftPixels: null,
@@ -64,7 +65,7 @@ function createDiscoverySeed() {
   return Math.floor(Math.random() * 0x100000000) >>> 0
 }
 
-function WeeklyDrawContent({ currentMonthlyChallenge, currentWeeklyChallenge, mode, onBack, onOpenMonthlyChallenge, onOpenWeeklyChallenge, onSelectFeed, onSelectMonthly }: { currentMonthlyChallenge: MonthlyChallenge | null; currentWeeklyChallenge: WeeklyChallenge | null; mode: 'challenge' | 'gallery'; onBack: () => void; onOpenMonthlyChallenge: () => void; onOpenWeeklyChallenge: () => void; onSelectFeed: () => void; onSelectMonthly: () => void }) {
+function WeeklyDrawContent({ currentMonthlyChallenge, currentWeeklyChallenge, mode, onBack, onOpenMonthlyChallenge, onOpenPrivacy, onOpenWeeklyChallenge, onSelectFeed, onSelectMonthly }: { currentMonthlyChallenge: MonthlyChallenge | null; currentWeeklyChallenge: WeeklyChallenge | null; mode: 'challenge' | 'gallery'; onBack: () => void; onOpenMonthlyChallenge: () => void; onOpenPrivacy: () => void; onOpenWeeklyChallenge: () => void; onSelectFeed: () => void; onSelectMonthly: () => void }) {
   const [challenges, setChallenges] = useState<WeeklyChallenge[]>([])
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [gallery, setGallery] = useState<WeeklyGalleryEntry[]>([])
@@ -481,6 +482,7 @@ function WeeklyDrawContent({ currentMonthlyChallenge, currentWeeklyChallenge, mo
             <button disabled={busy} onClick={() => setAuthMode(mode => mode === 'login' ? 'register' : 'login')} type="button">
               {authMode === 'login' ? 'Még nincs fiókom' : 'Már van fiókom'}
             </button>
+            <PrivacyNoticePrompt onOpenPrivacy={onOpenPrivacy} />
           </div>
         </section>
       ) : !loading && accountReady && !account.profileName ? (
@@ -608,7 +610,7 @@ function WeeklyDrawContent({ currentMonthlyChallenge, currentWeeklyChallenge, mo
   )
 }
 
-export function WeeklyDraw({ mode, onBack, onOpenChallenge }: { mode: 'challenge' | 'gallery'; onBack: () => void; onOpenChallenge: () => void }) {
+export function WeeklyDraw({ mode, onBack, onOpenChallenge, onOpenPrivacy }: { mode: 'challenge' | 'gallery'; onBack: () => void; onOpenChallenge: () => void; onOpenPrivacy: () => void }) {
   const [period, setPeriod] = useState<'weekly' | 'monthly' | 'feed'>('weekly')
   const [currentWeeklyChallenge, setCurrentWeeklyChallenge] = useState<WeeklyChallenge | null>(null)
   const [currentMonthlyChallenge, setCurrentMonthlyChallenge] = useState<MonthlyChallenge | null>(null)
@@ -647,6 +649,6 @@ export function WeeklyDraw({ mode, onBack, onOpenChallenge }: { mode: 'challenge
     onOpenChallenge()
   }
   return period === 'monthly'
-    ? <MonthlyDraw currentMonthlyChallenge={currentMonthlyChallenge} currentWeeklyChallenge={currentWeeklyChallenge} mode={mode} onBack={onBack} onOpenMonthlyChallenge={() => openChallenge('monthly')} onOpenWeeklyChallenge={() => openChallenge('weekly')} onSelectFeed={() => setPeriod('feed')} onSelectWeekly={() => setPeriod('weekly')} />
-    : <WeeklyDrawContent currentMonthlyChallenge={currentMonthlyChallenge} currentWeeklyChallenge={currentWeeklyChallenge} mode={mode} onBack={onBack} onOpenMonthlyChallenge={() => openChallenge('monthly')} onOpenWeeklyChallenge={() => openChallenge('weekly')} onSelectFeed={() => setPeriod('feed')} onSelectMonthly={() => setPeriod('monthly')} />
+    ? <MonthlyDraw currentMonthlyChallenge={currentMonthlyChallenge} currentWeeklyChallenge={currentWeeklyChallenge} mode={mode} onBack={onBack} onOpenMonthlyChallenge={() => openChallenge('monthly')} onOpenPrivacy={onOpenPrivacy} onOpenWeeklyChallenge={() => openChallenge('weekly')} onSelectFeed={() => setPeriod('feed')} onSelectWeekly={() => setPeriod('weekly')} />
+    : <WeeklyDrawContent currentMonthlyChallenge={currentMonthlyChallenge} currentWeeklyChallenge={currentWeeklyChallenge} mode={mode} onBack={onBack} onOpenMonthlyChallenge={() => openChallenge('monthly')} onOpenPrivacy={onOpenPrivacy} onOpenWeeklyChallenge={() => openChallenge('weekly')} onSelectFeed={() => setPeriod('feed')} onSelectMonthly={() => setPeriod('monthly')} />
 }
