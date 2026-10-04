@@ -5488,6 +5488,138 @@ button,
   }
 }
 
+.room-public-name {
+  display: block;
+  margin: 8px 0 0;
+  font-family: var(--display-font);
+  font-size: 1.2rem;
+}
+
+.room-listing-toggle {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-family: var(--pixel-font);
+  font-size: 0.66rem;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.room-listing-toggle input {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--coral);
+}
+
+.waiting-room-listing-controls {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 10px;
+  width: 100%;
+  padding: 12px;
+  background: color-mix(in srgb, var(--yellow) 58%, var(--paper));
+  border: 2px solid var(--ink);
+  box-sizing: border-box;
+}
+
+.waiting-room-listing-controls > button,
+.public-room-search > button,
+.public-room-card > button {
+  min-height: 42px;
+  padding: 8px 12px;
+  color: var(--ink);
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  font: inherit;
+  font-weight: 800;
+}
+
+.public-room-browser {
+  gap: 14px;
+}
+
+.public-room-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.public-room-list {
+  display: grid;
+  gap: 10px;
+  min-height: 76px;
+}
+
+.public-room-empty {
+  margin: 0;
+  padding: 18px 14px;
+  color: var(--slate);
+  background: color-mix(in srgb, var(--paper) 72%, var(--mint));
+  border: 2px dashed var(--ink);
+  text-align: center;
+}
+
+.public-room-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.public-room-card > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.public-room-card strong,
+.public-room-card span,
+.public-room-card small {
+  overflow-wrap: anywhere;
+}
+
+.public-room-card strong {
+  font-family: var(--display-font);
+  font-size: 1.05rem;
+}
+
+.public-room-card small {
+  color: var(--slate);
+}
+
+.public-room-count {
+  padding: 6px 8px;
+  background: var(--mint);
+  border: 2px solid var(--ink);
+  font-family: var(--pixel-font);
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+@media (max-width: 620px) {
+  .public-room-search,
+  .public-room-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .public-room-card > button {
+    width: 100%;
+  }
+
+  .room-settings-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .profile-menu-button {
   min-height: 0;
   display: inline-flex;

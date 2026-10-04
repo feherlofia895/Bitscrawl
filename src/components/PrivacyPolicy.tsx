@@ -22,7 +22,7 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
     <section className="privacy-page" aria-labelledby="privacy-title">
       <header className="privacy-header">
         <div>
-          <p className="step-label">Jogi tájékoztató · 1.0</p>
+          <p className="step-label">Jogi tájékoztató · 1.1</p>
           <h1 id="privacy-title">Adatvédelmi tájékoztató</h1>
           <p>Hatályos: 2026. október 4-től</p>
         </div>
@@ -76,7 +76,7 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
                   <td>A tartalom törléséig, a fiók megszüntetéséig vagy addig, amíg az adott közösségi funkció működéséhez szükséges</td>
                 </tr>
                 <tr>
-                  <td>Játékszoba-azonosítók, chat- és tippüzenetek, rajzesemények, jelenléti és időbélyegadatok</td>
+                  <td>Játékszoba-azonosítók, választott nyilvános szobanév, chat- és tippüzenetek, rajzesemények, jelenléti és időbélyegadatok</td>
                   <td>Többjátékos működés, játékállapot-szinkronizálás és visszaélés-megelőzés</td>
                   <td>Szerződés teljesítése és az üzemeltető biztonsághoz fűződő jogos érdeke (GDPR 6. cikk (1) b) és f))</td>
                   <td>A játékszoba megszűnését vagy a játék befejezését követő legfeljebb 30 napig, majd töröljük vagy személyhez nem köthetővé tesszük; biztonsági esemény vagy jogi igény esetén a kivizsgálás lezárásáig tovább őrizhető</td>
@@ -111,11 +111,11 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
         <section>
           <h2>3. Mit lát más?</h2>
           <p>
-            Az e-mail-cím nem nyilvános. A megjelenített név, profilkép, közzétett rajzok és animációk,
-            hozzászólások, eredmények, érmek, valamint egyes kedvelési és szavazási adatok azonban a
-            funkció jellegétől függően más játékosok számára is láthatók lehetnek. Ne használj valódi
-            nevet vagy más személyes adatot nyilvános névként, rajzon, hozzászólásban vagy chatben, ha
-            azt nem szeretnéd megosztani.
+            Az e-mail-cím nem nyilvános. A megjelenített név, profilkép, választott nyilvános szobanév,
+            közzétett rajzok és animációk, hozzászólások, eredmények, érmek, valamint egyes kedvelési és
+            szavazási adatok azonban a funkció jellegétől függően más játékosok számára is láthatók
+            lehetnek. Ne használj valódi nevet vagy más személyes adatot nyilvános névként, rajzon,
+            hozzászólásban vagy chatben, ha azt nem szeretnéd megosztani.
           </p>
         </section>
 

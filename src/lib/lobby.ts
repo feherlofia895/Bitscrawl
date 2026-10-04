@@ -31,6 +31,9 @@ export type Lobby = {
   room: Room
 }
 
+export type PublicRoomSummary =
+  Database['public']['Functions']['list_public_rooms']['Returns'][number]
+
 type RoomEntry = {
   currentUserId: string
   playerId: number
@@ -49,14 +52,18 @@ export type CreateRoomSettings = {
   competitionDrawDuration: CompetitionDrawDuration
   competitionRoundCount: CompetitionRoundCount
   gameMode: GameMode
+  isPublic?: boolean
   paletteSize: SelectableRoomPaletteSize
+  roomName?: string
 }
 
 const defaultCreateRoomSettings: CreateRoomSettings = {
   competitionDrawDuration: DEFAULT_COMPETITION_DRAW_DURATION,
   competitionRoundCount: DEFAULT_COMPETITION_ROUND_COUNT,
   gameMode: 'classic',
+  isPublic: false,
   paletteSize: 12,
+  roomName: '',
 }
 
 const lobbyErrorMessages: Record<string, string> = {
@@ -74,6 +81,9 @@ const lobbyErrorMessages: Record<string, string> = {
   NOT_ROOM_HOST: 'Csak a szoba hostja indíthatja el a játékot.',
   PALETTE_SIZE_INVALID: 'Érvénytelen színpaletta.',
   PALETTE_SIZE_UNAVAILABLE: 'A bővített színpaletta átmenetileg nem érhető el.',
+  PUBLIC_ROOM_LIMIT: 'Egyszerre legfeljebb egy nyilvános várószobád lehet.',
+  PUBLIC_ROOM_NOT_FOUND: 'Ez a nyilvános szoba már nem elérhető. Frissítsd a listát.',
+  PUBLIC_ROOMS_UNAVAILABLE: 'Az Elérhető szobák funkció még nem érhető el ezen a szerveren.',
   GAME_NOT_FINISHED: 'Az új játék csak a meccs végén indítható.',
   ROOM_MEMBERSHIP_NOT_FOUND: 'Már nem vagy tagja ennek a szobának.',
   PLAYER_NAME_INVALID: 'A játékosnév 2–16 karakter hosszú legyen.',
@@ -83,7 +93,9 @@ const lobbyErrorMessages: Record<string, string> = {
   ROOM_CODE_INVALID: 'A szobakód 6 karakterből áll.',
   ROOM_FULL: 'A szoba megtelt. Legfeljebb 6 játékos csatlakozhat.',
   ROOM_MESSAGE_INVALID: 'A chatüzenet 1–500 karakter hosszú legyen.',
+  ROOM_NAME_INVALID: 'A szobanév 3–28 karakteres lehet; betűt, számot, szóközt, kötőjelet és alsóvonást használhatsz.',
   ROOM_NOT_FOUND: 'Nem található várószoba ezzel a kóddal.',
+  ROOM_SEARCH_INVALID: 'A keresés legfeljebb 40 karakteres lehet.',
 }
 
 function readableLobbyError(error: unknown) {
@@ -131,15 +143,34 @@ async function getRoomEntry(
 
     if (action === 'create') {
       let { data, error } = await supabase
-        .rpc('create_room_with_palette_settings', {
+        .rpc('create_room_with_listing_settings', {
           duration_seconds: roundDuration,
           player_name: playerName,
           requested_competition_draw_seconds: settings.competitionDrawDuration,
           requested_competition_round_count: settings.competitionRoundCount,
           requested_game_mode: settings.gameMode,
+          requested_is_public: settings.isPublic ?? false,
           requested_palette_size: settings.paletteSize,
+          requested_room_name: settings.isPublic ? settings.roomName?.trim() || null : null,
         })
         .single()
+
+      // Keep private rooms usable until public room discovery is deployed.
+      if (error?.code === 'PGRST202') {
+        if (settings.isPublic) throw new Error('PUBLIC_ROOMS_UNAVAILABLE')
+        const paletteResult = await supabase
+          .rpc('create_room_with_palette_settings', {
+            duration_seconds: roundDuration,
+            player_name: playerName,
+            requested_competition_draw_seconds: settings.competitionDrawDuration,
+            requested_competition_round_count: settings.competitionRoundCount,
+            requested_game_mode: settings.gameMode,
+            requested_palette_size: settings.paletteSize,
+          })
+          .single()
+        data = paletteResult.data
+        error = paletteResult.error
+      }
 
       // Keep the 12-color mode usable until the palette migration is deployed.
       if (error?.code === 'PGRST202') {
@@ -257,6 +288,63 @@ export async function setRoomRoundDuration(roomId: number, duration: RoundDurati
 
 export function joinRoom(playerName: string, roomCode: string) {
   return getRoomEntry('join', playerName, roomCode)
+}
+
+export async function listPublicRooms(searchTerm = ''): Promise<PublicRoomSummary[]> {
+  try {
+    await ensurePlayerSession()
+    const { data, error } = await supabase.rpc('list_public_rooms', {
+      search_term: searchTerm.trim() || null,
+    })
+    if (error?.code === 'PGRST202') throw new Error('PUBLIC_ROOMS_UNAVAILABLE')
+    if (error) throw error
+    return data
+  } catch (error) {
+    throw readableLobbyError(error)
+  }
+}
+
+export async function joinPublicRoom(
+  playerName: string,
+  listingId: string,
+): Promise<RoomEntry> {
+  try {
+    const user = await ensurePlayerSession()
+    const { data, error } = await supabase.rpc('join_public_room', {
+      player_name: playerName,
+      requested_listing_id: listingId,
+    }).single()
+    if (error?.code === 'PGRST202') throw new Error('PUBLIC_ROOMS_UNAVAILABLE')
+    if (error) throw error
+    return {
+      currentUserId: user.id,
+      playerId: data.player_id,
+      roomCode: data.normalized_room_code,
+      roomId: data.room_id,
+    }
+  } catch (error) {
+    throw readableLobbyError(error)
+  }
+}
+
+export async function setRoomListing(
+  roomId: number,
+  roomName: string,
+  isPublic: boolean,
+) {
+  try {
+    await ensurePlayerSession()
+    const { data, error } = await supabase.rpc('set_room_listing', {
+      requested_is_public: isPublic,
+      requested_room_name: isPublic ? roomName.trim() || null : null,
+      target_room_id: roomId,
+    }).single()
+    if (error?.code === 'PGRST202') throw new Error('PUBLIC_ROOMS_UNAVAILABLE')
+    if (error) throw error
+    return data
+  } catch (error) {
+    throw readableLobbyError(error)
+  }
 }
 
 export async function resumeRoom(roomCode: string): Promise<RoomEntry | null> {

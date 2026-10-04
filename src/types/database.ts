@@ -261,9 +261,13 @@ export type Database = {
           game_mode: string
           host_user_id: string
           id: number
+          is_public: boolean
+          listing_id: string
           max_players: number
           palette_id: string
           palette_size: number
+          public_listed_at: string | null
+          room_name: string | null
           started_at: string | null
           status: string
           test_mode: boolean
@@ -278,9 +282,13 @@ export type Database = {
           game_mode?: string
           host_user_id: string
           id?: never
+          is_public?: boolean
+          listing_id?: string
           max_players?: number
           palette_id?: string
           palette_size?: number
+          public_listed_at?: string | null
+          room_name?: string | null
           started_at?: string | null
           status?: string
           test_mode?: boolean
@@ -295,9 +303,13 @@ export type Database = {
           game_mode?: string
           host_user_id?: string
           id?: never
+          is_public?: boolean
+          listing_id?: string
           max_players?: number
           palette_id?: string
           palette_size?: number
+          public_listed_at?: string | null
+          room_name?: string | null
           started_at?: string | null
           status?: string
           test_mode?: boolean
@@ -819,6 +831,36 @@ export type Database = {
           room_id: number
         }[]
       }
+      create_room_with_listing_settings: {
+        Args: {
+          duration_seconds?: number
+          player_name: string
+          requested_competition_draw_seconds?: number
+          requested_competition_round_count?: number
+          requested_game_mode?: string
+          requested_is_public?: boolean
+          requested_palette_size?: number
+          requested_room_name?: string | null
+        }
+        Returns: {
+          player_id: number
+          room_code: string
+          room_id: number
+        }[]
+      }
+      list_public_rooms: {
+        Args: { search_term?: string | null }
+        Returns: {
+          game_mode: string
+          host_name: string
+          listing_id: string
+          max_players: number
+          palette_size: number
+          player_count: number
+          public_listed_at: string
+          room_name: string
+        }[]
+      }
       moderate_delete_lobby_message: {
         Args: { target_message_id: number }
         Returns: boolean
@@ -1074,6 +1116,14 @@ export type Database = {
           room_id: number
         }[]
       }
+      join_public_room: {
+        Args: { player_name: string; requested_listing_id: string }
+        Returns: {
+          normalized_room_code: string
+          player_id: number
+          room_id: number
+        }[]
+      }
       leave_room: {
         Args: { target_room_id: number }
         Returns: {
@@ -1126,6 +1176,18 @@ export type Database = {
       delete_own_editor_gallery_slot: {
         Args: { target_slot: number }
         Returns: boolean
+      }
+      set_room_listing: {
+        Args: {
+          requested_is_public: boolean
+          requested_room_name: string | null
+          target_room_id: number
+        }
+        Returns: {
+          is_public: boolean
+          room_id: number
+          room_name: string | null
+        }[]
       }
       delete_own_editor_animation_slot: {
         Args: { target_slot: number }

@@ -100,7 +100,7 @@ before(async () => {
 
   await db.query(`
     insert into public.round_draw_events (round_id, room_id, created_by, changes, created_at)
-    values ($1, $2, $3, '[{"index":0,"color":"#000000"}]'::jsonb, now() - interval '40 days')
+    values ($1, $2, $3, '[{"index":0,"color":"#242630"}]'::jsonb, now() - interval '40 days')
   `, [round.id, ids.DEF567, users[0]])
   await db.query(`
     insert into public.round_messages (round_id, room_id, sender_user_id, kind, content, created_at)
@@ -124,7 +124,7 @@ before(async () => {
   `, [ids.ABC234])).rows[0]
   await db.query(`
     insert into public.competition_draw_events (round_id, room_id, user_id, changes, created_at)
-    values ($1, $2, $3, '[{"index":0,"color":"#000000"}]'::jsonb, now() - interval '40 days')
+    values ($1, $2, $3, '[{"index":0,"color":"#242630"}]'::jsonb, now() - interval '40 days')
   `, [competitionRound.id, ids.ABC234, users[0]])
   await db.query(
     'insert into private.competition_entries (round_id, user_id) values ($1, $2)',

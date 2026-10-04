@@ -15,6 +15,7 @@ test('the privacy notice covers the real account and community data flow', () =>
     'Rajzfalra feltöltött rajzok és animációk',
     'Saját piszkozatok, paletták',
     'chat- és tippüzenetek',
+    'választott nyilvános szobanév',
     'IP-cím',
     'Supabase Auth',
     'bcrypt',

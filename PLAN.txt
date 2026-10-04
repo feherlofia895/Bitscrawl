@@ -7,6 +7,12 @@ Jelölések:
 [ ] még hátra van
 
 2026-10-04-i aktuális állapot:
+- [x] Elkészült és élesedett az Elérhető szobák első változata. A host létrehozáskor és
+  a váróteremben is választhat kódos vagy nyilvános megjelenést; a nyilvános lista
+  név és host szerint kereshető, csak várakozó és nem telt szobákat mutat, és a
+  csatlakozáshoz nem adja ki előre a szobakódot vagy a belső szobaazonosítót.
+  Az adatbázis-regresszió, biztonsági teszt, build, lint, mobilos látványellenőrzés
+  és a három külön anonim játékossal végzett éles próba sikeres.
 - [x] A Dicsőségfal „A legmenőbbek” része már nem sorolja fel külön minden hét és
   hónap dobogósait. Csak a legalább egy érmet szerzett játékosok látszanak, mindenki
   egyszer, az összesített arany-, ezüst- és bronzérmeivel.
@@ -1151,7 +1157,7 @@ Javasolt sorrend és függőségek:
 6. A teljes angol fordítás és az avatárkészítő az MVP stabilizálása után is elkészülhet;
    az i18n-alapokat és a bővíthető profil-adatmodellt viszont már korábban készítsük elő.
 
-[ ] 17. ELÉRHETŐ SZOBÁK
+[x] 17. ELÉRHETŐ SZOBÁK
 
 - A host dönthesse el, hogy a szoba csak kóddal érhető el vagy megjelenik a nyilvános
   szobalistában; az alapértelmezett beállítás egyelőre maradjon kódos.
@@ -1161,6 +1167,20 @@ Javasolt sorrend és függőségek:
 - Legyen frissítés, egyszerű keresés és egyértelmű üres állapot.
 - A nyilvános lista előtt tervezzük meg a kéretlen szobanevek, spamelés és túl sok
   szobalétrehozás alapvető védelmét.
+
+Éles állapot (2026-10-04):
+- A kódos szoba maradt az alapértelmezett. Nyilvános megjelenéshez 3–28 karakteres,
+  szigorúan ellenőrzött szobanév kell; linket és különleges jeleket nem fogad el.
+- Egy hostnak egyszerre legfeljebb egy nyilvános, várakozó szobája lehet. A lista
+  legfeljebb 30 találatot ad vissza, és a telt, elindult vagy privát szobákat kizárja.
+- A listában külön véletlen listaazonosító szerepel. A valódi szobakód és belső
+  szobaazonosító csak a sikeres, szerveroldalon újraellenőrzött csatlakozás után jut
+  el a játékoshoz.
+- A külön helyi adatbázisteszt védi a hostjogot, névszűrést, egy nyilvános szobás
+  korlátot, keresést, telt/elindult szobák eltűnését, biztonságos mezőlistát és az
+  RPC-k jogosultságait. A production migráció elkészült; a három külön anonim
+  játékossal futó élő próba igazolta a keresést, biztonságos mezőlistát, listás
+  csatlakozást, játékosszám-frissítést, névszűrést és privátra visszaállítást.
 
 
 [>] 18. FELHASZNÁLÓI FIÓKOK

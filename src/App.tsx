@@ -66,20 +66,24 @@ import {
 } from './lib/competitionGame'
 import {
   createRoom,
+  joinPublicRoom,
   joinRoom,
   leaveRoom,
+  listPublicRooms,
   loadRoomMessages,
   loadLobby,
   restartGame,
   sendRoomMessage,
   resumeRoom,
   setRoomPaletteSize,
+  setRoomListing,
   setRoomRoundDuration,
   setRoomTestMode,
   startGame,
   subscribeToLobby,
   touchRoomPresence,
   type Lobby,
+  type PublicRoomSummary,
   type RoomMessage,
 } from './lib/lobby'
 import {
@@ -97,10 +101,10 @@ import { usePwaInstall } from './hooks/usePwaInstall'
 import { usePwaUpdate } from './hooks/usePwaUpdate'
 
 type BackendStatus = 'checking' | 'online' | 'reconnecting' | 'offline'
-type HomeView = 'main' | 'play' | 'editor' | 'challenge' | 'gallery' | 'scoreboard' | 'create' | 'join' | 'settings' | 'profile' | 'admin' | 'privacy'
+type HomeView = 'main' | 'play' | 'editor' | 'challenge' | 'gallery' | 'scoreboard' | 'create' | 'join' | 'browse' | 'settings' | 'profile' | 'admin' | 'privacy'
 
 const homeViews = new Set<HomeView>([
-  'main', 'play', 'editor', 'challenge', 'gallery', 'scoreboard', 'create', 'join', 'settings', 'profile', 'admin', 'privacy',
+  'main', 'play', 'editor', 'challenge', 'gallery', 'scoreboard', 'create', 'join', 'browse', 'settings', 'profile', 'admin', 'privacy',
 ])
 
 const homeViewParents: Record<Exclude<HomeView, 'main'>, HomeView> = {
@@ -111,6 +115,7 @@ const homeViewParents: Record<Exclude<HomeView, 'main'>, HomeView> = {
   scoreboard: 'main',
   create: 'play',
   join: 'play',
+  browse: 'play',
   settings: 'main',
   profile: 'main',
   admin: 'main',
@@ -159,6 +164,12 @@ function normalizeRoomCode(value: string) {
     .slice(0, 6)
 }
 
+function isValidPublicRoomName(value: string) {
+  const cleanName = value.trim()
+  return cleanName.length >= 3 && cleanName.length <= 28 &&
+    /^[\p{L}\p{N} _-]+$/u.test(cleanName) && !/\s{2,}/u.test(cleanName)
+}
+
 function getInitialRoomCode() {
   return normalizeRoomCode(
     new URLSearchParams(window.location.search).get('room') ?? '',
@@ -187,12 +198,15 @@ function App() {
   const [newRoomDuration, setNewRoomDuration] = useState<RoundDuration>(DEFAULT_ROUND_DURATION)
   const [newRoomGameMode, setNewRoomGameMode] = useState<GameMode>('classic')
   const [newRoomPaletteSize, setNewRoomPaletteSize] = useState<SelectableRoomPaletteSize>(12)
+  const [newRoomIsPublic, setNewRoomIsPublic] = useState(false)
+  const [newRoomName, setNewRoomName] = useState('')
   const [competitionDrawDuration, setCompetitionDrawDuration] =
     useState<CompetitionDrawDuration>(DEFAULT_COMPETITION_DRAW_DURATION)
   const [competitionRoundCount, setCompetitionRoundCount] =
     useState<CompetitionRoundCount>(DEFAULT_COMPETITION_ROUND_COUNT)
   const [isChangingRoundDuration, setIsChangingRoundDuration] = useState(false)
   const [isChangingPaletteSize, setIsChangingPaletteSize] = useState(false)
+  const [isChangingRoomListing, setIsChangingRoomListing] = useState(false)
   const [homeView, setHomeView] = useState<HomeView>(historyHomeView)
   const [editorDirty, setEditorDirty] = useState(false)
   const [editorStorageAvailable, setEditorStorageAvailable] = useState(true)
@@ -208,6 +222,11 @@ function App() {
   const pwaInstall = usePwaInstall()
   const pwaUpdate = usePwaUpdate()
   const [roomCode, setRoomCode] = useState(getInitialRoomCode)
+  const [publicRoomSearch, setPublicRoomSearch] = useState('')
+  const [publicRooms, setPublicRooms] = useState<PublicRoomSummary[]>([])
+  const [isLoadingPublicRooms, setIsLoadingPublicRooms] = useState(false)
+  const [roomListingName, setRoomListingName] = useState('')
+  const [roomListingPublic, setRoomListingPublic] = useState(false)
   const [message, setMessage] = useState(guestNamePrompt)
   const [backendStatus, setBackendStatus] =
     useState<BackendStatus>('checking')
@@ -242,9 +261,21 @@ function App() {
   const competitionRoundStatusRef = useRef<CompetitionRoundView['round_status'] | null>(null)
   const activeRoomIdRef = useRef<number | null>(null)
   const isLeavingRoomRef = useRef(false)
+  const listingRoomIdRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    const roomId = lobby?.room.id ?? null
+    if (listingRoomIdRef.current === roomId) return
+    listingRoomIdRef.current = roomId
+    setRoomListingName(lobby?.room.room_name ?? '')
+    setRoomListingPublic(lobby?.room.is_public ?? false)
+  }, [lobby])
 
   const openHomeView = useCallback((view: Exclude<HomeView, 'main'>) => {
     if (view === homeView) return
+    if (view === 'create' || view === 'join' || view === 'browse') {
+      setMessage(guestNamePrompt)
+    }
     window.history.pushState({ ...historyState(), bitscrawlHomeView: view }, '')
     setHomeView(view)
   }, [homeView])
@@ -683,6 +714,24 @@ function App() {
     }
   }, [activeRoomId, refreshLobby])
 
+  const refreshAvailableRooms = useCallback(async (searchTerm = '') => {
+    setIsLoadingPublicRooms(true)
+    try {
+      const rooms = await listPublicRooms(searchTerm)
+      setPublicRooms(rooms)
+      setMessage(rooms.length ? `${rooms.length} elérhető szoba.` : 'Nincs a keresésnek megfelelő elérhető szoba.')
+    } catch (error) {
+      setPublicRooms([])
+      setMessage(error instanceof Error ? error.message : 'Nem sikerült betölteni az elérhető szobákat.')
+    } finally {
+      setIsLoadingPublicRooms(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (homeView === 'browse' && !lobby) void refreshAvailableRooms()
+  }, [homeView, lobby, refreshAvailableRooms])
+
   const profilePlayerName = playerProfile?.displayName.trim() ?? ''
   const effectivePlayerName = profilePlayerName || playerName.trim()
   const roomEntryMessage = profilePlayerName && message === guestNamePrompt
@@ -707,6 +756,10 @@ function App() {
     code?: string,
   ) => {
     if (!checkName()) return
+    if (action === 'create' && newRoomIsPublic && !isValidPublicRoomName(newRoomName)) {
+      setMessage('A szobanév 3–28 karakteres lehet; betűt, számot, szóközt, kötőjelet és alsóvonást használhatsz.')
+      return
+    }
 
     isLeavingRoomRef.current = false
     setIsBusy(true)
@@ -723,7 +776,9 @@ function App() {
               competitionDrawDuration,
               competitionRoundCount,
               gameMode: newRoomGameMode,
+              isPublic: newRoomIsPublic,
               paletteSize: newRoomPaletteSize,
+              roomName: newRoomName,
             })
           : await joinRoom(effectivePlayerName, code ?? '')
       await hydrateLobby(entry)
@@ -751,6 +806,26 @@ function App() {
     }
 
     void enterLobby('join', normalizedRoomCode)
+  }
+
+  const handleJoinPublicRoom = async (listingId: string) => {
+    if (!checkName()) return
+    isLeavingRoomRef.current = false
+    setIsBusy(true)
+    setMessage('Csatlakozás a nyilvános szobához…')
+    try {
+      const entry = await joinPublicRoom(effectivePlayerName, listingId)
+      await hydrateLobby(entry)
+      window.history.replaceState({}, '', `?room=${entry.roomCode}`)
+      setRoomCode(entry.roomCode)
+      setMessage('Sikeresen beléptél a várószobába.')
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Nem sikerült csatlakozni a szobához.'
+      await refreshAvailableRooms(publicRoomSearch)
+      setMessage(errorMessage)
+    } finally {
+      setIsBusy(false)
+    }
   }
 
   const copyInviteLink = async () => {
@@ -845,6 +920,33 @@ function App() {
       setMessage(error instanceof Error ? error.message : 'Nem sikerült módosítani a színpalettát.')
     } finally {
       setIsChangingPaletteSize(false)
+    }
+  }
+
+  const handleRoomListingChange = async () => {
+    if (!lobby || isChangingRoomListing) return
+    if (roomListingPublic && !isValidPublicRoomName(roomListingName)) {
+      setMessage('A szobanév 3–28 karakteres lehet; betűt, számot, szóközt, kötőjelet és alsóvonást használhatsz.')
+      return
+    }
+    setIsChangingRoomListing(true)
+    setMessage('A nyilvános megjelenés mentése…')
+    try {
+      const result = await setRoomListing(
+        lobby.room.id,
+        roomListingName,
+        roomListingPublic,
+      )
+      setRoomListingName(result.room_name ?? '')
+      setRoomListingPublic(result.is_public)
+      await refreshLobby()
+      setMessage(result.is_public
+        ? 'A szoba megjelent az Elérhető szobák között.'
+        : 'A szoba mostantól csak kóddal érhető el.')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Nem sikerült módosítani a nyilvános megjelenést.')
+    } finally {
+      setIsChangingRoomListing(false)
     }
   }
 
@@ -1131,6 +1233,9 @@ function App() {
             </p>
             <h1 id="room-title">Szobakód</h1>
             <strong className="room-code">{lobby.room.code}</strong>
+            {lobby.room.room_name ? (
+              <strong className="room-public-name">{lobby.room.room_name}</strong>
+            ) : null}
             <p className="room-note">
               {roomIsCompetition ? (
                 <>
@@ -1163,7 +1268,9 @@ function App() {
             <p className="room-note">
               {roomIsLocked
                 ? 'A szoba lezárult, új játékos már nem csatlakozhat.'
-                : 'Oszd meg a kódot vagy a meghívó linket a többiekkel.'}
+                : lobby.room.is_public
+                  ? 'A szoba az Elérhető szobák között is látható.'
+                  : 'Oszd meg a kódot vagy a meghívó linket a többiekkel.'}
             </p>
           </div>
 
@@ -1363,6 +1470,39 @@ function App() {
               </div>
             ) : isHost ? (
               <div className="start-game-controls">
+                <div className="waiting-room-listing-controls">
+                  <label className="room-listing-toggle" htmlFor="waiting-room-public">
+                    <input
+                      checked={roomListingPublic}
+                      disabled={isChangingRoomListing || isStartingGame}
+                      id="waiting-room-public"
+                      onChange={(event) => setRoomListingPublic(event.target.checked)}
+                      type="checkbox"
+                    />
+                    <span>Nyilvános várószoba</span>
+                  </label>
+                  {roomListingPublic ? (
+                    <label className="field" htmlFor="waiting-room-name">
+                      <span>Szobanév</span>
+                      <input
+                        disabled={isChangingRoomListing || isStartingGame}
+                        id="waiting-room-name"
+                        maxLength={28}
+                        onChange={(event) => setRoomListingName(event.target.value)}
+                        placeholder="Például: Esti pixelparti"
+                        type="text"
+                        value={roomListingName}
+                      />
+                    </label>
+                  ) : null}
+                  <button
+                    disabled={isChangingRoomListing || isStartingGame}
+                    onClick={() => void handleRoomListingChange()}
+                    type="button"
+                  >
+                    {isChangingRoomListing ? 'Mentés…' : 'Nyilvánosság mentése'}
+                  </button>
+                </div>
                 <label className="field lobby-palette-field" htmlFor="waiting-room-palette">
                   <span>Színpaletta</span>
                   <select
@@ -1411,6 +1551,7 @@ function App() {
                   className="primary-button start-game-button"
                   disabled={
                     isStartingGame ||
+                    isChangingRoomListing ||
                     isChangingTestMode ||
                     isChangingPaletteSize ||
                     isChangingRoundDuration ||
@@ -1674,7 +1815,8 @@ function App() {
                 <div className="home-menu-actions play-actions">
                   <button className="ui-drawn-button ui-button-1" onClick={() => openHomeView('create')} type="button">{editorText.create}</button>
                   <button className="ui-drawn-button ui-button-2" onClick={() => openHomeView('join')} type="button">Csatlakozás</button>
-                  <button className="ui-drawn-button ui-button-3 home-back-button" onClick={closeHomeView} type="button">{editorText.backMain}</button>
+                  <button className="ui-drawn-button ui-button-3" onClick={() => openHomeView('browse')} type="button">Elérhető szobák</button>
+                  <button className="ui-drawn-button ui-button-4 home-back-button" onClick={closeHomeView} type="button">{editorText.backMain}</button>
                 </div>
               </>
             ) : homeView === 'create' ? (
@@ -1710,6 +1852,33 @@ function App() {
                   <details className="room-settings">
                     <summary>Szoba beállításai</summary>
                     <div className="room-settings-content">
+                      <label className="room-listing-toggle" htmlFor="new-room-public">
+                        <input
+                          checked={newRoomIsPublic}
+                          disabled={isBusy || isRestoringRoom}
+                          id="new-room-public"
+                          onChange={(event) => setNewRoomIsPublic(event.target.checked)}
+                          type="checkbox"
+                        />
+                        <span>Megjelenjen az Elérhető szobák között</span>
+                      </label>
+                      {newRoomIsPublic ? (
+                        <label className="field" htmlFor="new-room-name">
+                          <span>Szobanév</span>
+                          <input
+                            disabled={isBusy || isRestoringRoom}
+                            id="new-room-name"
+                            maxLength={28}
+                            onChange={(event) => setNewRoomName(event.target.value)}
+                            placeholder="Például: Esti pixelparti"
+                            type="text"
+                            value={newRoomName}
+                          />
+                          <small>3–28 karakter. Link és különleges jel nem használható.</small>
+                        </label>
+                      ) : (
+                        <p className="room-settings-note">Alapból csak a szobakóddal lehet csatlakozni.</p>
+                      )}
                       <label className="field" htmlFor="room-game-mode">
                         <span>Játékmód</span>
                         <select
@@ -1879,6 +2048,88 @@ function App() {
                   </button>
                   <button className="home-back-button" onClick={closeHomeView} type="button">
                     Vissza a főmenübe
+                  </button>
+                  <p className="status-message" aria-live="polite">{roomEntryMessage}</p>
+                </div>
+              </>
+            ) : homeView === 'browse' ? (
+              <>
+                <div className="lobby-heading">
+                  <p className="step-label">Nyilvános várószobák</p>
+                  <h2 id="lobby-title">Elérhető szobák</h2>
+                </div>
+                <div className="lobby-controls public-room-browser">
+                  {profilePlayerName ? (
+                    <div className="field profile-player-name-field">
+                      <span>Játékosnév</span>
+                      <strong aria-label={`Játékosnév: ${profilePlayerName}`} className="profile-player-name">
+                        {profilePlayerName}
+                      </strong>
+                    </div>
+                  ) : (
+                    <label className="field" htmlFor="browse-player-name">
+                      <span>Játékosnév</span>
+                      <input
+                        autoComplete="nickname"
+                        disabled={isBusy}
+                        id="browse-player-name"
+                        maxLength={16}
+                        onChange={(event) => setPlayerName(event.target.value)}
+                        placeholder="Például: PixelPanni"
+                        type="text"
+                        value={playerName}
+                      />
+                    </label>
+                  )}
+                  <form
+                    className="public-room-search"
+                    onSubmit={(event) => {
+                      event.preventDefault()
+                      void refreshAvailableRooms(publicRoomSearch)
+                    }}
+                  >
+                    <label className="field" htmlFor="public-room-search">
+                      <span>Keresés név vagy host alapján</span>
+                      <input
+                        disabled={isLoadingPublicRooms}
+                        id="public-room-search"
+                        maxLength={40}
+                        onChange={(event) => setPublicRoomSearch(event.target.value)}
+                        placeholder="Szobanév vagy host"
+                        type="search"
+                        value={publicRoomSearch}
+                      />
+                    </label>
+                    <button disabled={isLoadingPublicRooms} type="submit">
+                      {isLoadingPublicRooms ? 'Frissítés…' : 'Keresés / frissítés'}
+                    </button>
+                  </form>
+                  <div className="public-room-list" aria-busy={isLoadingPublicRooms} aria-live="polite">
+                    {!isLoadingPublicRooms && publicRooms.length === 0 ? (
+                      <p className="public-room-empty">Most nincs ilyen elérhető szoba.</p>
+                    ) : publicRooms.map((room) => (
+                      <article className="public-room-card" key={room.listing_id}>
+                        <div>
+                          <strong>{room.room_name}</strong>
+                          <span>Host: {room.host_name}</span>
+                          <small>
+                            {room.game_mode === 'competition' ? gameModeText.competition : 'Klasszikus'} ·{' '}
+                            {roomPaletteLabel(room.palette_size as RoomPaletteSize)}
+                          </small>
+                        </div>
+                        <span className="public-room-count">{room.player_count}/{room.max_players}</span>
+                        <button
+                          disabled={isBusy || isLoadingPublicRooms}
+                          onClick={() => void handleJoinPublicRoom(room.listing_id)}
+                          type="button"
+                        >
+                          Csatlakozás
+                        </button>
+                      </article>
+                    ))}
+                  </div>
+                  <button className="home-back-button" onClick={closeHomeView} type="button">
+                    {editorText.backPlay}
                   </button>
                   <p className="status-message" aria-live="polite">{roomEntryMessage}</p>
                 </div>
