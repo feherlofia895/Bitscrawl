@@ -51,7 +51,7 @@ before(async () => {
 
 after(async () => { await db.close() })
 
-test('fast game modes share a curated bank without ambiguous legacy prompts', async () => {
+test('classic guessing and competition drawing share a curated prompt bank', async () => {
   const words = (await db.query('select word from private.word_bank order by word')).rows.map(row => row.word)
   const expectedReplacements = [
     'evővilla', 'fagylalt', 'falevél', 'falióra', 'játékbaba', 'kastély',
@@ -87,9 +87,16 @@ test('fast game modes share a curated bank without ambiguous legacy prompts', as
     "select pg_get_functiondef('private.start_competition_game(bigint)'::regprocedure) as definition",
   )).rows
   assert.match(privateCompetitionDefinition, /private\.word_bank/)
+
+  const [{ definition: competitionVotingDefinition }] = (await db.query(
+    "select pg_get_functiondef('private.finish_competition_voting(bigint)'::regprocedure) as definition",
+  )).rows
+  assert.match(competitionVotingDefinition, /private\.competition_votes/)
+  assert.match(competitionVotingDefinition, /score = rp\.score \+ votes\.vote_count/)
+  assert.doesNotMatch(competitionVotingDefinition, /answer_matches/)
 })
 
-test('weekly and monthly prompt rotations contain only the reviewed drawable themes', async () => {
+test('public-vote challenges use only reviewed visual themes without answer matching', async () => {
   const [{ definition: weeklyDefinition }] = (await db.query(
     "select pg_get_functiondef('private.ensure_weekly_challenge()'::regprocedure) as definition",
   )).rows
@@ -97,15 +104,32 @@ test('weekly and monthly prompt rotations contain only the reviewed drawable the
     "select pg_get_functiondef('private.ensure_monthly_challenge()'::regprocedure) as definition",
   )).rows
 
-  assert.deepEqual(quotedArray(weeklyDefinition), [
+  const weeklyRotation = [
     'Sárkány', 'Világítótorony', 'Űrhajó', 'Gombaház', 'Gomba', 'Polip',
     'Vulkán', 'Robot', 'Kastély', 'Macska', 'Hőlégballon', 'Tengeralattjáró',
-  ])
-  assert.deepEqual(quotedArray(monthlyDefinition), [
+  ]
+  const monthlyRotation = [
     'Béka', 'Bagoly', 'Űrállomás', 'Kalózhajó', 'Varázserdő', 'Tengeri szörny',
     'Robotváros', 'Sárkánytojás', 'Kísértetház', 'Halloween', 'Vidámpark',
     'Víz alatti kastély',
-  ])
+  ]
+
+  assert.deepEqual(quotedArray(weeklyDefinition), weeklyRotation)
+  assert.deepEqual(quotedArray(monthlyDefinition), monthlyRotation)
+  assert.doesNotMatch(weeklyDefinition, /answer_matches/)
+  assert.doesNotMatch(monthlyDefinition, /answer_matches/)
+
+  const storedWeeklyPrompts = (await db.query(
+    'select distinct prompt from public.weekly_challenges order by prompt',
+  )).rows.map(row => row.prompt)
+  const storedMonthlyPrompts = (await db.query(
+    'select distinct prompt from public.monthly_challenges order by prompt',
+  )).rows.map(row => row.prompt)
+  const approvedWeeklyPrompts = new Set([...weeklyRotation, 'Boszorkány'])
+  const approvedMonthlyPrompts = new Set(monthlyRotation)
+
+  assert.ok(storedWeeklyPrompts.every(prompt => approvedWeeklyPrompts.has(prompt)))
+  assert.ok(storedMonthlyPrompts.every(prompt => approvedMonthlyPrompts.has(prompt)))
 })
 
 test('aliases are target-specific, accent tolerant and reject unrelated guesses', async () => {
