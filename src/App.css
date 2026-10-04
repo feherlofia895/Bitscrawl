@@ -2103,6 +2103,8 @@ footer {
 
 .canvas-view-controls .canvas-gallery-button { min-width: 76px; }
 
+.canvas-view-controls .canvas-share-button { min-width: 86px; }
+
 .canvas-view-controls .canvas-immersive-button {
   min-width: 100px;
   margin-left: auto;
@@ -4368,6 +4370,35 @@ button,
   flex-basis: 220px;
 }
 
+.editor-actions > .editor-share-menu.is-canvas-triggered {
+  flex: 0 0 0;
+  width: 0;
+  height: 0;
+}
+
+.editor-share-menu.is-canvas-triggered > summary {
+  display: none;
+}
+
+.editor-share-menu.is-canvas-triggered[open]::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1199;
+  background: rgb(36 26 53 / 58%);
+}
+
+.editor-share-menu.is-canvas-triggered .editor-share-options {
+  position: fixed;
+  top: 50%;
+  right: auto;
+  left: 50%;
+  width: min(420px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  transform: translate(-50%, -50%);
+}
+
 .editor-share-menu > summary {
   display: grid;
   min-height: 50px;
@@ -4401,6 +4432,13 @@ button,
 .editor-share-options small { margin: 0; line-height: 1.4; }
 .editor-share-options button { min-height: 46px; padding: 8px 11px; background: var(--yellow); }
 .editor-share-options button:disabled { opacity: .55; }
+
+.editor-share-options .editor-share-close {
+  justify-self: end;
+  min-height: 36px;
+  padding: 5px 10px;
+  background: var(--coral);
+}
 
 .editor-export-options {
   display: grid;
@@ -6332,6 +6370,11 @@ canvas.player-avatar {
   outline-offset: 1px;
 }
 
+.tool-buttons .shape-tool-toggle,
+.mobile-shape-tool-options {
+  display: none;
+}
+
 .drawing-palette[data-palette-size='12'] {
   grid-template-columns: repeat(12, 16px);
   grid-template-rows: 16px;
@@ -6518,6 +6561,28 @@ canvas.player-avatar {
 
 .editor-color-mixer {
   width: min(100%, 640px);
+}
+
+.editor-palette-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 8px;
+  width: min(100%, 320px);
+}
+
+.editor-palette-actions .custom-palette-edit-toggle,
+.editor-palette-actions .color-mixer-toggle {
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 8px;
+  font-size: .56rem;
+}
+
+.editor-color-mixer-note {
+  width: min(100%, 320px);
+  margin: -3px 0 0;
+  font-size: .78rem;
+  opacity: .72;
 }
 
 .editor-color-mixer-bar {
@@ -6780,6 +6845,49 @@ canvas.player-avatar {
     justify-content: center;
   }
 
+  .tool-buttons.is-compact-mobile {
+    grid-template-columns: repeat(5, 42px);
+  }
+
+  .tool-buttons.is-compact-mobile .shape-tool-individual {
+    display: none;
+  }
+
+  .tool-buttons.is-compact-mobile .shape-tool-toggle {
+    display: grid;
+  }
+
+  .mobile-shape-tool-options {
+    display: grid;
+    grid-template-columns: repeat(3, 42px);
+    justify-content: center;
+    gap: 8px;
+    padding: 8px;
+    background: color-mix(in srgb, var(--yellow) 32%, var(--paper));
+    border: 2px solid var(--ink);
+  }
+
+  .mobile-shape-tool-options .tool-sprite-button {
+    width: 42px;
+    min-height: 48px;
+    height: 48px;
+    padding: 0;
+    background-color: transparent;
+    background-image: url('/ui/toolbar-normal.png');
+    background-position: -24px calc(var(--tool-sprite-y-large) - 3px);
+    background-repeat: no-repeat;
+    background-size: 78px 384px;
+    border: 0;
+    box-shadow: none;
+    clip-path: none;
+    image-rendering: pixelated;
+  }
+
+  .mobile-shape-tool-options .tool-sprite-button[aria-pressed='true'] {
+    outline: 3px solid var(--blue);
+    outline-offset: 1px;
+  }
+
   .feedback-triggers {
     position: static;
     display: grid;
@@ -7017,6 +7125,10 @@ canvas.player-avatar {
     width: 100%;
     min-width: 0;
     grid-template-columns: repeat(3, minmax(0, 42px));
+  }
+
+  .tool-buttons.is-compact-mobile {
+    grid-template-columns: repeat(5, minmax(0, 42px));
   }
 
   .drawing-palette[data-palette-size='12'] {

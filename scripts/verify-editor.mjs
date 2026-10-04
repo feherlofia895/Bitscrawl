@@ -71,7 +71,7 @@ test('the regular toolbar omits its duplicate pan hand and enlarges the drawn co
     readFile(new URL('../src/App.css', import.meta.url), 'utf8'),
     readFile(new URL('../src/components/PixelCanvas.tsx', import.meta.url), 'utf8'),
   ])
-  const toolbarStart = canvasSource.indexOf('<div className="tool-buttons">')
+  const toolbarStart = canvasSource.indexOf('<div className={`tool-buttons')
   const toolbarEnd = canvasSource.indexOf('className="drawing-palette"', toolbarStart)
   const regularToolbar = canvasSource.slice(toolbarStart, toolbarEnd)
 
@@ -144,7 +144,7 @@ test('guest editor access keeps basic colors and PNG export while locking advanc
   assert.match(editorSource, /allowEditorTools=\{hasAdvancedAccess\}/)
   assert.match(editorSource, /paletteSize=\{hasAdvancedAccess \? paletteSize : 12\}/)
   assert.match(editorSource, /Vendég mód[\s\S]*?12 alapszínnel[\s\S]*?Belépés \/ regisztráció/)
-  assert.match(editorSource, /!hasAdvancedAccess \? 'Kép letöltése'/)
+  assert.match(editorSource, /<strong>Kép mentése<\/strong>/)
   assert.match(editorSource, /onClick=\{\(\) => void downloadPng\(\)\}/)
   assert.match(commentsSource, /if \(!isSignedIn\) return null/)
   assert.match(profilePreviewSource, /getWeeklyUser\(\)/)
@@ -281,8 +281,10 @@ test('the editor uses one share menu for the feed and both challenge entries', a
     readFile(new URL('../src/App.css', import.meta.url), 'utf8'),
     readFile(new URL('../src/components/PixelCanvas.tsx', import.meta.url), 'utf8'),
   ])
-  assert.match(editorSource, /<summary[^>]*>[\s\S]*?animationMode \? 'Megosztás \/ mentés' : 'Megosztás \/ nevezés'[\s\S]*?<\/summary>/)
-  const shareMenuIndex = editorSource.indexOf('<details className="editor-share-menu"')
+  assert.match(editorSource, /<details className="editor-share-menu is-canvas-triggered"/)
+  assert.match(editorSource, /onShare=\{openShareMenu\}/)
+  assert.match(canvasSource, /className="canvas-share-button"[\s\S]*?>Megosztás<\/button>/)
+  const shareMenuIndex = editorSource.indexOf('<details className="editor-share-menu is-canvas-triggered"')
   const exportActionIndex = editorSource.indexOf('onClick={() => void downloadPng()}')
   assert.ok(shareMenuIndex >= 0 && exportActionIndex > shareMenuIndex)
   assert.match(editorSource, /<div className="editor-export-options">[\s\S]*?<strong>Kép mentése<\/strong>[\s\S]*?text\.export/)
@@ -463,15 +465,21 @@ test('drawing layers flatten in fixed order and preserve alpha blending', () => 
   assert.deepEqual(composeDrawingLayers([bottom, top], [false, true]).slice(0, 2), ['#ff000080', '#d3493b'])
 })
 
-test('two layers are limited to the standalone editor', async () => {
-  const [editorSource, weeklySource, monthlySource] = await Promise.all([
+test('standalone editor extras stay out of the challenge editors', async () => {
+  const [editorSource, pixelCanvasSource, weeklySource, monthlySource] = await Promise.all([
     readFile(new URL('../src/components/DrawingEditor.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/PixelCanvas.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/components/WeeklyDraw.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/components/MonthlyDraw.tsx', import.meta.url), 'utf8'),
   ])
   assert.match(editorSource, /<details className="editor-layer-panel editor-collapsible-panel">/)
   assert.match(editorSource, /<details className="editor-palette-panel editor-collapsible-panel">/)
   assert.match(editorSource, /<summary className="editor-collapsible-summary">/)
+  assert.match(editorSource, /compactMobileToolbar/)
+  assert.match(editorSource, /showDrawModeBadge=\{false\}/)
+  assert.match(pixelCanvasSource, /className="tool-sprite-button shape-tool-toggle"/)
+  assert.match(pixelCanvasSource, /className="mobile-shape-tool-options"/)
+  assert.match(pixelCanvasSource, /className="editor-palette-actions"/)
   assert.match(editorSource, /getDisplayColor: animationMode \? undefined : displayEditorLayerColor/)
   assert.doesNotMatch(weeklySource, /editor-layer-panel|composeDrawingLayers/)
   assert.doesNotMatch(monthlySource, /editor-layer-panel|composeDrawingLayers/)

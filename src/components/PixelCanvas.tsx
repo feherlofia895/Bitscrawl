@@ -49,6 +49,7 @@ type PixelCanvasProps = {
   allowEditorTools?: boolean
   canvasSize?: DrawingSize
   clearCanvasLabel?: string
+  compactMobileToolbar?: boolean
   customPaletteActive?: boolean
   customPaletteColors?: string[]
   customPaletteOptions?: Array<{ label: string; slotIndex: number }>
@@ -74,10 +75,13 @@ type PixelCanvasProps = {
   onLoadFromGallery?: () => void
   onPaletteSizeChange?: (size: PaletteSize) => void
   onSaveToGallery?: () => void
+  onShare?: () => void
   onSubmit: (changes: PixelChange[]) => Promise<unknown>
   paletteSize: PaletteSize
   roundId: number
   serverNow: string
+  shareDisabled?: boolean
+  showDrawModeBadge?: boolean
 }
 
 type DrawingTool =
@@ -297,6 +301,7 @@ export function PixelCanvas({
   allowEditorTools = false,
   canvasSize = 32,
   clearCanvasLabel = 'Teljes vászon törlése',
+  compactMobileToolbar = false,
   customPaletteActive = false,
   customPaletteColors,
   customPaletteOptions,
@@ -316,10 +321,13 @@ export function PixelCanvas({
   onLoadFromGallery,
   onPaletteSizeChange,
   onSaveToGallery,
+  onShare,
   onSubmit,
   paletteSize,
   roundId,
   serverNow,
+  shareDisabled = false,
+  showDrawModeBadge = true,
 }: PixelCanvasProps) {
   const localDrawingRef = useRef(localDrawing)
   useEffect(() => { localDrawingRef.current = localDrawing })
@@ -366,6 +374,8 @@ export function PixelCanvas({
   const [isCustomPaletteEditing, setIsCustomPaletteEditing] = useState(false)
   const [mixedColors, setMixedColors] = useState<string[]>(() => allowColorMixer ? loadMixedColors() : [])
   const [activeTool, setActiveTool] = useState<DrawingTool>('pencil')
+  const [preferredShapeTool, setPreferredShapeTool] = useState<ShapeTool>('line')
+  const [isShapeToolMenuOpen, setIsShapeToolMenuOpen] = useState(false)
   const [brushSize, setBrushSize] = useState<BrushSize>(1)
   const [canUndo, setCanUndo] = useState(false)
   const [canRedo, setCanRedo] = useState(false)
@@ -501,6 +511,8 @@ export function PixelCanvas({
 
   const selectDrawingTool = (tool: DrawingTool) => {
     setActiveTool(tool)
+    if (isShapeTool(tool)) setPreferredShapeTool(tool)
+    setIsShapeToolMenuOpen(false)
     setIsPanMode(false)
     setIsPickingReplaceSource(false)
     if (tool !== 'select') {
@@ -1424,22 +1436,24 @@ export function PixelCanvas({
               {canDraw ? 'Pixelvászon' : 'Élő rajz'}
             </h3>
           </div>
-          <span className="draw-mode-badge">
-            {canDraw ? 'Te rajzolsz' : 'Néző mód'}
-          </span>
+          {showDrawModeBadge ? (
+            <span className="draw-mode-badge">
+              {canDraw ? 'Te rajzolsz' : 'Néző mód'}
+            </span>
+          ) : null}
         </div>
       )}
 
       {canDraw ? (
         <div className="pixel-toolbar" aria-label="Rajzeszközök">
-          <div className="tool-buttons">
+          <div className={`tool-buttons${compactMobileToolbar ? ' is-compact-mobile' : ''}`}>
             {toolButtons.filter(({ tool }) => (
               tool !== 'select' && (allowEditorTools || tool !== 'eyedropper')
             )).map(({ icon, label, spriteRow, tool }) => (
               <button
                 aria-label={label}
                 aria-pressed={activeTool === tool}
-                className={spriteRow === undefined ? 'tool-icon-button' : 'tool-sprite-button'}
+                className={`${spriteRow === undefined ? 'tool-icon-button' : 'tool-sprite-button'}${isShapeTool(tool) ? ' shape-tool-individual' : ''}`}
                 key={tool}
                 onClick={() => selectDrawingTool(tool)}
                 style={spriteRow === undefined ? undefined : toolSpriteStyle(spriteRow)}
@@ -1449,6 +1463,18 @@ export function PixelCanvas({
                 {icon ? <img alt="" aria-hidden="true" src={icon} /> : null}
               </button>
             ))}
+            {compactMobileToolbar ? (
+              <button
+                aria-expanded={isShapeToolMenuOpen}
+                aria-label={`Alakzatok: ${toolButtons.find(({ tool }) => tool === preferredShapeTool)?.label ?? 'Egyenes vonal'}`}
+                aria-pressed={isShapeTool(activeTool)}
+                className="tool-sprite-button shape-tool-toggle"
+                onClick={() => setIsShapeToolMenuOpen(current => !current)}
+                style={toolSpriteStyle(toolButtons.find(({ tool }) => tool === preferredShapeTool)?.spriteRow ?? 4)}
+                title="Alakzatok"
+                type="button"
+              />
+            ) : null}
             <button
               aria-label="Visszavonás"
               className="tool-sprite-button"
@@ -1507,6 +1533,22 @@ export function PixelCanvas({
               </button>
             ) : null}
           </div>
+          {compactMobileToolbar && isShapeToolMenuOpen ? (
+            <div aria-label="Alakzat kiválasztása" className="mobile-shape-tool-options">
+              {toolButtons.filter(({ tool }) => isShapeTool(tool)).map(({ label, spriteRow, tool }) => (
+                <button
+                  aria-label={label}
+                  aria-pressed={activeTool === tool}
+                  className="tool-sprite-button"
+                  key={tool}
+                  onClick={() => selectDrawingTool(tool)}
+                  style={toolSpriteStyle(spriteRow ?? 4)}
+                  title={label}
+                  type="button"
+                />
+              ))}
+            </div>
+          ) : null}
           {allowEditorTools && (activeTool === 'pencil' || activeTool === 'eraser')
             ? brushSizeControls()
             : null}
@@ -1533,30 +1575,75 @@ export function PixelCanvas({
               <small className="custom-palette-empty">Még nincs kikevert szín.</small>
             ) : null}
           </div>
-          {customPaletteActive && effectiveCustomColors.length > 0 ? customPaletteEditor() : null}
-          {allowColorMixer ? (
-            <div className="editor-color-mixer">
-              <div className="editor-color-mixer-bar">
-                <button
-                  aria-expanded={isColorMixerOpen}
-                  className="color-mixer-toggle"
-                  onClick={() => setIsColorMixerOpen(current => !current)}
-                  type="button"
-                >
-                  Színkeverő
-                </button>
-                <small>A mentett színek az Egyéni palettára kerülnek.</small>
-              </div>
-              {isColorMixerOpen ? (
-                <ColorMixer
-                  activeColor={activeColor}
-                  onClose={() => setIsColorMixerOpen(false)}
-                  onSave={saveMixedColor}
-                  onUse={chooseColor}
-                />
+          {compactMobileToolbar ? (
+            <>
+              {customPaletteActive && effectiveCustomColors.length > 0 || allowColorMixer ? (
+                <div className="editor-palette-actions">
+                  {customPaletteActive && effectiveCustomColors.length > 0 ? (
+                    <button
+                      aria-expanded={isCustomPaletteEditing}
+                      className="custom-palette-edit-toggle"
+                      onClick={() => setIsCustomPaletteEditing(current => !current)}
+                      type="button"
+                    >{isCustomPaletteEditing ? 'Szerkesztés bezárása' : 'Paletta szerkesztése'}</button>
+                  ) : null}
+                  {allowColorMixer ? (
+                    <button
+                      aria-expanded={isColorMixerOpen}
+                      className="color-mixer-toggle"
+                      onClick={() => setIsColorMixerOpen(current => !current)}
+                      type="button"
+                    >Színkeverő</button>
+                  ) : null}
+                </div>
               ) : null}
-            </div>
-          ) : null}
+              {customPaletteActive && effectiveCustomColors.length > 0 && isCustomPaletteEditing
+                ? customPaletteControls()
+                : null}
+              {allowColorMixer ? (
+                <>
+                  <small className="editor-color-mixer-note">A mentett színek az Egyéni palettára kerülnek.</small>
+                  {isColorMixerOpen ? (
+                    <div className="editor-color-mixer">
+                      <ColorMixer
+                        activeColor={activeColor}
+                        onClose={() => setIsColorMixerOpen(false)}
+                        onSave={saveMixedColor}
+                        onUse={chooseColor}
+                      />
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
+            </>
+          ) : (
+            <>
+              {customPaletteActive && effectiveCustomColors.length > 0 ? customPaletteEditor() : null}
+              {allowColorMixer ? (
+                <div className="editor-color-mixer">
+                  <div className="editor-color-mixer-bar">
+                    <button
+                      aria-expanded={isColorMixerOpen}
+                      className="color-mixer-toggle"
+                      onClick={() => setIsColorMixerOpen(current => !current)}
+                      type="button"
+                    >
+                      Színkeverő
+                    </button>
+                    <small>A mentett színek az Egyéni palettára kerülnek.</small>
+                  </div>
+                  {isColorMixerOpen ? (
+                    <ColorMixer
+                      activeColor={activeColor}
+                      onClose={() => setIsColorMixerOpen(false)}
+                      onSave={saveMixedColor}
+                      onUse={chooseColor}
+                    />
+                  ) : null}
+                </div>
+              ) : null}
+            </>
+          )}
         </div>
       ) : null}
 
@@ -1600,6 +1687,7 @@ export function PixelCanvas({
         </button>
         {onSaveToGallery ? <button className="canvas-gallery-button" onClick={onSaveToGallery} type="button">Mentés</button> : null}
         {onLoadFromGallery ? <button className="canvas-gallery-button" onClick={onLoadFromGallery} type="button">Betöltés</button> : null}
+        {onShare ? <button className="canvas-share-button" disabled={shareDisabled} onClick={onShare} type="button">Megosztás</button> : null}
         <button className="canvas-immersive-button" onClick={enterImmersiveMode} type="button">
           Teljes nézet
         </button>

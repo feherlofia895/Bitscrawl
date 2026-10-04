@@ -166,8 +166,15 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
   const customPaletteTouchedRef = useRef(false)
   const paletteSaveQueueRef = useRef<Promise<unknown>>(Promise.resolve())
   const shareMenuRef = useRef<HTMLDetailsElement>(null)
+  const shareScrollYRef = useRef(0)
   const galleryCloseRef = useRef<HTMLButtonElement>(null)
   const galleryPreviousFocusRef = useRef<HTMLElement | null>(null)
+
+  const closeShareMenu = () => {
+    const scrollY = shareScrollYRef.current
+    shareMenuRef.current?.removeAttribute('open')
+    window.requestAnimationFrame(() => window.scrollTo(0, scrollY))
+  }
 
   useEffect(() => {
     mountedRef.current = true
@@ -645,7 +652,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
         setStatus(`A rajzod bekerült a havi kihívásba: ${shareState.monthly.prompt}.`)
       }
       await refreshShareState()
-      shareMenuRef.current?.removeAttribute('open')
+      closeShareMenu()
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'A rajz megosztása nem sikerült.')
     } finally {
@@ -669,7 +676,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
       setStatus(result.storage === 'cloud'
         ? 'A rajzod lett az új profilképed.'
         : 'A rajzod ezen az eszközön lett a profilképed. Az online mentés most nem érhető el.')
-      shareMenuRef.current?.removeAttribute('open')
+      closeShareMenu()
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'A profilkép beállítása nem sikerült.')
     } finally {
@@ -777,7 +784,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
     const storedLocally = persist(layers, false, slot.paletteSize, 0, visibility)
     setRevision(value => value + 1)
     if (storedLocally) setStatus(`A saját galéria ${slot.slotIndex}. képe betöltve szerkesztésre.`)
-    shareMenuRef.current?.removeAttribute('open')
+    closeShareMenu()
     setGalleryAction(null)
   }
 
@@ -965,6 +972,11 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
 
   const animationGalleryAction = galleryAction?.startsWith('animation-') ?? false
   const saveGalleryAction = galleryAction?.endsWith('save') ?? false
+  const openShareMenu = () => {
+    if (exporting || sharing || !shareMenuRef.current) return
+    shareScrollYRef.current = window.scrollY
+    shareMenuRef.current.open = true
+  }
 
   return (
     <section className="standalone-editor" aria-labelledby="drawing-editor-title">
@@ -983,13 +995,12 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
         <div className="editor-actions">
           <button onClick={onBack} type="button">{text.backPlay}</button>
           <button onClick={startNewDrawing} disabled={exporting} type="button">{text.newDrawing}</button>
-          <details className="editor-share-menu" onToggle={event => {
+          <details className="editor-share-menu is-canvas-triggered" onToggle={event => {
             if (hasAdvancedAccess && event.target === event.currentTarget && event.currentTarget.open) void refreshShareState()
           }} ref={shareMenuRef}>
-            <summary aria-disabled={exporting || sharing}>
-              {!hasAdvancedAccess ? 'Kép letöltése' : animationMode ? 'Megosztás / mentés' : 'Megosztás / nevezés'}
-            </summary>
+            <summary>Megosztás</summary>
             <div className="editor-share-options">
+              <button className="editor-share-close" onClick={closeShareMenu} type="button">Bezárás</button>
               {animationMode ? (
                 <div className="editor-animation-share-options">
                   <strong>Animáció mentése</strong>
@@ -1215,6 +1226,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
         canDraw
         clearCanvasLabel={animationMode ? 'Teljes képkocka törlése' : 'Aktív réteg törlése'}
         chosenWord={null}
+        compactMobileToolbar
         drawingEndsAt={null}
         events={[]}
         customPaletteActive={hasAdvancedAccess && customPaletteActive}
@@ -1237,10 +1249,13 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
         } : undefined}
         onPaletteSizeChange={hasAdvancedAccess ? size => changePalette(size === 32 ? 32 : 12) : undefined}
         onSaveToGallery={hasAdvancedAccess && !animationMode ? () => void openGalleryAction('save') : undefined}
+        onShare={openShareMenu}
         onSubmit={async () => undefined}
         paletteSize={hasAdvancedAccess ? paletteSize : 12}
         roundId={revision}
         serverNow=""
+        shareDisabled={exporting || sharing}
+        showDrawModeBadge={false}
         localDrawing={{
           getDisplayColor: animationMode ? undefined : displayEditorLayerColor,
           initialPixels: pixelsRef.current,
