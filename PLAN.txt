@@ -74,10 +74,14 @@ ADATVÉDELEM ÉS AUTOMATIKUS ADATTÖRLÉS
   `anon`, `authenticated` és `service_role` hozzáférés tiltását, valamint a
   profil-statisztika privát/publikus függvényhatárát. A verseny-, pontozás-,
   Dicsőségfal- és adminregressziók az RLS bekapcsolása után is sikeresek.
-- [ ] Az advisor még 20 bejelentkezett felhasználó által hívható, publikus
-  `security definer` RPC-t jelez. Ezeket funkciónként kell átnézni, majd ahol lehet,
-  privát implementáció + `security invoker` publikus burkoló mintára átállítani;
-  tömeges, ellenőrzés nélküli átírás nem biztonságos.
+- [x] A korábban jelzett 20, bejelentkezett felhasználó által hívható publikus
+  `security definer` RPC funkciónként át lett nézve. A privilegizált implementációk
+  a nem exponált privát sémába kerültek, az eredeti publikus neveket és aláírásokat
+  `security invoker` burkolók tartják kompatibilisen. Az `anon` végrehajtás tiltott,
+  az `authenticated` és `service_role` jogok változatlanok, minden függvény üres
+  `search_path`-ot használ. A helyi biztonsági és játékmenet-regressziók, a lint és
+  a build sikeresek; az éles migráció után az advisor ilyen figyelmeztetése 20-ról
+  nullára csökkent.
 - [ ] A kiszivárgott jelszavak automatikus Supabase Auth-ellenőrzése csak Pro
   csomagtól érhető el, a PixelGuess projekt jelenleg Free csomagos. Csomagváltáskor
   ezt be kell kapcsolni; addig a minimum jelszóhosszt és az e-mail-megerősítést kell

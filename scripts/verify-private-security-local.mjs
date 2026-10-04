@@ -12,6 +12,28 @@ const protectedTables = [
   'monthly_score_awards',
   'weekly_score_awards',
 ]
+const authenticatedDefinerRpcs = [
+  ['advance_game', 'target_round_id bigint'],
+  ['choose_round_word', 'target_round_id bigint, selected_word text'],
+  ['create_room', 'player_name text'],
+  ['finish_expired_round', 'target_round_id bigint'],
+  ['get_global_lobby_messages', ''],
+  ['get_online_profiles', ''],
+  ['get_own_profile_note', 'target_profile_name text'],
+  ['get_round_view', 'target_room_id bigint'],
+  ['join_room', 'room_code text, player_name text'],
+  ['leave_room', 'target_room_id bigint'],
+  ['restart_game', 'target_room_id bigint'],
+  ['resume_room', 'room_code text'],
+  ['send_global_lobby_message', 'requested_content text'],
+  ['send_room_message', 'target_room_id bigint, message_content text'],
+  ['set_room_test_mode', 'target_room_id bigint, test_mode_enabled boolean'],
+  ['start_game', 'target_room_id bigint'],
+  ['submit_guess', 'target_round_id bigint, submitted_guess text'],
+  ['submit_pixel_changes', 'target_round_id bigint, pixel_changes jsonb'],
+  ['touch_global_lobby_presence', ''],
+  ['touch_room_presence', 'target_room_id bigint'],
+]
 
 async function asRole(role, sql, params = []) {
   await db.exec(`set role ${role}`)
@@ -110,4 +132,68 @@ test('public profile stats use an invoker wrapper around a private definer', asy
       /PROFILE_NOT_FOUND/,
     )
   }
+})
+
+test('authenticated gameplay RPCs use invoker wrappers around private definers', async () => {
+  const functionNames = [...new Set(authenticatedDefinerRpcs.map(([name]) => name))]
+  const rows = (await db.query(`
+    select
+      n.nspname as schema_name,
+      p.proname as function_name,
+      pg_catalog.pg_get_function_identity_arguments(p.oid) as identity_arguments,
+      p.prosecdef as security_definer,
+      p.proconfig as config,
+      pg_catalog.has_function_privilege('anon', p.oid, 'execute') as anon_execute,
+      pg_catalog.has_function_privilege('authenticated', p.oid, 'execute')
+        as authenticated_execute,
+      pg_catalog.has_function_privilege('service_role', p.oid, 'execute')
+        as service_role_execute
+    from pg_catalog.pg_proc p
+    join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+    where n.nspname in ('private', 'public')
+      and p.proname = any($1::text[])
+  `, [functionNames])).rows
+
+  for (const [functionName, identityArguments] of authenticatedDefinerRpcs) {
+    const matchingRows = rows.filter((row) =>
+      row.function_name === functionName
+      && row.identity_arguments === identityArguments)
+
+    assert.deepEqual(
+      matchingRows.map((row) => [row.schema_name, row.security_definer]).sort(),
+      [['private', true], ['public', false]],
+      `${functionName}(${identityArguments}) does not have the expected private/public pair`,
+    )
+
+    for (const row of matchingRows) {
+      assert.ok(
+        row.config?.includes('search_path=""'),
+        `${row.schema_name}.${functionName} does not have an empty search_path`,
+      )
+      assert.equal(row.anon_execute, false, `${row.schema_name}.${functionName} is callable by anon`)
+      assert.equal(
+        row.authenticated_execute,
+        true,
+        `${row.schema_name}.${functionName} is not callable by authenticated`,
+      )
+      assert.equal(
+        row.service_role_execute,
+        true,
+        `${row.schema_name}.${functionName} is not callable by service_role`,
+      )
+    }
+  }
+})
+
+test('no public security definer remains callable by authenticated users', async () => {
+  const [{ function_count: functionCount }] = (await db.query(`
+    select count(*)::integer as function_count
+    from pg_catalog.pg_proc p
+    join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.prosecdef
+      and pg_catalog.has_function_privilege('authenticated', p.oid, 'execute')
+  `)).rows
+
+  assert.equal(functionCount, 0)
 })
