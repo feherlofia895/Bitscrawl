@@ -1,6 +1,6 @@
 # Bitscrawl – aktuális átadó
 
-Frissítve: 2026. október 3.
+Frissítve: 2026. október 4.
 
 Ez az egyetlen aktuális átadó dokumentum. Új beszélgetésben először ezt a fájlt,
 utána a `PLAN.txt` elejét és a `README.md` fájlt olvasd el. A korábbi package-,
@@ -10,10 +10,12 @@ audit-, ZIP- és patch-alapú átadók elavultak és eltávolításra kerültek.
 
 - Projekt: `C:\Users\23hun\Documents\Codex\2026-09-22\olvasd-el-teljesen-a-bitscrawl-atadas\work\package-10-live-extras`
 - GitHub: `https://github.com/feherlofia895/Bitscrawl.git`
-- Aktív ág: `agent/12-color-palette-logo`
-- Utolsó éles funkcionális commit: `364c377` (`Add admin lobby chat moderation`)
+- Aktív ág: `feature/pwa-update-notice`
+- Utolsó éles funkcionális commit: `62392fd` (`Restrict guest editor and social features`)
+- GitHub `main` merge commit: `a78bb76` (PR #25)
 - Éles oldal: `https://bitscrawl.pages.dev/`
-- Ellenőrzött kiadás: `https://bitscrawl.pages.dev/?deploy=364c377`
+- Ellenőrzött kiadás: `https://bitscrawl.pages.dev/?deploy=62392fd`
+- Éles buildazonosító: `62392fd514e4-20261004T055020Z`
 - Cloudflare Pages projekt: `bitscrawl`, production ág: `main`
 
 Munkakezdéskor mindig futtasd:
@@ -24,7 +26,7 @@ git log -5 --oneline
 ```
 
 Ne dolgozz másik `package-*` mappából. A pontos dokumentációs HEAD változhat, ezért
-a fenti parancsok eredménye az irányadó; a `364c377` az utolsó ellenőrzött és éles
+a fenti parancsok eredménye az irányadó; a `62392fd` az utolsó ellenőrzött és éles
 funkcionális kiadás.
 
 ## Technikai alap
@@ -58,11 +60,30 @@ Titkot vagy `service_role` kulcsot soha ne tegyél kliensoldali fájlba, commitb
   rendezhetők, a színeik mozgathatók és törölhetők.
 - A Szerkesztő animációs módja legfeljebb három képkockát, hagymahéjat, 1–8 kép/mp
   előnézetet, GIF-exportot és profilonként két privát animációmentést kezel.
+- Bejelentkezés nélkül a Szerkesztő a 12 alapszínt, a statikus rajzolást és a
+  PNG-letöltést engedi. A bővített és egyéni paletta, a színkeverő, a pipetta,
+  a galériaműveletek és az animáció csak mentett, bejelentkezett profillal érhetők el.
+- A kijelentkezett vendég nem lát kommenteket vagy kedvelési adatokat; a kliens
+  kommenttartalmat és profil-lájkadatot sem kér le neki. A Rajzfal eleve csak
+  bejelentkezett profillal látható.
 - A fontos mobilfelületek 320–390 px szélességre igazítva lettek. A fizikai iPhone-
   próba, a telepítés, az indítás és az egyedi ikon ellenőrzése sikeres.
 - Az éles heti kihívás Boszorkány, a havi kihívás Halloween és 128×128 pixeles.
 
-## Legutóbbi változás: előszoba-admin
+## Legutóbbi változás: vendég Szerkesztő és közösségi adatok
+
+- A Szerkesztő a fő alkalmazás profilállapotából kapja a haladó hozzáférést.
+- Vendégként mindig a 12 színű alappal indul; a korábban megnyitott animációs mód
+  kijelentkezéskor állóképre, a paletta pedig az alapváltozatra áll vissza.
+- A vendégfelület külön, mobilbarát belépési felhívást mutat. A PNG-export megmarad,
+  de az animáció, a pipetta, a színkeverő, az egyéni/bővített paletta és a saját
+  galéria vezérlői nem használhatók.
+- Kijelentkezve a kommentkomponens nem jelenik meg és nem indít kommentlekérést.
+  A profilablak sem kér le vagy mutat kedvelési adatokat.
+- GitHub: PR #25, merge commit `a78bb76`. Cloudflare production build:
+  `62392fd514e4-20261004T055020Z`.
+
+## Korábbi változás: előszoba-admin
 
 - A `martinteteme` profil a szerveroldali `private.app_admins` lista tagja.
 - Az admin minden előszobaüzenet mellett külön Törlés gombot lát.
@@ -187,13 +208,13 @@ Dokumentációs-only változást nem kell Cloudflare-re kiadni.
 
 ## Utolsó ellenőrzési eredmény
 
-- 21 helyi, `.env.local` nélküli tesztparancs
-- összesen 206 sikeres ellenőrzés, hiba és kihagyás nélkül
+- A vendég-hozzáféréshez kapcsolódó 6 tesztparancs összesen 67 sikeres ellenőrzéssel,
+  hiba és kihagyás nélkül lefutott.
 - TypeScript/Vite production build sikeres
 - OXLint sikeres
 - `git diff --check` sikeres
-- az előszoba-admin RPC éles jogosultságai ellenőrzöttek
-- az éles adminfelület és a törlési megerősítés ellenőrzött
+- a publikus oldal HTTP 200 választ adott, és ugyanazt a
+  `62392fd514e4-20261004T055020Z` buildazonosítót szolgálta ki, mint a deployment
 
 A Vite továbbra is jelzi, hogy a production JavaScript körülbelül 664 kB
 tömörítés előtt. Ez nem kiadást blokkoló hiba, de később érdemes a nagy nézeteket
@@ -201,7 +222,7 @@ dinamikusan betölteni.
 
 ## Még nyitott ellenőrzések
 
-- Telepített PWA valós A → B frissítési próbája iPhone-on az éles `bf1f8e1` buildre.
+- Telepített PWA valós A → B frissítési próbája iPhone-on az éles `62392fd` buildre.
 - Android Chrome és asztali Chrome/Edge PWA-telepítés/frissítés.
 - Fizikai telefonos billentyűzet- és hálózatkimaradási esetek.
 - Két réteg visszafelé kompatibilis mentési formátuma és adatbázis-migrációja.
@@ -212,8 +233,9 @@ dinamikusan betölteni.
 
 1. Git-állapot és éles commit ellenőrzése.
 2. `ATADAS.md`, a `PLAN.txt` eleje és `README.md` elolvasása.
-3. A kis PWA-frissítési jelzés/buildazonosító megvalósítása és fizikai telefonos
-   A → B próba, ha a felhasználó ezt kéri elsőnek.
+3. Az összes játékmód szóbankjának rajzolhatósági auditja, majd kanonikus
+   megfejtések és ellenőrzött szinonimák kialakítása; a `cica`/`macska` példa
+   elfogadási feltételként szerepel a `PLAN.txt` elején.
 4. A két réteg adatmodelljének megtervezése a meglévő `PixelCanvas`,
    `DrawingEditor`, `WeeklyDraw`, `MonthlyDraw`, vázlatok és mentési RPC-k alapján.
 5. Kompatibilitási tesztek, majd a statikus Szerkesztő két réteges prototípusa.
