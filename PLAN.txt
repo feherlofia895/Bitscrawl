@@ -60,31 +60,28 @@ KÖVETKEZŐ KIS PWA-FEJLESZTÉS – LÁTHATÓ VERZIÓFRISSÍTÉS
   a telepített PWA jelzi és a gombbal betölti az új verziót. Utána Android Chrome és
   asztali Chrome/Edge telepített módban is fusson le ugyanaz a próba.
 
-KÖVETKEZŐ KIEMELT FEJLESZTÉS – KÉT RÉTEG
+KIEMELT FEJLESZTÉS – KÉT RÉTEG A SZERKESZTŐBEN
 
-- [ ] A Szerkesztőben, a heti kihívásban és a havi kihívásban legyen két külön
-  rajzréteg. A funkció első változatának célja nem korlátlan rétegszám, hanem egy
-  egyszerű, telefonon is kényelmes, pontosan két réteges munkafolyamat.
-- [ ] A felhasználó választhassa ki az aktív réteget, kapcsolhassa annak láthatóságát,
-  és külön törölhesse a réteg tartalmát. Az aktív réteg legyen egyértelműen jelölve.
-- [ ] A ceruza, radír, kitöltés, vonal, téglalap, ellipszis, színcsere, kijelölés,
-  forgatás és tükrözés csak az aktív réteget módosítsa; a pipetta az összerakott,
-  látható képből vehessen mintát.
-- [ ] A két réteg sorrendje az első verzióban rögzített lehet (alsó és felső), hogy a
-  mobilos kezelőfelület és a mentési modell egyszerű maradjon. Rétegek tetszőleges
-  átrendezése és kettőnél több réteg későbbi bővítés.
-- [ ] A meglévő egyrétegű rajzok veszteség nélkül nyíljanak meg az alsó rétegen,
-  üres felső réteggel. Galériába küldéskor, profilképnél, PNG/GIF exportnál és minden
-  régi megjelenítőnél a két réteg lapított kompozitja maradjon a kompatibilis kimenet.
-- [ ] A heti és havi kihívások automatikus mentése mindkét réteget őrizze meg, hogy a
-  beküldési határidőig másik eszközön is folytatható legyen a szerkesztés. Ehhez
-  verziózott, szerveroldalon validált rétegadat és migráció szükséges; a végleges
-  nevezés továbbra is a lapított képet használja a galériában és a szavazásban.
-- [ ] Az első két réteges változat a statikus Szerkesztőre és a heti/havi kihívásra
-  készüljön el. A háromképkockás animáció és a multiplayer-vászon rétegesítése külön,
-  későbbi feladat legyen, mert azok eltérő mentési és hálózati modellt igényelnek.
-- [ ] Legyen automatizált kompatibilitási teszt régi egyrétegű mentésre, két réteg
-  mentésére-visszatöltésére, kompozitálásra, kihívás-vázlatra és mobilos vezérlésre.
+- [x] A két réteg első változata kizárólag a statikus Szerkesztőben készült el.
+  A heti/havi kihívás, a háromképkockás animáció és a multiplayer-vászon továbbra
+  is egyrétegű; ezek rétegesítése nem része a jelenlegi feladatnak.
+- [x] A Szerkesztő pontosan két, rögzített sorrendű réteget használ: alsót és felsőt.
+  Az aktív réteg kiválasztható, mindkét réteg külön elrejthető és megjeleníthető,
+  az aktív réteg pedig a vászon Törlés eszközével külön, visszavonhatóan üríthető.
+- [x] A ceruza, radír, kitöltés, vonal, téglalap, ellipszis, színcsere, kijelölés,
+  forgatás és tükrözés csak az aktív réteget módosítja. A pipetta az összerakott,
+  látható képből vesz mintát.
+- [x] A meglévő egyrétegű helyi rajzok veszteség nélkül az alsó rétegen nyílnak meg,
+  üres felső réteggel. Az új helyi formátum verziózott, és mindkét réteget, az aktív
+  réteget, valamint a láthatóságokat is megőrzi.
+- [x] A PNG-export, a Rajzfal, a heti/havi nevezés, a profilkép és a saját galéria
+  továbbra is egy kompatibilis, lapított képet kap. A szerveres táblákhoz és RPC-khez
+  ezért ebben a változatban nem kellett adatbázis-migráció.
+- [x] Automatizált próba védi a régi mentés átalakítását, a két réteg
+  mentését-visszatöltését, a rögzített rétegsorrendet, az alfa-kompozitálást,
+  a láthatóságot és azt, hogy a funkció ne kerüljön be a heti/havi szerkesztőbe.
+- [ ] Fizikai telefonon még ellenőrizni kell a rétegváltást, elrejtést, rajzolást,
+  visszavonást és PNG-letöltést álló és fekvő nézetben az élesítés előtt.
 
 KÖVETKEZŐ HOZZÁFÉRÉSI FELADAT – VENDÉG SZERKESZTŐ
 

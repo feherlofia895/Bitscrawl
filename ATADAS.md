@@ -10,12 +10,12 @@ audit-, ZIP- és patch-alapú átadók elavultak és eltávolításra kerültek.
 
 - Projekt: `C:\Users\23hun\Documents\Codex\2026-09-22\olvasd-el-teljesen-a-bitscrawl-atadas\work\package-10-live-extras`
 - GitHub: `https://github.com/feherlofia895/Bitscrawl.git`
-- Aktív ág: `feature/pwa-update-notice`
-- Utolsó éles funkcionális commit: `62392fd` (`Restrict guest editor and social features`)
-- GitHub `main` merge commit: `a78bb76` (PR #25)
+- Aktív ág: `feature/editor-two-layers`
+- Utolsó éles funkcionális commit: `286b0ae` (`Audit word bank and add synonyms`)
+- GitHub `main` legutóbbi merge commit: `7c180ef` (PR #28)
 - Éles oldal: `https://bitscrawl.pages.dev/`
-- Ellenőrzött kiadás: `https://bitscrawl.pages.dev/?deploy=62392fd`
-- Éles buildazonosító: `62392fd514e4-20261004T055020Z`
+- Ellenőrzött kiadás: `https://bitscrawl.pages.dev/?deploy=286b0ae`
+- Éles buildazonosító: `dad46bec968e-20261004T062346Z`
 - Cloudflare Pages projekt: `bitscrawl`, production ág: `main`
 
 Munkakezdéskor mindig futtasd:
@@ -26,7 +26,7 @@ git log -5 --oneline
 ```
 
 Ne dolgozz másik `package-*` mappából. A pontos dokumentációs HEAD változhat, ezért
-a fenti parancsok eredménye az irányadó; a `62392fd` az utolsó ellenőrzött és éles
+a fenti parancsok eredménye az irányadó; a `286b0ae` az utolsó ellenőrzött és éles
 funkcionális kiadás.
 
 ## Technikai alap
@@ -124,27 +124,26 @@ Titkot vagy `service_role` kulcsot soha ne tegyél kliensoldali fájlba, commitb
   kiadással kell iPhone-on, majd Android Chrome-on és asztali Chrome/Edge alatt
   ellenőrizni. A részletes feladatok a `PLAN.txt` elején vannak.
 
-## Következő kiemelt fejlesztés: pontosan két réteg
+## Legutóbbi fejlesztés: két réteg a statikus Szerkesztőben
 
-A felhasználó első változatként két layert szeretne a Szerkesztőben, a heti
-kihívásban és a havi kihívásban is.
+A felhasználó a jelenlegi változat határát a sima Szerkesztőre szűkítette. A
+heti/havi kihívás, az animáció és a multiplayer-vászon nem kapott rétegeket.
 
-Javasolt v1-határ:
-
-1. Két rögzített sorrendű réteg: alsó és felső.
-2. Aktív réteg választása, láthatóság kapcsolása és az aktív réteg külön törlése.
+1. Két rögzített sorrendű réteg van: alsó és felső.
+2. Az aktív réteg választható, a láthatóság rétegenként kapcsolható, a vászon
+   Törlés eszköze pedig csak az aktív réteget üríti és visszavonható marad.
 3. Minden módosító eszköz csak az aktív rétegen dolgozik; a pipetta a látható,
    összerakott képből olvas.
-4. A régi egyrétegű mentés az alsó rétegre töltődik, a felső üres marad.
-5. A szerkeszthető rétegek verziózott adatként mentődnek; galériához, nevezéshez,
-   profilképhez, PNG- és GIF-exporthoz lapított kompozit készül.
-6. A heti és havi felhővázlat mindkét réteget megőrzi, szerveroldali méret-, szín-
-   és tulajdonos-ellenőrzéssel.
-7. Mobilon a rétegváltó kompakt és becsukható legyen.
-8. A háromképkockás animáció és a multiplayer rétegei ne kerüljenek a v1-be.
+4. A régi egyrétegű helyi mentés az alsó rétegre töltődik, a felső üres marad.
+5. A verziózott helyi v2 formátum mindkét réteget, az aktív réteget és a
+   láthatóságokat megőrzi.
+6. A Rajzfal, a heti/havi nevezés, a profilkép, a saját galéria és a PNG-export
+   lapított képet kap, ezért adatbázis-migráció nem készült.
+7. Automatizált kompatibilitási és komponenspróbák készültek; a helyi asztali
+   böngészős felület működik. Fizikai telefonos próba még szükséges.
 
-A részletes elfogadási feltételek a `PLAN.txt` elején, a
-„KÖVETKEZŐ KIEMELT FEJLESZTÉS – KÉT RÉTEG” részben találhatók.
+A részletes elfogadási állapot a `PLAN.txt` elején, a
+„KIEMELT FEJLESZTÉS – KÉT RÉTEG A SZERKESZTŐBEN” részben található.
 
 ## Adatbázis és biztonság
 
@@ -208,24 +207,27 @@ Dokumentációs-only változást nem kell Cloudflare-re kiadni.
 
 ## Utolsó ellenőrzési eredmény
 
-- A vendég-hozzáféréshez kapcsolódó 6 tesztparancs összesen 67 sikeres ellenőrzéssel,
-  hiba és kihagyás nélkül lefutott.
+- A két réteghez és az érintett Szerkesztő-, galéria-, animáció-, kihívás-,
+  rajzbiztonsági, színkeverő- és szóbankfolyamatokhoz kapcsolódó tesztek összesen
+  96 sikeres ellenőrzéssel, hiba és kihagyás nélkül lefutottak.
 - TypeScript/Vite production build sikeres
 - OXLint sikeres
 - `git diff --check` sikeres
-- a publikus oldal HTTP 200 választ adott, és ugyanazt a
-  `62392fd514e4-20261004T055020Z` buildazonosítót szolgálta ki, mint a deployment
+- A rétegpanel helyi böngészőben asztali, 390×844 és 320×700 nézetben kilógás
+  nélkül működik. A változat még nincs élesítve.
+- A jelenlegi publikus kiadás buildazonosítója továbbra is
+  `dad46bec968e-20261004T062346Z`.
 
-A Vite továbbra is jelzi, hogy a production JavaScript körülbelül 664 kB
+A Vite továbbra is jelzi, hogy a production JavaScript körülbelül 671 kB
 tömörítés előtt. Ez nem kiadást blokkoló hiba, de később érdemes a nagy nézeteket
 dinamikusan betölteni.
 
 ## Még nyitott ellenőrzések
 
-- Telepített PWA valós A → B frissítési próbája iPhone-on az éles `62392fd` buildre.
+- Telepített PWA valós A → B frissítési próbája iPhone-on az aktuális éles buildről.
 - Android Chrome és asztali Chrome/Edge PWA-telepítés/frissítés.
 - Fizikai telefonos billentyűzet- és hálózatkimaradási esetek.
-- Két réteg visszafelé kompatibilis mentési formátuma és adatbázis-migrációja.
+- A Szerkesztő két rétegének fizikai telefonos kezelési és PNG-export próbája.
 - A régi security-advisor figyelmeztetések egyenkénti biztonsági felülvizsgálata.
 - Production JavaScript kódszétválasztása.
 
@@ -233,11 +235,7 @@ dinamikusan betölteni.
 
 1. Git-állapot és éles commit ellenőrzése.
 2. `ATADAS.md`, a `PLAN.txt` eleje és `README.md` elolvasása.
-3. Az összes játékmód szóbankjának rajzolhatósági auditja, majd kanonikus
-   megfejtések és ellenőrzött szinonimák kialakítása; a `cica`/`macska` példa
-   elfogadási feltételként szerepel a `PLAN.txt` elején.
-4. A két réteg adatmodelljének megtervezése a meglévő `PixelCanvas`,
-   `DrawingEditor`, `WeeklyDraw`, `MonthlyDraw`, vázlatok és mentési RPC-k alapján.
-5. Kompatibilitási tesztek, majd a statikus Szerkesztő két réteges prototípusa.
-6. Mobilos próba után heti, majd havi kihívás bekötése.
-7. A felhasználó tesztje és külön jóváhagyása előtt a réteges változatot ne élesítsd.
+3. A Szerkesztő két rétegét fizikai telefonon ellenőrizni álló és fekvő nézetben.
+4. A PWA A → B frissítési próbáját iPhone-on, majd Androidon és asztali telepített
+   módban lefuttatni.
+5. A felhasználó tesztje és külön jóváhagyása előtt a réteges változatot ne élesítsd.

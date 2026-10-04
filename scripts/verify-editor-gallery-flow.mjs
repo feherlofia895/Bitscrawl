@@ -140,8 +140,53 @@ test('gallery load restores pixels and palette without sharing the saved array',
   assert.equal(canvas.paletteSize, 32)
   assert.deepEqual(canvas.localDrawing.initialPixels, stored.pixels)
   assert.notEqual(canvas.localDrawing.initialPixels, stored.pixels)
-  assert.equal(JSON.parse(app.storage.get('bitscrawl-editor-v1')).exported, false)
+  const draft = JSON.parse(app.storage.get('bitscrawl-editor-v1'))
+  assert.equal(draft.exported, false)
+  assert.equal(draft.version, 2)
+  assert.equal(draft.activeLayer, 0)
+  assert.deepEqual(draft.layers, [stored.pixels, drawing.emptyDrawing()])
   assert.equal(app.dialog(), undefined)
+})
+
+test('layer switching edits only the active editor layer and visibility changes the composite', async () => {
+  const bottom = colored(palette.basePalette[0].hex)
+  const top = colored(palette.basePalette[1].hex)
+  const app = await editor({ initial: bottom })
+  const upperButton = nodes(app.render(), 'button').find(button => text(button).startsWith('Felső réteg'))
+  assert.ok(upperButton)
+  upperButton.props.onClick()
+  assert.deepEqual(app.canvas().localDrawing.initialPixels, drawing.emptyDrawing())
+  app.canvas().localDrawing.onChange(top)
+
+  let draft = JSON.parse(app.storage.get('bitscrawl-editor-v1'))
+  assert.deepEqual(draft.layers, [bottom, top])
+  assert.equal(draft.activeLayer, 1)
+  assert.equal(app.canvas().localDrawing.getDisplayColor(top[37], 37), top[37])
+
+  const hideUpper = nodes(app.render(), 'button').find(button =>
+    button.props['aria-label'] === 'Felső réteg elrejtése')
+  assert.ok(hideUpper)
+  hideUpper.props.onClick()
+  draft = JSON.parse(app.storage.get('bitscrawl-editor-v1'))
+  assert.deepEqual(draft.layerVisibility, [true, false])
+  assert.equal(app.canvas().localDrawing.getDisplayColor(top[37], 37), bottom[37])
+})
+
+test('hidden layer content still requires confirmation before starting a new drawing', async () => {
+  const app = await editor()
+  const upperButton = nodes(app.render(), 'button').find(button => text(button).startsWith('Felső réteg'))
+  assert.ok(upperButton)
+  upperButton.props.onClick()
+  app.canvas().localDrawing.onChange(colored())
+  const hideUpper = nodes(app.render(), 'button').find(button =>
+    button.props['aria-label'] === 'Felső réteg elrejtése')
+  assert.ok(hideUpper)
+  hideUpper.props.onClick()
+
+  const newDrawing = nodes(app.render(), 'button').find(button => text(button) === editorText.newDrawing)
+  assert.ok(newDrawing)
+  newDrawing.props.onClick()
+  assert.equal(nodes(app.render(), 'ConfirmModal').length, 1)
 })
 
 test('loading over a nonempty drawing requires confirmation and supports cancellation', async () => {

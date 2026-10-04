@@ -4,7 +4,16 @@ import { EditorAnimationControls } from './EditorAnimationControls'
 import { EditorAnimationThumbnail } from './EditorAnimationThumbnail'
 import { ConfirmModal } from './ConfirmModal'
 import { WeeklyArtwork } from './WeeklyArtwork'
-import { emptyDrawing, parseDrawingDraft, rasterizeDrawing } from '../lib/drawing'
+import {
+  composeDrawingLayers,
+  compositeDrawingPixel,
+  emptyDrawing,
+  parseDrawingDraft,
+  rasterizeDrawing,
+  type EditorDrawingLayers,
+  type EditorLayerIndex,
+  type EditorLayerVisibility,
+} from '../lib/drawing'
 import { editorText as text } from '../lib/editorText'
 import type { EditorPaletteSize } from '../lib/palette'
 import { editorPalette32 } from '../lib/palette'
@@ -89,7 +98,17 @@ function readDrawing() {
   try {
     return { ...parseDrawingDraft(localStorage.getItem(STORAGE_KEY)), storageAvailable: true }
   } catch { /* An unavailable or old draft must not prevent drawing. */ }
-  return { pixels: emptyDrawing(), exported: true, paletteSize: 12 as const, storageAvailable: false }
+  const layers: EditorDrawingLayers = [emptyDrawing(), emptyDrawing()]
+  return {
+    activeLayer: 0 as const,
+    pixels: emptyDrawing(),
+    layers,
+    layerVisibility: [true, true] as EditorLayerVisibility,
+    exported: true,
+    paletteSize: 12 as const,
+    storageAvailable: false,
+    version: 2 as const,
+  }
 }
 
 export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpenProfile, onStorageChange }: {
@@ -101,12 +120,17 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
 }) {
   const [initial] = useState(readDrawing)
   const [initialAnimation] = useState(() => loadEditorAnimation(initial.pixels))
+  const editorLayersRef = useRef<EditorDrawingLayers>(initial.layers)
+  const activeLayerRef = useRef<EditorLayerIndex>(initial.activeLayer)
+  const layerVisibilityRef = useRef<EditorLayerVisibility>(initial.layerVisibility)
   const staticPixelsRef = useRef(initial.pixels)
-  const pixelsRef = useRef(initial.pixels)
+  const pixelsRef = useRef(initial.layers[initial.activeLayer])
   const animationFramesRef = useRef(initialAnimation.frames)
   const activeAnimationFrameRef = useRef(initialAnimation.activeFrameIndex)
   const animationFlushRef = useRef<() => void>(() => undefined)
   const [revision, setRevision] = useState(0)
+  const [activeLayer, setActiveLayer] = useState<EditorLayerIndex>(initial.activeLayer)
+  const [layerVisibility, setLayerVisibility] = useState<EditorLayerVisibility>(initial.layerVisibility)
   const [scale, setScale] = useState(1)
   const [paletteSize, setPaletteSize] = useState<EditorPaletteSize>(hasAdvancedAccess ? initial.paletteSize : 12)
   const [customPaletteActive, setCustomPaletteActive] = useState(hasAdvancedAccess)
@@ -184,9 +208,22 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [confirmation, galleryAction])
 
-  const persist = useCallback((pixels: string[], exported: boolean, selectedPalette = paletteSize) => {
+  const persist = useCallback((
+    layers: EditorDrawingLayers,
+    exported: boolean,
+    selectedPalette = paletteSize,
+    selectedActiveLayer = activeLayerRef.current,
+    selectedVisibility = layerVisibilityRef.current,
+  ) => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ pixels, exported, paletteSize: selectedPalette }))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        activeLayer: selectedActiveLayer,
+        exported,
+        layers,
+        layerVisibility: selectedVisibility,
+        paletteSize: selectedPalette,
+        version: 2,
+      }))
       onStorageChange(true)
       return true
     } catch {
@@ -216,8 +253,8 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
 
   const handleChange = useCallback((pixels: string[]) => {
     pixelsRef.current = pixels
-    setServerPaletteReady(pixels.every(color => serverColors.has(color)))
     if (animationMode) {
+      setServerPaletteReady(pixels.every(color => serverColors.has(color)))
       const frames = replaceAnimationFrame(
         animationFramesRef.current,
         activeAnimationFrameRef.current,
@@ -230,9 +267,14 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
       if (stored) setStatus('Az animáció ezen az eszközön mentve.')
       return
     }
-    staticPixelsRef.current = pixels
+    const layers = editorLayersRef.current.map((layer, index) => (
+      index === activeLayerRef.current ? [...pixels] : layer
+    )) as EditorDrawingLayers
+    editorLayersRef.current = layers
+    staticPixelsRef.current = composeDrawingLayers(layers, layerVisibilityRef.current)
+    setServerPaletteReady(staticPixelsRef.current.every(color => serverColors.has(color)))
     setDirty(true)
-    if (persist(pixels, false)) setStatus(text.local)
+    if (persist(layers, false)) setStatus(text.local)
   }, [animationMode, persist, persistAnimationDraft])
 
   useEffect(() => { onDirtyChange(dirty || animationDirty) }, [animationDirty, dirty, onDirtyChange])
@@ -269,8 +311,12 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
     setAnimationMode(useAnimation)
     pixelsRef.current = useAnimation
       ? [...animationFramesRef.current[activeAnimationFrameRef.current]]
-      : [...staticPixelsRef.current]
-    setServerPaletteReady(pixelsRef.current.every(color => serverColors.has(color)))
+      : [...editorLayersRef.current[activeLayerRef.current]]
+    const outputPixels = useAnimation
+      ? pixelsRef.current
+      : composeDrawingLayers(editorLayersRef.current, layerVisibilityRef.current)
+    staticPixelsRef.current = useAnimation ? staticPixelsRef.current : outputPixels
+    setServerPaletteReady(outputPixels.every(color => serverColors.has(color)))
     setRevision(value => value + 1)
   }
 
@@ -281,11 +327,51 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
     if (!animationMode) return
     animationFlushRef.current()
     setAnimationMode(false)
-    pixelsRef.current = [...staticPixelsRef.current]
-    setServerPaletteReady(pixelsRef.current.every(color => serverColors.has(color)))
+    pixelsRef.current = [...editorLayersRef.current[activeLayerRef.current]]
+    staticPixelsRef.current = composeDrawingLayers(editorLayersRef.current, layerVisibilityRef.current)
+    setServerPaletteReady(staticPixelsRef.current.every(color => serverColors.has(color)))
     setStatus('A vendég módban az állókép-szerkesztő használható.')
     setRevision(value => value + 1)
   }, [animationMode, hasAdvancedAccess])
+
+  const selectEditorLayer = (nextLayer: EditorLayerIndex) => {
+    if (animationMode || nextLayer === activeLayerRef.current) return
+    animationFlushRef.current()
+    activeLayerRef.current = nextLayer
+    setActiveLayer(nextLayer)
+    pixelsRef.current = [...editorLayersRef.current[nextLayer]]
+    if (persist(editorLayersRef.current, !dirty, paletteSize, nextLayer)) setStatus(text.local)
+    setRevision(value => value + 1)
+  }
+
+  const toggleEditorLayerVisibility = (layer: EditorLayerIndex) => {
+    if (animationMode) return
+    animationFlushRef.current()
+    const visibility: EditorLayerVisibility = [...layerVisibilityRef.current]
+    visibility[layer] = !visibility[layer]
+    layerVisibilityRef.current = visibility
+    setLayerVisibility(visibility)
+    staticPixelsRef.current = composeDrawingLayers(editorLayersRef.current, visibility)
+    setServerPaletteReady(staticPixelsRef.current.every(color => serverColors.has(color)))
+    setDirty(true)
+    if (persist(editorLayersRef.current, false, paletteSize, activeLayerRef.current, visibility)) {
+      setStatus(text.local)
+    }
+    setRevision(value => value + 1)
+  }
+
+  const displayEditorLayerColor = useCallback((activeColor: string, index: number) => {
+    const visibility = layerVisibilityRef.current
+    const currentLayer = activeLayerRef.current
+    const bottom = currentLayer === 0 ? activeColor : editorLayersRef.current[0][index]
+    const top = currentLayer === 1 ? activeColor : editorLayersRef.current[1][index]
+    if (!visibility[0]) return visibility[1] ? top : 'transparent'
+    if (!visibility[1]) return bottom
+    return compositeDrawingPixel(bottom, top)
+  }, [])
+
+  const editorHasAnyLayerContent = () => editorLayersRef.current.some(layer =>
+    layer.some(color => color !== 'transparent'))
 
   const updateAnimationSettings = (nextFps: number, nextOnionSkin: boolean) => {
     setAnimationFps(nextFps)
@@ -323,12 +409,18 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
   }
 
   const resetDrawing = () => {
-    const pixels = emptyDrawing()
-    staticPixelsRef.current = pixels
-    pixelsRef.current = pixels
+    const layers: EditorDrawingLayers = [emptyDrawing(), emptyDrawing()]
+    const visibility: EditorLayerVisibility = [true, true]
+    editorLayersRef.current = layers
+    activeLayerRef.current = 0
+    layerVisibilityRef.current = visibility
+    setActiveLayer(0)
+    setLayerVisibility(visibility)
+    staticPixelsRef.current = emptyDrawing()
+    pixelsRef.current = layers[0]
     setServerPaletteReady(true)
     setDirty(false)
-    if (persist(pixelsRef.current, true)) setStatus(text.local)
+    if (persist(layers, true, paletteSize, 0, visibility)) setStatus(text.local)
     setRevision(value => value + 1)
   }
 
@@ -357,7 +449,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
       } else resetAnimation()
       return
     }
-    if (pixelsRef.current.some(color => color !== 'transparent')) {
+    if (editorHasAnyLayerContent()) {
       setConfirmation({ title: text.newDrawingTitle, message: text.replace, label: text.newDrawing, action: resetDrawing })
     } else resetDrawing()
   }
@@ -366,7 +458,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
     if (!hasAdvancedAccess && nextPalette !== 12) return
     setCustomPaletteActive(false)
     setPaletteSize(nextPalette)
-    if (persist(staticPixelsRef.current, !dirty, nextPalette)) setStatus(text.local)
+    if (persist(editorLayersRef.current, !dirty, nextPalette)) setStatus(text.local)
   }
 
   const activeCustomPalette = customPalettes[activePaletteSlot - 1]
@@ -530,7 +622,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
   }, [])
 
   const shareDrawing = async (target: 'feed' | 'weekly' | 'monthly') => {
-    const snapshot = [...pixelsRef.current]
+    const snapshot = composeDrawingLayers(editorLayersRef.current, layerVisibilityRef.current)
     if (!snapshot.some(color => color !== 'transparent')) {
       setStatus('Előbb rajzolj valamit a megosztáshoz.')
       return
@@ -562,7 +654,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
   }
 
   const setDrawingAsProfileAvatar = async () => {
-    const snapshot = [...pixelsRef.current]
+    const snapshot = composeDrawingLayers(editorLayersRef.current, layerVisibilityRef.current)
     if (!snapshot.some(color => color !== 'transparent')) {
       setStatus('Előbb rajzolj valamit a profilképedhez.')
       return
@@ -586,7 +678,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
   }
 
   const requestProfileAvatar = () => {
-    if (!pixelsRef.current.some(color => color !== 'transparent')) {
+    if (!staticPixelsRef.current.some(color => color !== 'transparent')) {
       setStatus('Előbb rajzolj valamit a profilképedhez.')
       return
     }
@@ -632,7 +724,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
   }
 
   const saveGallerySlot = async (slotIndex: EditorGallerySlotIndex) => {
-    const snapshot = [...pixelsRef.current]
+    const snapshot = composeDrawingLayers(editorLayersRef.current, layerVisibilityRef.current)
     if (!snapshot.some(color => color !== 'transparent')) {
       setStatus('Előbb rajzolj valamit a saját galériába mentéshez.')
       return
@@ -669,13 +761,20 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
 
   const loadGallerySlot = (slot: EditorGallerySlot) => {
     const pixels = [...slot.pixels]
-    staticPixelsRef.current = pixels
-    pixelsRef.current = pixels
+    const layers: EditorDrawingLayers = [pixels, emptyDrawing()]
+    const visibility: EditorLayerVisibility = [true, true]
+    editorLayersRef.current = layers
+    activeLayerRef.current = 0
+    layerVisibilityRef.current = visibility
+    staticPixelsRef.current = [...pixels]
+    pixelsRef.current = layers[0]
+    setActiveLayer(0)
+    setLayerVisibility(visibility)
     setPaletteSize(slot.paletteSize)
     setCustomPaletteActive(false)
     setServerPaletteReady(pixels.every(color => serverColors.has(color)))
     setDirty(true)
-    const storedLocally = persist(pixels, false, slot.paletteSize)
+    const storedLocally = persist(layers, false, slot.paletteSize, 0, visibility)
     setRevision(value => value + 1)
     if (storedLocally) setStatus(`A saját galéria ${slot.slotIndex}. képe betöltve szerkesztésre.`)
     shareMenuRef.current?.removeAttribute('open')
@@ -683,7 +782,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
   }
 
   const requestLoadGallerySlot = (slot: EditorGallerySlot) => {
-    if (!pixelsRef.current.some(color => color !== 'transparent')) {
+    if (!editorHasAnyLayerContent()) {
       loadGallerySlot(slot)
       return
     }
@@ -830,7 +929,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
 
   const downloadPng = async () => {
     setExporting(true)
-    const snapshot = [...pixelsRef.current]
+    const snapshot = composeDrawingLayers(editorLayersRef.current, layerVisibilityRef.current)
     try {
       const canvas = document.createElement('canvas')
       const raster = rasterizeDrawing(snapshot, scale)
@@ -852,9 +951,10 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
       link.remove()
       window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
       // A drawing made while encoding must remain marked as not exported.
-      if (snapshot.every((color, index) => color === pixelsRef.current[index])) {
+      const currentComposite = composeDrawingLayers(editorLayersRef.current, layerVisibilityRef.current)
+      if (snapshot.every((color, index) => color === currentComposite[index])) {
         setDirty(false)
-        if (persist(snapshot, true)) setStatus(text.downloaded)
+        if (persist(editorLayersRef.current, true)) setStatus(text.downloaded)
       }
     } catch {
       if (mountedRef.current) setStatus(text.exportError)
@@ -985,6 +1085,47 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
           <button aria-pressed={!animationMode} onClick={() => switchEditorMode('drawing')} type="button">Állókép</button>
           <button aria-pressed={animationMode} disabled={!hasAdvancedAccess} onClick={() => switchEditorMode('animation')} title={!hasAdvancedAccess ? 'Animáció készítéséhez jelentkezz be.' : undefined} type="button">Animáció · legfeljebb 3 képkocka</button>
         </div>
+        {!animationMode ? (
+          <section className="editor-layer-panel" aria-labelledby="editor-layer-title">
+            <div className="editor-layer-heading">
+              <div>
+                <p className="step-label">Állókép</p>
+                <h2 id="editor-layer-title">Rétegek</h2>
+              </div>
+              <small>A mentés és megosztás lapított képet készít.</small>
+            </div>
+            <div className="editor-layer-list">
+              {([1, 0] as const).map(layer => {
+                const isActive = activeLayer === layer
+                const isVisible = layerVisibility[layer]
+                const layerName = layer === 1 ? 'Felső réteg' : 'Alsó réteg'
+                return (
+                  <article className="editor-layer-row" data-active={isActive} key={layer}>
+                    <button
+                      aria-pressed={isActive}
+                      className="editor-layer-select"
+                      onClick={() => selectEditorLayer(layer)}
+                      type="button"
+                    >
+                      <strong>{layerName}</strong>
+                      <span>{isActive ? 'Aktív' : 'Kiválasztás'}</span>
+                    </button>
+                    <button
+                      aria-label={`${layerName} ${isVisible ? 'elrejtése' : 'megjelenítése'}`}
+                      aria-pressed={isVisible}
+                      className="editor-layer-visibility"
+                      onClick={() => toggleEditorLayerVisibility(layer)}
+                      type="button"
+                    >{isVisible ? 'Látható' : 'Rejtett'}</button>
+                  </article>
+                )
+              })}
+            </div>
+            {!layerVisibility[activeLayer] ? (
+              <p className="editor-layer-warning" role="status">Az aktív réteg rejtett; a módosításai csak újbóli megjelenítéskor látszanak.</p>
+            ) : null}
+          </section>
+        ) : null}
         {animationMode ? (
           <p className="status-message" role="status">
             {status === text.local
@@ -1061,6 +1202,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
         allowColorMixer={hasAdvancedAccess}
         allowEditorTools={hasAdvancedAccess}
         canDraw
+        clearCanvasLabel={animationMode ? 'Teljes képkocka törlése' : 'Aktív réteg törlése'}
         chosenWord={null}
         drawingEndsAt={null}
         events={[]}
@@ -1089,11 +1231,15 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
         roundId={revision}
         serverNow=""
         localDrawing={{
+          getDisplayColor: animationMode ? undefined : displayEditorLayerColor,
           initialPixels: pixelsRef.current,
           onChange: handleChange,
           onRequestFlush: flush => { animationFlushRef.current = flush },
           onRequestClear: action => setConfirmation({
-            title: text.clearTitle, message: text.clearMessage, label: text.clear, action,
+            title: animationMode ? text.clearTitle : 'Aktív réteg törlése?',
+            message: animationMode ? text.clearMessage : 'Csak a kiválasztott réteg tartalma törlődik. A másik réteg változatlan marad, és a művelet visszavonható.',
+            label: text.clear,
+            action,
           }),
         }}
       />

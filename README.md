@@ -18,8 +18,9 @@ Nyilvános változat: **https://bitscrawl.pages.dev/**
   adminisztrátori moderációval.
 - Opcionális profilok rajzolt avatárral, nyilvános statisztikákkal, trófeákkal és
   három szinkronizált egyéni színpalettával.
-- Önálló Szerkesztő fejlett rajzeszközökkel, kijelöléssel, transzformációkkal,
-  HSL+A színkeverővel, privát mentésekkel és PNG-exporttal.
+- Önálló Szerkesztő két rögzített rajzréteggel, fejlett rajzeszközökkel,
+  kijelöléssel, transzformációkkal, HSL+A színkeverővel, privát mentésekkel és
+  lapított PNG-exporttal.
 - Legfeljebb három képkockás animációs mód hagymahéjjal, 1–8 kép/mp előnézettel,
   GIF-exporttal és privát animációmentésekkel.
 - Mobilra igazított fontos felületek és saját ikonnal telepíthető PWA.
@@ -145,7 +146,7 @@ ellenőrizd a jogosultságait.
 
 - Az aktuális fejlesztői átadás az `ATADAS.md` fájlban található.
 - A részletes funkcióterv és az elfogadási feltételek a `PLAN.txt` fájlban vannak.
-- A következő kisebb fejlesztés a látható PWA-verziófrissítési jelzés és a
-  kliensből olvasható buildazonosító.
-- A következő kiemelt fejlesztés pontosan két szerkeszthető rajzréteg a statikus
-  Szerkesztőben, majd a heti és havi kihívásban.
+- A látható PWA-verziófrissítési jelzés és a kliensből olvasható buildazonosító
+  elkészült; a valós A → B frissítési próba még hátravan.
+- A statikus Szerkesztő két szerkeszthető rajzréteget használ. A heti/havi
+  kihívás, az animáció és a multiplayer-vászon egyelőre változatlanul egyrétegű.

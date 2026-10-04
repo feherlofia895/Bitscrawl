@@ -3,6 +3,8 @@ import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
 import {
   brushFootprint,
+  composeDrawingLayers,
+  compositeDrawingPixel,
   emptyDrawing,
   movePixelSelection,
   parseDrawingDraft,
@@ -84,7 +86,7 @@ test('the regular toolbar omits its duplicate pan hand and enlarges the drawn co
   assert.match(css, /\.tool-buttons \.tool-sprite-button\[aria-pressed='true'\][\s\S]*?background-image:\s*url\('\/ui\/toolbar-normal\.png'\)[^}]*outline:\s*3px solid var\(--blue\)/)
   assert.match(css, /\.tool-buttons button\[aria-pressed='true'\]\s*\{[^}]*background-color:\s*var\(--mint\)/)
   assert.match(css, /@media \(max-width:\s*560px\)[\s\S]*?\.tool-buttons\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*42px\)/)
-  assert.match(regularToolbar, /Teljes vászon törlése[\s\S]*?aria-label="Kijelölés"/)
+  assert.match(regularToolbar, /aria-label=\{clearCanvasLabel\}[\s\S]*?aria-label="Kijelölés"/)
   assert.match(regularToolbar, /onClick=\{handleClearClick\}[\s\S]*?onPointerUp=\{handleClearPointerUp\}/)
   assert.match(canvasSource, /onLostPointerCapture=\{\(event\) => \{[\s\S]*?finishStroke\(\)/)
   assert.match(canvasSource, /label: 'Pipetta'/)
@@ -401,7 +403,13 @@ test('local draft restores colors, transparency and export status', () => {
   const pixels = emptyDrawing()
   basePalette.forEach(({ hex }, index) => { pixels[index * 32 + index] = hex })
   assert.deepEqual(parseDrawingDraft(JSON.stringify({ pixels, exported: false })), {
-    pixels, exported: false, paletteSize: 12,
+    activeLayer: 0,
+    pixels,
+    layers: [pixels, emptyDrawing()],
+    layerVisibility: [true, true],
+    exported: false,
+    paletteSize: 12,
+    version: 2,
   })
   assert.equal(parseDrawingDraft(JSON.stringify({ pixels, exported: true })).exported, true)
   assert.equal(parseDrawingDraft(JSON.stringify({ pixels })).exported, false)
@@ -412,8 +420,59 @@ test('local draft restores the expanded editor palette and its colors', () => {
   pixels[0] = editorPalette32[0].hex
   pixels[1] = editorPalette32.at(-1).hex
   assert.deepEqual(parseDrawingDraft(JSON.stringify({ pixels, exported: false, paletteSize: 32 })), {
-    pixels, exported: false, paletteSize: 32,
+    activeLayer: 0,
+    pixels,
+    layers: [pixels, emptyDrawing()],
+    layerVisibility: [true, true],
+    exported: false,
+    paletteSize: 32,
+    version: 2,
   })
+})
+
+test('two-layer editor drafts restore both layers and their controls', () => {
+  const bottom = emptyDrawing()
+  const top = emptyDrawing()
+  bottom[0] = '#33567e'
+  top[1] = '#d3493b'
+  const draft = parseDrawingDraft(JSON.stringify({
+    activeLayer: 1,
+    exported: false,
+    layers: [bottom, top],
+    layerVisibility: [true, false],
+    paletteSize: 32,
+    version: 2,
+  }))
+  assert.deepEqual(draft.layers, [bottom, top])
+  assert.deepEqual(draft.layerVisibility, [true, false])
+  assert.equal(draft.activeLayer, 1)
+  assert.equal(draft.pixels[0], '#33567e')
+  assert.equal(draft.pixels[1], 'transparent')
+})
+
+test('drawing layers flatten in fixed order and preserve alpha blending', () => {
+  const bottom = emptyDrawing()
+  const top = emptyDrawing()
+  bottom[0] = '#0000ff'
+  top[0] = '#ff000080'
+  bottom[1] = '#33567e'
+  top[1] = '#d3493b'
+  assert.equal(compositeDrawingPixel(bottom[0], top[0]), '#80007f')
+  assert.deepEqual(composeDrawingLayers([bottom, top]).slice(0, 2), ['#80007f', '#d3493b'])
+  assert.deepEqual(composeDrawingLayers([bottom, top], [true, false]).slice(0, 2), ['#0000ff', '#33567e'])
+  assert.deepEqual(composeDrawingLayers([bottom, top], [false, true]).slice(0, 2), ['#ff000080', '#d3493b'])
+})
+
+test('two layers are limited to the standalone editor', async () => {
+  const [editorSource, weeklySource, monthlySource] = await Promise.all([
+    readFile(new URL('../src/components/DrawingEditor.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/WeeklyDraw.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/MonthlyDraw.tsx', import.meta.url), 'utf8'),
+  ])
+  assert.match(editorSource, /className="editor-layer-panel"/)
+  assert.match(editorSource, /getDisplayColor: animationMode \? undefined : displayEditorLayerColor/)
+  assert.doesNotMatch(weeklySource, /editor-layer-panel|composeDrawingLayers/)
+  assert.doesNotMatch(monthlySource, /editor-layer-panel|composeDrawingLayers/)
 })
 
 test('corrupt or unsupported drafts cannot become pixel data', () => {
@@ -421,7 +480,15 @@ test('corrupt or unsupported drafts cannot become pixel data', () => {
     JSON.stringify({ pixels: Array(1024).fill('#fff') }),
     JSON.stringify({ pixels: Array(1024).fill(123) })]
   for (const value of cases) {
-    assert.deepEqual(parseDrawingDraft(value), { pixels: emptyDrawing(), exported: true, paletteSize: 12 })
+    assert.deepEqual(parseDrawingDraft(value), {
+      activeLayer: 0,
+      pixels: emptyDrawing(),
+      layers: [emptyDrawing(), emptyDrawing()],
+      layerVisibility: [true, true],
+      exported: true,
+      paletteSize: 12,
+      version: 2,
+    })
   }
 })
 

@@ -48,11 +48,13 @@ type PixelCanvasProps = {
   allowColorMixer?: boolean
   allowEditorTools?: boolean
   canvasSize?: DrawingSize
+  clearCanvasLabel?: string
   customPaletteActive?: boolean
   customPaletteColors?: string[]
   customPaletteOptions?: Array<{ label: string; slotIndex: number }>
   customPaletteSlot?: number
   localDrawing?: {
+    getDisplayColor?: (activeColor: string, index: number) => string
     initialPixels: string[]
     onChange: (pixels: string[]) => void
     onRequestClear?: (clear: () => void) => void
@@ -294,6 +296,7 @@ export function PixelCanvas({
   allowColorMixer = false,
   allowEditorTools = false,
   canvasSize = 32,
+  clearCanvasLabel = 'Teljes vászon törlése',
   customPaletteActive = false,
   customPaletteColors,
   customPaletteOptions,
@@ -512,31 +515,36 @@ export function PixelCanvas({
     setSelectionOffset({ x: 0, y: 0 })
   }
 
+  const displayColorAt = useCallback((activeColor: string, index: number) => (
+    localDrawingRef.current?.getDisplayColor?.(activeColor, index) ?? activeColor
+  ), [])
+
   const paintPixel = useCallback((change: PixelChange) => {
     pixelsRef.current[change.y * canvasSize + change.x] = change.color
     const context = canvasRef.current?.getContext('2d')
     if (!context) return
 
+    const index = change.y * canvasSize + change.x
+    const displayColor = displayColorAt(change.color, index)
     context.clearRect(change.x, change.y, 1, 1)
-    if (change.color !== TRANSPARENT) {
-      context.fillStyle = change.color
+    if (displayColor !== TRANSPARENT) {
+      context.fillStyle = displayColor
       context.fillRect(change.x, change.y, 1, 1)
     }
-  }, [canvasSize])
+  }, [canvasSize, displayColorAt])
 
   const redrawCanvas = (previewPoints: PixelPoint[] = []) => {
     const context = canvasRef.current?.getContext('2d')
     if (!context) return
 
     context.clearRect(0, 0, canvasSize, canvasSize)
+    const previewIndexes = new Set(previewPoints.map(point => point.y * canvasSize + point.x))
     pixelsRef.current.forEach((color, index) => {
-      if (color === TRANSPARENT) return
-      context.fillStyle = color
+      const displayColor = displayColorAt(previewIndexes.has(index) ? activeColor : color, index)
+      if (displayColor === TRANSPARENT) return
+      context.fillStyle = displayColor
       context.fillRect(index % canvasSize, Math.floor(index / canvasSize), 1, 1)
     })
-
-    context.fillStyle = activeColor
-    previewPoints.forEach(({ x, y }) => context.fillRect(x, y, 1, 1))
   }
 
   const flushPendingChanges = () => {
@@ -852,7 +860,8 @@ export function PixelCanvas({
   }
 
   const pickColorFromCanvas = (point: PixelPoint) => {
-    const color = pixelsRef.current[point.y * canvasSize + point.x]
+    const index = point.y * canvasSize + point.x
+    const color = displayColorAt(pixelsRef.current[index], index)
     if (color === TRANSPARENT) return false
     setActiveColor(color)
     selectDrawingTool('pencil')
@@ -1082,12 +1091,13 @@ export function PixelCanvas({
     context?.clearRect(0, 0, canvasSize, canvasSize)
     if (context && localSource) {
       pixelsRef.current.forEach((color, index) => {
-        if (color === TRANSPARENT) return
-        context.fillStyle = color
+        const displayColor = displayColorAt(color, index)
+        if (displayColor === TRANSPARENT) return
+        context.fillStyle = displayColor
         context.fillRect(index % canvasSize, Math.floor(index / canvasSize), 1, 1)
       })
     }
-  }, [canvasSize, roundId])
+  }, [canvasSize, displayColorAt, roundId])
 
   useEffect(() => {
     const context = onionSkinCanvasRef.current?.getContext('2d')
@@ -1159,8 +1169,9 @@ export function PixelCanvas({
       if (context) {
         context.clearRect(0, 0, canvasSize, canvasSize)
         pixelsRef.current.forEach((color, index) => {
-          if (color === TRANSPARENT) return
-          context.fillStyle = color
+          const displayColor = displayColorAt(color, index)
+          if (displayColor === TRANSPARENT) return
+          context.fillStyle = displayColor
           context.fillRect(
             index % canvasSize,
             Math.floor(index / canvasSize),
@@ -1172,7 +1183,7 @@ export function PixelCanvas({
       updatePan(panRef.current, zoomRef.current)
     })
     return () => window.cancelAnimationFrame(animationFrame)
-  }, [canvasSize, isImmersive])
+  }, [canvasSize, displayColorAt, isImmersive])
 
   useEffect(() => {
     onImmersiveChange?.(isImmersive)
@@ -1460,12 +1471,12 @@ export function PixelCanvas({
               </button>
             ) : null}
             <button
-              aria-label="Teljes vászon törlése"
+              aria-label={clearCanvasLabel}
               className="tool-sprite-button"
               onClick={handleClearClick}
               onPointerUp={handleClearPointerUp}
               style={toolSpriteStyle(5)}
-              title="Teljes vászon törlése"
+              title={clearCanvasLabel}
               type="button"
             />
             <button
@@ -1700,12 +1711,12 @@ export function PixelCanvas({
                     </button>
                   ) : null}
                   <button
-                    aria-label="Teljes vászon törlése"
+                    aria-label={clearCanvasLabel}
                     className="tool-sprite-button"
                     onClick={handleClearClick}
                     onPointerUp={handleClearPointerUp}
                     style={toolSpriteStyle(5)}
-                    title="Teljes vászon törlése"
+                    title={clearCanvasLabel}
                     type="button"
                   />
                   {allowEditorTools ? (

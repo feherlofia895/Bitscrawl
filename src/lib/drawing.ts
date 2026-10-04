@@ -39,9 +39,59 @@ export type PixelOffset = { x: number; y: number }
 export type PixelPoint = { x: number; y: number }
 export type BrushSize = 1 | 2 | 3
 export type PixelSelectionTransform = 'rotate-clockwise' | 'flip-horizontal' | 'flip-vertical'
+export type EditorLayerIndex = 0 | 1
+export type EditorDrawingLayers = [string[], string[]]
+export type EditorLayerVisibility = [boolean, boolean]
 
 export function emptyDrawing(drawingSize: DrawingSize = DRAWING_SIZE): string[] {
   return Array<string>(drawingSize * drawingSize).fill(TRANSPARENT_PIXEL)
+}
+
+function parsePixelColor(color: string) {
+  if (color === TRANSPARENT_PIXEL) return { alpha: 0, blue: 0, green: 0, red: 0 }
+  return {
+    alpha: color.length === 9 ? Number.parseInt(color.slice(7, 9), 16) : 255,
+    blue: Number.parseInt(color.slice(5, 7), 16),
+    green: Number.parseInt(color.slice(3, 5), 16),
+    red: Number.parseInt(color.slice(1, 3), 16),
+  }
+}
+
+function hexByte(value: number) {
+  return Math.max(0, Math.min(255, Math.round(value))).toString(16).padStart(2, '0')
+}
+
+export function compositeDrawingPixel(bottom: string, top: string) {
+  if (top === TRANSPARENT_PIXEL) return bottom
+  if (bottom === TRANSPARENT_PIXEL) return top
+
+  const source = parsePixelColor(top)
+  if (source.alpha === 255) return top
+  const destination = parsePixelColor(bottom)
+  const sourceAlpha = source.alpha / 255
+  const destinationAlpha = destination.alpha / 255
+  const outputAlpha = sourceAlpha + destinationAlpha * (1 - sourceAlpha)
+  if (outputAlpha === 0) return TRANSPARENT_PIXEL
+
+  const blend = (sourceChannel: number, destinationChannel: number) => (
+    sourceChannel * sourceAlpha + destinationChannel * destinationAlpha * (1 - sourceAlpha)
+  ) / outputAlpha
+  const color = `#${hexByte(blend(source.red, destination.red))}${hexByte(blend(source.green, destination.green))}${hexByte(blend(source.blue, destination.blue))}`
+  const alpha = Math.round(outputAlpha * 255)
+  return alpha === 255 ? color : `${color}${hexByte(alpha)}`
+}
+
+export function composeDrawingLayers(
+  layers: EditorDrawingLayers,
+  visibility: EditorLayerVisibility = [true, true],
+) {
+  if (!layers.every(layer => isValidEditorDrawingPixels(layer))) {
+    throw new Error('DRAWING_LAYERS_INVALID')
+  }
+  if (!visibility[0] && !visibility[1]) return emptyDrawing()
+  if (!visibility[0]) return [...layers[1]]
+  if (!visibility[1]) return [...layers[0]]
+  return layers[0].map((bottom, index) => compositeDrawingPixel(bottom, layers[1][index]))
 }
 
 export function brushFootprint(
@@ -180,24 +230,61 @@ export function transformPixelSelection(
 }
 
 export type DrawingDraft = {
+  activeLayer: EditorLayerIndex
   pixels: string[]
+  layers: EditorDrawingLayers
+  layerVisibility: EditorLayerVisibility
   exported: boolean
   paletteSize: EditorPaletteSize
+  version: 2
 }
 
 export function parseDrawingDraft(serialized: string | null): DrawingDraft {
   try {
     const stored: unknown = JSON.parse(serialized ?? 'null')
-    if (typeof stored === 'object' && stored !== null && 'pixels' in stored &&
-      isValidEditorDrawingPixels(stored.pixels)) {
+    if (typeof stored === 'object' && stored !== null && 'layers' in stored &&
+      Array.isArray(stored.layers) && stored.layers.length === 2 &&
+      stored.layers.every(layer => isValidEditorDrawingPixels(layer))) {
+      const layers = stored.layers.map(layer => [...layer]) as EditorDrawingLayers
+      const layerVisibility: EditorLayerVisibility = 'layerVisibility' in stored &&
+        Array.isArray(stored.layerVisibility) && stored.layerVisibility.length === 2 &&
+        stored.layerVisibility.every(value => typeof value === 'boolean')
+        ? [stored.layerVisibility[0], stored.layerVisibility[1]]
+        : [true, true]
       return {
-        pixels: [...stored.pixels],
+        activeLayer: 'activeLayer' in stored && stored.activeLayer === 1 ? 1 : 0,
+        pixels: composeDrawingLayers(layers, layerVisibility),
+        layers,
+        layerVisibility,
         exported: 'exported' in stored && stored.exported === true,
         paletteSize: 'paletteSize' in stored && stored.paletteSize === 32 ? 32 : 12,
+        version: 2,
+      }
+    }
+    if (typeof stored === 'object' && stored !== null && 'pixels' in stored &&
+      isValidEditorDrawingPixels(stored.pixels)) {
+      const layers: EditorDrawingLayers = [[...stored.pixels], emptyDrawing()]
+      return {
+        activeLayer: 0,
+        pixels: [...stored.pixels],
+        layers,
+        layerVisibility: [true, true],
+        exported: 'exported' in stored && stored.exported === true,
+        paletteSize: 'paletteSize' in stored && stored.paletteSize === 32 ? 32 : 12,
+        version: 2,
       }
     }
   } catch { /* Invalid drafts start with a blank canvas. */ }
-  return { pixels: emptyDrawing(), exported: true, paletteSize: 12 }
+  const layers: EditorDrawingLayers = [emptyDrawing(), emptyDrawing()]
+  return {
+    activeLayer: 0,
+    pixels: emptyDrawing(),
+    layers,
+    layerVisibility: [true, true],
+    exported: true,
+    paletteSize: 12,
+    version: 2,
+  }
 }
 
 // Pure pixel conversion: PNG export and its tests use the same RGBA buffer.
