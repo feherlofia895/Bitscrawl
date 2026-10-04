@@ -127,6 +127,15 @@ KÖVETKEZŐ TARTALMI FELADAT – SZÓBANK ÉS SZINONIMÁK
   célfogalomhoz kötött szinonimák privát szerveroldali táblában maradnak, és
   külön helyi regressziós próba védi a játékmódokat, a titkos szót és a hibás
   válaszok elutasítását.
+- A szinonimák csak a Klasszikus mód szöveges megfejtésére vonatkoznak. A
+  Verseny módban mindenki ugyanazt a szerveroldali, ellenőrzött témát rajzolja,
+  a pontokat pedig a játékosok névtelen szavazatai adják, ezért ott nincs
+  helyes vagy helytelen szöveges válasz.
+- A Heti és Havi kihívás külön, átnézett vizuális témakört használ. Ezekben is
+  közösségi szavazás dönt, ezért a tágabb kreatív témák (például
+  `Boszorkány` vagy `Halloween`) maradhatnak, és nem tartozik hozzájuk
+  szinonimás megfejtés. Automatizált próba védi a rotációkat és a Verseny mód
+  szavazatalapú pontozását.
 
 2026-09-21-i audit- és visszajelzési állapot:
 - [x] Bejelentkezett, mentett profillal az Új szoba és a Csatlakozás már nem kér
