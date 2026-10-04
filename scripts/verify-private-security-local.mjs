@@ -52,6 +52,17 @@ const guestGameplayPolicies = [
   'round_draw_events_member_select',
   'round_messages_member_select',
 ]
+const auditedForeignKeys = [
+  'competition_draw_events_user_id_fkey',
+  'competition_entries_user_id_fkey',
+  'competition_votes_drawing_user_id_fkey',
+  'competition_votes_voter_user_id_fkey',
+  'feed_comment_likes_user_id_fkey',
+  'gallery_comment_likes_user_id_fkey',
+  'monthly_votes_entry_id_challenge_id_fkey',
+  'profile_avatar_likes_liker_user_id_fkey',
+  'weekly_votes_entry_id_challenge_id_fkey',
+]
 
 async function asRole(role, sql, params = []) {
   await db.exec(`set role ${role}`)
@@ -310,4 +321,39 @@ test('account-only RLS checks the anonymous JWT while gameplay remains guest-ena
     ))[0].count,
     1,
   )
+})
+
+test('audited foreign keys have a useful index without redundant reverse-order copies', async () => {
+  const rows = (await db.query(`
+    select
+      constraint_definition.conname as constraint_name,
+      (count(index_definition.indexrelid) filter (
+        where (
+          select array_agg(foreign_key.attnum order by foreign_key.attnum)
+          from unnest(constraint_definition.conkey) foreign_key(attnum)
+        ) = (
+          select array_agg(index_key.attnum order by index_key.attnum)
+          from unnest(index_definition.indkey) with ordinality index_key(attnum, position)
+          where index_key.position <= cardinality(constraint_definition.conkey)
+        )
+      ))::integer as covering_index_count
+    from pg_catalog.pg_constraint constraint_definition
+    left join pg_catalog.pg_index index_definition
+      on index_definition.indrelid = constraint_definition.conrelid
+     and index_definition.indisvalid
+     and index_definition.indisready
+    where constraint_definition.contype = 'f'
+      and constraint_definition.conname = any($1::text[])
+    group by constraint_definition.oid, constraint_definition.conname
+    order by constraint_definition.conname
+  `, [auditedForeignKeys])).rows
+
+  assert.deepEqual(rows.map((row) => row.constraint_name), auditedForeignKeys)
+  for (const row of rows) {
+    assert.equal(
+      row.covering_index_count,
+      1,
+      `${row.constraint_name} should have exactly one useful leading-column index`,
+    )
+  }
 })

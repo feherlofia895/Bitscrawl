@@ -92,6 +92,15 @@ ADATVÉDELEM ÉS AUTOMATIKUS ADATTÖRLÉS
   jelzései már csak a hét szándékosan vendégbarát multiplayer-policyt és a Supabase
   két saját cron-policyjét mutatják; az átmenetileg megjelent kilenc RLS InitPlan
   teljesítményjelzés javítás után nullára csökkent.
+- [x] A kilenc index nélküli idegenkulcs-jelzés egyenként át lett nézve. Hét valóban
+  hiányzó, felhasználó/profil szerinti index elkészült a versenyadatokhoz,
+  kommentkedvelésekhez és profilképkedvelésekhez. A heti és havi szavazatok két
+  összetett idegen kulcsát a meglévő `(challenge_id, entry_id)` index már teljesen
+  lefedi; az élő `EXPLAIN` mindkettőnél Index Only Scant mutat, ezért nem készült
+  fölösleges fordított sorrendű másolat. Az éles katalógusellenőrzés szerint mind a
+  kilenc kulcsot pontosan egy használható index fedi; az advisor 9-ről a két ismert
+  sorrendérzékeny álpozitívra csökkent. A frissen létrehozott hét index kezdeti
+  „unused” jelzése várható, valódi használati időszak előtt nem indokolt törölni őket.
 - [ ] A kiszivárgott jelszavak automatikus Supabase Auth-ellenőrzése csak Pro
   csomagtól érhető el, a PixelGuess projekt jelenleg Free csomagos. Csomagváltáskor
   ezt be kell kapcsolni; addig a minimum jelszóhosszt és az e-mail-megerősítést kell
