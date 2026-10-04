@@ -1345,6 +1345,9 @@ szóra és ugyanazzal a palettával készülnek rajzok.
 - 2026-10-04: a Boszorkány hét szavazása budapesti idő szerint 22:00-ig
   meghosszabbodott. A 2026-W41 heti téma a korábbi Robot helyett Szellem; a
   szerveroldali témarotáció és a regressziós próbák is ezt követik.
+- 2026-10-04 22:23: a Boszorkány hét 12 nevezéssel és 23 szavazattal véglegesen
+  lezárult. A Dicsőségfal dobogója: 1. Vivi (8 pont), 2. Kinga (6 pont),
+  3. martinteteme (5 pont).
 - Elkészült a külön heti adatmodell, a hétfő 00:00-kor (Europe/Budapest) váltó
   szerveridős ciklus, a 12 színű rajzellenőrzés és a nyilvános galéria.
 - Elkészült az e-mailes fiók, a megjelenített név, a szerverre mentett vázlat,
