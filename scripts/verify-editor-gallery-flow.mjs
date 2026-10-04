@@ -18,9 +18,10 @@ function text(tree) {
   if (!tree || typeof tree === 'boolean') return ''
   return typeof tree === 'object' ? text(tree.props?.children) : String(tree)
 }
-async function editor({ initial = drawing.emptyDrawing(), slots = [], loadError = null } = {}) {
+async function editor({ hasAdvancedAccess = true, initial = drawing.emptyDrawing(), slots = [], loadError = null } = {}) {
   const state = []
   const saved = []
+  let profileOpenCount = 0
   const storage = new Map([['bitscrawl-editor-v1', JSON.stringify({ pixels: initial, paletteSize: 12, exported: true })]])
   let cursor = 0
   const react = {
@@ -91,7 +92,7 @@ async function editor({ initial = drawing.emptyDrawing(), slots = [], loadError 
     { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) },
     { activeElement: null }, class HTMLElement {},
   )
-  const render = () => { cursor = 0; return exports.DrawingEditor({ onBack() {}, onDirtyChange() {}, onStorageChange() {} }) }
+  const render = () => { cursor = 0; return exports.DrawingEditor({ hasAdvancedAccess, onBack() {}, onDirtyChange() {}, onOpenProfile() { profileOpenCount++ }, onStorageChange() {} }) }
   const canvas = () => nodes(render(), 'PixelCanvas')[0].props
   const dialog = () => nodes(render(), 'section').find(node => node.props.role === 'dialog')
   const click = label => {
@@ -100,7 +101,7 @@ async function editor({ initial = drawing.emptyDrawing(), slots = [], loadError 
     assert.ok(!button.props.disabled)
     button.props.onClick()
   }
-  return { render, canvas, dialog, click, saved, storage }
+  return { render, canvas, dialog, click, profileOpenCount: () => profileOpenCount, saved, storage }
 }
 function colored(color = palette.basePalette[0].hex) {
   const pixels = drawing.emptyDrawing()
@@ -108,6 +109,26 @@ function colored(color = palette.basePalette[0].hex) {
   return pixels
 }
 const slot = () => ({ slotIndex: 1, paletteSize: 32, pixels: colored(palette.editorPalette32[20].hex), updatedAt: '2026-01-01T00:00:00Z' })
+
+test('guest editor exposes the base palette and PNG download but no advanced entry points', async () => {
+  const app = await editor({ hasAdvancedAccess: false })
+  const canvas = app.canvas()
+  assert.equal(canvas.allowColorMixer, false)
+  assert.equal(canvas.allowEditorTools, false)
+  assert.equal(canvas.paletteSize, 12)
+  assert.equal(canvas.customPaletteActive, false)
+  assert.equal(canvas.onLoadFromGallery, undefined)
+  assert.equal(canvas.onSaveToGallery, undefined)
+
+  const tree = app.render()
+  const buttons = nodes(tree, 'button')
+  assert.equal(buttons.find(button => text(button).includes('Animáció ·'))?.props.disabled, true)
+  assert.equal(buttons.find(button => text(button) === editorText.export)?.props.disabled, false)
+  const profileButton = buttons.find(button => text(button) === 'Belépés / regisztráció')
+  assert.ok(profileButton)
+  profileButton.props.onClick()
+  assert.equal(app.profileOpenCount(), 1)
+})
 
 test('gallery load restores pixels and palette without sharing the saved array', async () => {
   const stored = slot()

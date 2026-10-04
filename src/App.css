@@ -4161,6 +4161,32 @@ button,
   margin-bottom: 20px;
 }
 
+.editor-access-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 14px 0;
+  padding: 12px;
+  border: 3px solid var(--ink);
+  background: color-mix(in srgb, var(--yellow) 35%, var(--paper));
+  box-shadow: 4px 4px 0 rgb(36 26 53 / 22%);
+}
+
+.editor-access-notice strong {
+  font: 900 .7rem/1.2 var(--pixel-font);
+}
+
+.editor-access-notice p {
+  margin: 6px 0 0;
+  line-height: 1.45;
+}
+
+.editor-access-notice button {
+  flex: 0 0 auto;
+  min-height: 46px;
+}
+
 .editor-actions {
   display: flex;
   flex-wrap: wrap;
@@ -4243,6 +4269,13 @@ button,
 .editor-animation-share-options {
   display: grid;
   gap: 8px;
+}
+
+@media (max-width: 560px) {
+  .editor-access-notice {
+    align-items: stretch;
+    flex-direction: column;
+  }
 }
 
 .editor-animation-share-options > strong {

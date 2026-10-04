@@ -1511,7 +1511,13 @@ function App() {
       ) : homeView === 'admin' ? (
         <AdminFeedbackCenter isAdmin={isModerator} onBack={closeHomeView} />
       ) : homeView === 'editor' ? (
-        <DrawingEditor onBack={closeHomeView} onDirtyChange={setEditorDirty} onStorageChange={setEditorStorageAvailable} />
+        <DrawingEditor
+          hasAdvancedAccess={Boolean(currentUserId && playerProfile)}
+          onBack={closeHomeView}
+          onDirtyChange={setEditorDirty}
+          onOpenProfile={() => openHomeView('profile')}
+          onStorageChange={setEditorStorageAvailable}
+        />
       ) : homeView === 'challenge' ? (
         <WeeklyDraw mode="challenge" onBack={closeHomeView} onOpenChallenge={() => openHomeView('challenge')} />
       ) : homeView === 'gallery' ? (

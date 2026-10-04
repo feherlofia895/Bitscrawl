@@ -88,6 +88,10 @@ export function GalleryComments({
   }, [])
 
   useEffect(() => {
+    if (!isSignedIn) {
+      setOpen(false)
+      return
+    }
     if (!open) return
     closeRef.current?.focus()
     if (loadCommentsRef.current) void loadPage(1, true)
@@ -103,7 +107,7 @@ export function GalleryComments({
 
     window.addEventListener('keydown', handleKeyDown, true)
     return () => window.removeEventListener('keydown', handleKeyDown, true)
-  }, [loadPage, open])
+  }, [isSignedIn, loadPage, open])
 
   const close = () => {
     setOpen(false)
@@ -166,6 +170,8 @@ export function GalleryComments({
     }
   }
 
+  if (!isSignedIn) return null
+
   return <><section className="gallery-comments">
     <button aria-expanded={open} aria-haspopup="dialog" className="gallery-comments-toggle" onClick={() => setOpen(true)} ref={triggerRef} type="button">
       Kommentek ({totalCount})
@@ -216,10 +222,10 @@ export function GalleryComments({
             {loadError ? <p className="gallery-comments-empty">{loadError} <button disabled={commentLoading} onClick={() => void loadPage(1, true)} type="button">Újrapróbálom</button></p> : null}
             {reactionError ? <p aria-live="polite" className="gallery-comments-empty">{reactionError}</p> : null}
             {loadComments && comments.length < totalCount ? <button disabled={commentLoading} onClick={() => void loadPage(Math.floor(comments.length / GALLERY_COMMENT_PAGE_SIZE) + 1, false)} type="button">{commentLoading ? 'Betöltés…' : 'További korábbi kommentek'}</button> : null}
-            {isSignedIn ? <form className="gallery-comment-form" onSubmit={event => { event.preventDefault(); void submit() }}>
+            <form className="gallery-comment-form" onSubmit={event => { event.preventDefault(); void submit() }}>
               <label><span className="visually-hidden">Új komment</span><textarea maxLength={280} onChange={event => setContent(event.target.value)} placeholder="Na mi van?" rows={3} value={content} /></label>
               <div><small>{content.length}/280</small><button disabled={busy || !content.trim()} type="submit">Küldés</button></div>
-            </form> : <p className="gallery-comments-login">Kommenteléshez jelentkezz be.</p>}
+            </form>
           </div>
         </section>
       </div>,

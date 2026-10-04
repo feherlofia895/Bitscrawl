@@ -8,6 +8,7 @@ import {
   type ProfileAvatarLikeState,
   type PublicProfileStats,
 } from '../lib/profile'
+import { getWeeklyUser } from '../lib/weekly'
 import { ProfileAvatar } from './ProfileAvatar'
 
 export function ProfilePreviewButton({
@@ -29,6 +30,7 @@ export function ProfilePreviewButton({
   const [privateNote, setPrivateNote] = useState<string | null>(null)
   const [likePending, setLikePending] = useState(false)
   const [likeFeedback, setLikeFeedback] = useState('')
+  const [socialVisible, setSocialVisible] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
   const modalRef = useRef<HTMLElement>(null)
@@ -69,18 +71,24 @@ export function ProfilePreviewButton({
     setLikeState(null)
     setPublicStats(null)
     setPrivateNote(null)
-    void Promise.allSettled([
-      loadProfileAvatarLikeState(name),
-      loadPublicProfileStats(name),
-      loadOwnProfileNote(name),
-    ]).then(([likeResult, statsResult, noteResult]) => {
+    setSocialVisible(false)
+    void getWeeklyUser().then(async user => {
+      if (!user) return
+      const [likeResult, statsResult, noteResult] = await Promise.allSettled([
+        loadProfileAvatarLikeState(name),
+        loadPublicProfileStats(name),
+        loadOwnProfileNote(name),
+      ])
       if (cancelled) return
+      setSocialVisible(true)
       if (likeResult.status === 'fulfilled') setLikeState(likeResult.value)
       if (statsResult.status === 'fulfilled') setPublicStats(statsResult.value)
       if (noteResult.status === 'fulfilled') setPrivateNote(noteResult.value)
-      if (likeResult.status === 'rejected' && statsResult.status === 'rejected') {
+      if (user && likeResult.status === 'rejected' && statsResult.status === 'rejected') {
         setLikeFeedback('A profilstatisztikák most nem tölthetők be.')
       }
+    }).catch(() => {
+      if (!cancelled) setSocialVisible(false)
     })
     return () => { cancelled = true }
   }, [name, open, pixels])
@@ -121,7 +129,7 @@ export function ProfilePreviewButton({
         <section aria-labelledby="profile-preview-title" aria-modal="true" className="profile-preview-modal" ref={modalRef} role="dialog">
           <p className="step-label">Játékosprofil</p>
           <ProfileAvatar className="profile-preview-avatar" label={`${name} profilképe nagy méretben`} pixels={pixels} />
-          <button
+          {socialVisible ? <button
             aria-label={likeState?.liked ? 'Profilkép kedvelésének visszavonása' : 'Profilkép kedvelése'}
             aria-pressed={likeState?.liked ?? false}
             className="profile-avatar-like-button"
@@ -132,18 +140,20 @@ export function ProfilePreviewButton({
           >
             <span aria-hidden="true">♥</span>
             <strong>{likeState?.likeCount ?? 0}</strong>
-          </button>
+          </button> : null}
           <h2 id="profile-preview-title">{name}</h2>
-          {privateNote ? <p className="profile-private-title">{privateNote}</p> : null}
-          <div className="profile-preview-stats" aria-label="Játékos statisztikák">
-            <span><strong>{receivedLikes ?? publicStats?.receivedLikeCount ?? 0}</strong> rajzfali lájk</span>
-            <span><strong>{publicStats?.trophyCount ?? 0}</strong> trófea</span>
-          </div>
-          {(publicStats?.trophyCount ?? 0) > 0 ? (
-            <p className="profile-preview-medals" aria-label="Dobogós érmek">
-              🥇 {publicStats?.goldCount ?? 0} · 🥈 {publicStats?.silverCount ?? 0} · 🥉 {publicStats?.bronzeCount ?? 0}
-            </p>
-          ) : null}
+          {socialVisible ? <>
+            {privateNote ? <p className="profile-private-title">{privateNote}</p> : null}
+            <div className="profile-preview-stats" aria-label="Játékos statisztikák">
+              <span><strong>{receivedLikes ?? publicStats?.receivedLikeCount ?? 0}</strong> rajzfali lájk</span>
+              <span><strong>{publicStats?.trophyCount ?? 0}</strong> trófea</span>
+            </div>
+            {(publicStats?.trophyCount ?? 0) > 0 ? (
+              <p className="profile-preview-medals" aria-label="Dobogós érmek">
+                🥇 {publicStats?.goldCount ?? 0} · 🥈 {publicStats?.silverCount ?? 0} · 🥉 {publicStats?.bronzeCount ?? 0}
+              </p>
+            ) : null}
+          </> : null}
           {!pixels ? <p className="profile-preview-empty">Még nincs megrajzolt profilképe.</p> : null}
           {likeFeedback ? <p aria-live="polite" className="profile-avatar-like-feedback">{likeFeedback}</p> : null}
           <button className="profile-preview-close" onClick={close} ref={closeRef} type="button">Bezárás</button>

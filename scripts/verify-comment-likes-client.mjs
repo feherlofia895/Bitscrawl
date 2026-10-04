@@ -96,7 +96,7 @@ async function panel({ isSignedIn = true, reactToComment = async () => ({ liked:
   }, {body:{}})
   const props = {busy:false, isSignedIn, artworkAuthor:'Synthetic', reactionKind:'feed', onSubmit:async()=>{}, onUpdate:async()=>{}, comments:[{comment_id:7, author_name:'Synthetic', created_at:'2026-01-01T00:00:00Z', content:'Test', like_count:0, has_liked:false, is_own:false}]}
   const render = () => {cursor=0;return api.GalleryComments(props)}
-  nodes(render(), n=>n.props?.className==='gallery-comments-toggle')[0].props.onClick()
+  nodes(render(), n=>n.props?.className==='gallery-comments-toggle')[0]?.props.onClick()
   return {
     render,
     heart: () => nodes(render(), n=>n.props?.className==='gallery-comment-like-button')[0],
@@ -129,8 +129,8 @@ test('failed reaction leaves the old count and offers retry; guest cannot trigge
   assert.equal(nodes(app.render(), n=>n.props?.['aria-live']==='polite')[0].props.children, 'Synthetic offline')
   let calls = 0
   const guest = await panel({isSignedIn:false,reactToComment:async()=>{calls++}})
-  assert.equal(guest.heart().props.disabled, true)
-  guest.heart().props.onClick()
+  assert.equal(guest.render(), null)
+  assert.equal(guest.heart(), undefined)
   await settle()
   assert.equal(calls,0)
 })
