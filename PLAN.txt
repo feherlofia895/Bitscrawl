@@ -7,6 +7,10 @@ Jelölések:
 [ ] még hátra van
 
 2026-10-04-i aktuális állapot:
+- [x] A Párhuzamos rajzverseny teljes éles visszaellenőrzése elkészült. Három és
+  hat külön anonim játékossal is végigment a rajzolás, névtelen szavazás, módosított
+  és kimaradó szavazat, holtverseny, pontozás és lezárás. A mobil váró, rajznézet,
+  teljes nézet, szavazókártyák és végeredmény kézi próbája is sikeres.
 - [x] Elkészült és élesedett az Elérhető szobák első változata. A host létrehozáskor és
   a váróteremben is választhat kódos vagy nyilvános megjelenést; a nyilvános lista
   név és host szerint kereshető, csak várakozó és nem telt szobákat mutat, és a
@@ -1224,7 +1228,7 @@ Javasolt sorrend és függőségek:
   végleges fiókká alakítását.
 
 
-[>] 19. KÖZÖS SZÓ – PÁRHUZAMOS RAJZVERSENY
+[x] 19. KÖZÖS SZÓ – PÁRHUZAMOS RAJZVERSENY
 
 Cél: minden játékos ugyanazt a szót rajzolja egyszerre, majd egymás munkáira szavaznak.
 
@@ -1243,8 +1247,8 @@ Cél: minden játékos ugyanazt a szót rajzolja egyszerre, majd egymás munkái
 - Az idő lejártakor minden rajz egyszerre váljon láthatóvá, a készítő neve pedig csak a
   szavazás lezárása után jelenjen meg, hogy a szavazás kevésbé legyen személyfüggő.
 - Minden jogosult játékosnak fordulónként legfeljebb egy érvényes szavazata legyen,
-  saját rajzára ne szavazhasson. A módosíthatóság külön nyitott termékdöntés;
-  ismételt vagy párhuzamos beküldés soha ne eredményezzen többszörös pontot.
+  saját rajzára ne szavazhasson. A szavazat a határidőig módosítható; az ismételt
+  vagy párhuzamos beküldés soha nem eredményezhet többszörös pontot.
 - A szavazási időt a szerver zárja le; a hiányzó szavazat ne akassza meg a játékot.
 - Egy szavazat alapértelmezetten egy pontot érjen. A forduló után jelenjen meg a rajzok
   sorrendje, készítője és kapott szavazatai.
@@ -1261,7 +1265,7 @@ Cél: minden játékos ugyanazt a szót rajzolja egyszerre, majd egymás munkái
 - Készüljön automatizált próba legalább 3 és 6 játékossal, beleértve az önmagára szavazás,
   a többszörös szavazás, a kimaradó szavazó és a holtverseny eseteit.
 
-Első alapréteg (2026-09-21):
+Éles állapot (2026-10-04):
 - Elkészült a szobák szerveroldali `classic` / `competition` módazonosítója úgy, hogy a
   meglévő szobák automatikusan klasszikusak maradnak.
 - Elkészült a 60 / 90 / 120 másodperces rajzolási idő és az 1–5 közötti fordulószám
@@ -1274,8 +1278,13 @@ Első alapréteg (2026-09-21):
   a szavazat a határidőig módosítható, és a készítők neve csak lezáráskor jelenik meg.
 - Elkészült a fordulónkénti pontozás, az 1–5 beállított forduló léptetése, az összesített
   eredmény és az ugyanazzal a társasággal indítható új verseny.
-- Az első játszható változat migrációja és kliensfelülete helyben kész; élesítés előtt
-  még több böngészős, három–hat játékosos próba és mobil vizuális ellenőrzés szükséges.
+- Az adatbázis-migráció és a kliensfelület élesben működik. A teljes, valódi időzítésű
+  folyamat három és hat külön anonim játékossal is sikeresen végigment: a rajzok a
+  határidőig rejtve maradtak, a saját szavazat tiltása, a szavazatmódosítás egyszeri
+  elszámolása, a kimaradó szavazó, a holtverseny és a pontozás helyes volt.
+- Mobilon a létrehozó és várófelület, a normál és teljes rajznézet, a névtelen
+  szavazókártyák, a közös győztesek és az újrajátszás felülete is elfér és használható.
+- A tesztszobák és a hozzájuk tartozó rajz- és szavazatadatok a próbák végén törlődtek.
 
 
 [x] 20. HETI RAJZ
@@ -1347,7 +1356,7 @@ ELDÖNTÖTT IRÁNYOK
 - A koordinátaszámok a vászon méretéhez igazodva legyenek nagyobbak és olvashatók.
 - A már elkészült paletták, körvonalas alakzatok, dinamikus nagyítás, SVG-ikonformátum
   és meccs közbeni kilépési megerősítés lezárt döntések.
-- A Párhuzamos rajzverseny minimumlétszáma 3 játékos. A rajzok a szavazás végéig
+- A Párhuzamos rajzverseny minimumlétszáma 2 játékos. A rajzok a szavazás végéig
   névtelenek, egy játékos egy szavazatát a határidőig módosíthatja, saját képre nem
   szavazhat, holtversenynél pedig minden azonos első helyezett közös győztes.
 

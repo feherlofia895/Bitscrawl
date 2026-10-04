@@ -35,6 +35,7 @@
     "test:four-player": "node --env-file=.env.local scripts/verify-four-player-game.mjs",
     "test:three-player": "node --env-file=.env.local scripts/verify-four-player-game.mjs 3",
     "test:palette-modes": "node --env-file=.env.local scripts/verify-palette-modes.mjs",
+    "test:competition:live": "node --env-file=.env.local scripts/verify-competition-live.mjs",
     "test:public-rooms:local": "node --test scripts/verify-public-rooms-local.mjs",
     "test:public-rooms:live": "node --env-file=.env.local scripts/verify-public-rooms-live.mjs",
     "test:word-bank": "node --test scripts/verify-word-bank-local.mjs",

@@ -81,11 +81,15 @@ test('classic guessing and competition drawing share a curated prompt bank', asy
   const [{ definition: competitionDefinition }] = (await db.query(
     "select pg_get_functiondef('public.start_competition_game(bigint)'::regprocedure) as definition",
   )).rows
-  assert.match(classicDefinition, /private\.word_bank/)
+  assert.match(classicDefinition, /private\.start_game/)
   assert.match(competitionDefinition, /private\.start_competition_game/)
+  const [{ definition: privateClassicDefinition }] = (await db.query(
+    "select pg_get_functiondef('private.start_game(bigint)'::regprocedure) as definition",
+  )).rows
   const [{ definition: privateCompetitionDefinition }] = (await db.query(
     "select pg_get_functiondef('private.start_competition_game(bigint)'::regprocedure) as definition",
   )).rows
+  assert.match(privateClassicDefinition, /private\.word_bank/)
   assert.match(privateCompetitionDefinition, /private\.word_bank/)
 
   const [{ definition: competitionVotingDefinition }] = (await db.query(
@@ -172,21 +176,34 @@ test('the synonym list stays private and submit_guess uses the protected matcher
     asUser(host, "select private.answer_matches('macska', 'cica')"),
     /permission denied/,
   )
-  const [{ matcher_definer: matcherDefiner, matcher_volatility: matcherVolatility, submit_definer: submitDefiner, submit_source: submitSource }] = (await db.query(`
+  const [{
+    matcher_definer: matcherDefiner,
+    matcher_volatility: matcherVolatility,
+    private_submit_definer: privateSubmitDefiner,
+    private_submit_source: privateSubmitSource,
+    public_submit_definer: publicSubmitDefiner,
+    public_submit_source: publicSubmitSource,
+  }] = (await db.query(`
     select
       matcher.prosecdef as matcher_definer,
       matcher.provolatile as matcher_volatility,
-      submit.prosecdef as submit_definer,
-      pg_get_functiondef(submit.oid) as submit_source
+      private_submit.prosecdef as private_submit_definer,
+      pg_get_functiondef(private_submit.oid) as private_submit_source,
+      public_submit.prosecdef as public_submit_definer,
+      pg_get_functiondef(public_submit.oid) as public_submit_source
     from pg_proc as matcher
-    cross join pg_proc as submit
+    cross join pg_proc as private_submit
+    cross join pg_proc as public_submit
     where matcher.oid = 'private.answer_matches(text,text)'::regprocedure
-      and submit.oid = 'public.submit_guess(bigint,text)'::regprocedure
+      and private_submit.oid = 'private.submit_guess(bigint,text)'::regprocedure
+      and public_submit.oid = 'public.submit_guess(bigint,text)'::regprocedure
   `)).rows
   assert.equal(matcherDefiner, false)
   assert.equal(matcherVolatility, 's')
-  assert.equal(submitDefiner, true)
-  assert.match(submitSource, /private\.answer_matches\(target_word, clean_guess\)/)
+  assert.equal(privateSubmitDefiner, true)
+  assert.match(privateSubmitSource, /private\.answer_matches\(target_word, clean_guess\)/)
+  assert.equal(publicSubmitDefiner, false)
+  assert.match(publicSubmitSource, /private\.submit_guess/)
 })
 
 test('submit_guess accepts cica for macska without leaking the secret or accepting a stranger word', async () => {
