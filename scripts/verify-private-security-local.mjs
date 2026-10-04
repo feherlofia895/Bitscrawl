@@ -31,6 +31,7 @@ const authenticatedDefinerRpcs = [
   ['start_game', 'target_room_id bigint'],
   ['submit_guess', 'target_round_id bigint, submitted_guess text'],
   ['submit_pixel_changes', 'target_round_id bigint, pixel_changes jsonb'],
+  ['submit_bug_report', 'requested_category text, requested_description text, requested_reporter_name text, requested_room_code text, requested_room_id bigint, requested_steps text, requested_technical_context jsonb'],
   ['touch_global_lobby_presence', ''],
   ['touch_room_presence', 'target_room_id bigint'],
 ]

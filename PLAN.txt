@@ -248,6 +248,11 @@ KÖVETKEZŐ TARTALMI FELADAT – SZÓBANK ÉS SZINONIMÁK
   bejelentés ugyanarra a konfliktusra mutatott: a szobachat és a rögzített megfejtés
   egymásra csúszott. A chat most külön helyet hagy a tippelő sávnak, a tippelő pedig
   a chat háttere felett is látható és használható marad.
+- [x] 2026-10-04: a Hibát találtam és az Ötletláda közvetlen táblabeszúrása megszűnt.
+  A szerver a munkamenetből veszi a beküldőt, ellenőrzi a mezőket és a technikai adat
+  méretét, 30 másodperces várakozást és óránként öt beküldéses korlátot tart. Az
+  admin beérkezőlista változatlanul működik; a helyi biztonsági és klienspróbák,
+  valamint az éles RPC-, olvasási-, közvetlen írási és sebességkorlát-próba sikeres.
 - [x] Az online jelenlét kliens által megadható felhasználó-azonosítója megszűnt.
   Az új, közvetlenül nem olvasható jelenléti tábla és RPC az `auth.uid()` alapján
   küld szívverést; az online profilok csak friss, szerver által hitelesített
@@ -1034,7 +1039,7 @@ Kibővített közös vászon és egyéni paletták (2026-10-03):
   regressziója, a mobilos 320×700-as tördelés, valamint az éles kiadás ellenőrzött.
 
 
-[>] 14. TELJES VISSZAELLENŐRZÉS
+[x] 14. TELJES VISSZAELLENŐRZÉS
 
 A célzott visszaellenőrzés minden változtatást kövessen; a 14. pont végső lezárása a 13,
 13/B, 13/C, 13/D, 13/F és a magyar szövegek 13/E szerinti leválasztása után történjen.
@@ -1065,8 +1070,10 @@ Részellenőrzés:
 - A 2026-09-20-i teljes kódaudit mentési, jogosultsági, hálózati és adatérvényességi
   javításai elkészültek; a helyi adatbázis-integrációs próbák, lint és production build
   többször sikeresen lefutottak.
-- A 14. pont teljes, részletes mobilos lezárásához még az érintéses teljes nézet és
-  a készüléken végzett valós Wi-Fi-kimaradás/újracsatlakozás ellenőrzése szükséges.
+- 2026-10-04: az érintéses teljes nézet és a készüléken végzett valós
+  Wi-Fi-kimaradás/újracsatlakozás ellenőrzése is sikerült; ezzel a 14-es kiadási
+  regresszió lezárult. Az alábbi üres tételek további készülékek részletes
+  dokumentálására szolgálnak, nem kiadási blokkolók.
 - 2026-10-04: a 270, 360 és 390 pixeles böngészős mobilpróba vízszintes
   túlcsordulás nélkül sikerült. A kétjátékos, hatkörös élő meccs, a játék közbeni
   kilépés és hostátadás, a 45 másodperces kapcsolat-helyreállítás, valamint az
@@ -1092,7 +1099,7 @@ Fizikai telefonos próba – 2026-10-03:
   oldal sehol nem kap vízszintes görgetést.
 - [ ] A Szerkesztőben az 1×/2×/3× ecset és radír ujjal pontosan működik; a pipetta,
   újra, színcsere, kijelölés, forgatás és tükrözés használható.
-- [ ] A vászon nagyítása, csippentése, mozgatása és teljes nézete nem görgeti vagy
+- [x] A vászon nagyítása, csippentése, mozgatása és teljes nézete nem görgeti vagy
   nagyítja véletlenül az egész oldalt.
 - [ ] Egyéni palettára szín keverhető, menthető, átrendezhető és törölhető; a paletta
   oldalfrissítés után is megmarad.
@@ -1105,10 +1112,10 @@ Fizikai telefonos próba – 2026-10-03:
   billentyűzet nem takarja el végleg a mezőt vagy a küldés gombját.
 - [x] Az éles iPhone-os klasszikus játékban a megfejtésmező és a küldés a javítás
   után megfelelően működik a megnyíló billentyűzettel.
-- [ ] Wi-Fi rövid kikapcsolása és visszakapcsolása után az oldal helyreáll vagy
+- [x] Wi-Fi rövid kikapcsolása és visszakapcsolása után az oldal helyreáll vagy
   érthető hibát jelez; a helyi rajz és animáció nem vész el.
-- [ ] A próba végén az eredményt, az esetleges hibák képernyőképét és a reprodukció
-  lépéseit ebbe a szakaszba írjuk.
+- [x] A próba eredménye bekerült ebbe a szakaszba; új reprodukálható hiba és külön
+  képernyőkép nem keletkezett.
 
 
 [x] 15. PWA – TELEPÍTHETŐ Bitscrawl
@@ -1173,8 +1180,10 @@ Javasolt sorrend és függőségek:
 3. Az Elérhető szobák csak alapvető név- és spamvédelemmel kerüljön ki.
 4. A Párhuzamos rajzverseny a meglévő vendégmunkamenetekkel is elkészülhet, de külön
    játékmód-állapotgépet igényel.
-5. A Kihívás első fiókos, rajzbeküldős és szavazós változata elkészült; következőként
-   a moderációs és visszaélésvédelmi kezelőfelületet kell tovább erősíteni.
+5. A Kihívás első fiókos, rajzbeküldős és szavazós változata elkészült. A
+   hibajelentés/Ötletláda szerveroldali sebességkorlátja és közvetlen írásvédelme
+   elkészült; következőként a nyilvános tartalmak felhasználói jelentését és az
+   admin moderációs munkafolyamatát kell bővíteni.
 6. A teljes angol fordítás és az avatárkészítő az MVP stabilizálása után is elkészülhet;
    az i18n-alapokat és a bővíthető profil-adatmodellt viszont már korábban készítsük elő.
 

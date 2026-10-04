@@ -11,17 +11,17 @@ const { data: authData, error: authError } = await client.auth.signInAnonymously
 if (authError || !authData.user) throw authError ?? new Error('Nincs tesztfelhasználó.')
 
 const marker = `AUTOMATED_TEST_${Date.now()}`
-const { error: insertError } = await client.from('bug_reports').insert({
-  category: 'bug',
-  description: `Automatizált hibajelentő próba ${marker}`,
-  reporter_name: 'BugReportTest',
-  room_code: null,
-  room_id: null,
-  steps: 'Automatikus beszúrási és RLS-ellenőrzés.',
-  technical_context: { automated: true, marker },
-  user_id: authData.user.id,
+const { data: reportId, error: submitError } = await client.rpc('submit_bug_report', {
+  requested_category: 'bug',
+  requested_description: `Automatizált hibajelentő próba ${marker}`,
+  requested_reporter_name: 'BugReportTest',
+  requested_room_code: null,
+  requested_room_id: null,
+  requested_steps: 'Automatikus RPC- és jogosultság-ellenőrzés.',
+  requested_technical_context: { automated: true, marker },
 })
-if (insertError) throw insertError
+if (submitError) throw submitError
+if (!Number.isSafeInteger(Number(reportId))) throw new Error('A hibajelentő RPC nem adott azonosítót.')
 
 const { data: visibleReports, error: readError } = await client
   .from('bug_reports')
@@ -30,19 +30,32 @@ if (!readError && visibleReports.length > 0) {
   throw new Error('A tesztelő olvasni tudta a privát hibajelentéseket.')
 }
 
-const otherClient = createClient(supabaseUrl, supabaseKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
-})
-const { data: otherAuth, error: otherAuthError } =
-  await otherClient.auth.signInAnonymously()
-if (otherAuthError || !otherAuth.user) throw otherAuthError ?? new Error('Nincs második tesztfelhasználó.')
-
-const { error: forgedInsertError } = await otherClient.from('bug_reports').insert({
+const { error: directInsertError } = await client.from('bug_reports').insert({
   category: 'bug',
-  description: 'Más nevében küldött tiltott automatizált jelentés.',
+  description: 'Közvetlenül küldött tiltott automatizált jelentés.',
   technical_context: { automated: true },
   user_id: authData.user.id,
 })
-if (!forgedInsertError) throw new Error('Más felhasználó nevében is lehetett jelentést küldeni.')
+if (!directInsertError) throw new Error('A böngésző közvetlenül is írhatta a hibajelentés-táblát.')
 
-console.log(JSON.stringify({ event: 'bug-reports-ok', marker, privateReadBlocked: true, forgedInsertBlocked: true }))
+const { error: rateLimitError } = await client.rpc('submit_bug_report', {
+  requested_category: 'bug',
+  requested_description: `Túl gyors ismételt próba ${marker}`,
+  requested_reporter_name: 'BugReportTest',
+  requested_room_code: null,
+  requested_room_id: null,
+  requested_steps: null,
+  requested_technical_context: { automated: true, marker },
+})
+if (!rateLimitError?.message.includes('BUG_REPORT_RATE_LIMIT')) {
+  throw new Error('A hibajelentések szerveroldali időkorlátja nem működött.')
+}
+
+console.log(JSON.stringify({
+  event: 'bug-reports-ok',
+  marker,
+  reportId: Number(reportId),
+  privateReadBlocked: true,
+  directInsertBlocked: true,
+  rateLimitBlocked: true,
+}))

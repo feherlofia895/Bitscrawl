@@ -62,7 +62,9 @@ export function BugReport({ extraTrigger, ...props }: BugReportProps) {
         : 'Köszönjük! A hibajelentés megérkezett.')
     } catch (error) {
       console.error(error)
-      setFeedback('Nem sikerült elküldeni. Ellenőrizd az internetkapcsolatot, majd próbáld újra.')
+      setFeedback(error instanceof Error
+        ? error.message
+        : 'Nem sikerült elküldeni. Ellenőrizd az internetkapcsolatot, majd próbáld újra.')
     } finally {
       setIsSubmitting(false)
     }

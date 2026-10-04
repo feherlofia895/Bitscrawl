@@ -517,6 +517,18 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      submit_bug_report: {
+        Args: {
+          requested_category: string
+          requested_description: string
+          requested_reporter_name: string | null
+          requested_room_code: string | null
+          requested_room_id: number | null
+          requested_steps: string | null
+          requested_technical_context: Json
+        }
+        Returns: number
+      }
       get_admin_feedback_reports: {
         Args: { requested_status?: string | null }
         Returns: {
