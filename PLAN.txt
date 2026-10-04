@@ -64,11 +64,24 @@ ADATVÉDELEM ÉS AUTOMATIKUS ADATTÖRLÉS
   a klasszikus és versenyadatok kaszkádos törlését, a Rajzfal és kihívásképek
   megőrzését, továbbá azt, hogy a kliensszerepkörök ne tudják kézzel meghívni a
   takarítást.
-- [ ] Külön Supabase-biztonsági auditban át kell nézni az advisor meglévő jelzéseit.
-  Elsőként az öt RLS nélküli privát táblát (`competition_entries`,
+- [x] Az öt korábban RLS nélküli privát tábla (`competition_entries`,
   `competition_votes`, `app_admins`, `weekly_score_awards`, `monthly_score_awards`)
-  és a kiszivárgott jelszavak elleni Auth-védelem beállítását kell ellenőrizni.
-  RLS-t csak a jelenlegi privát jogosultságok és RPC-k próbája után szabad bekapcsolni.
+  megkapta az alapból tiltó RLS-védelmet. Nincs rajtuk kliens-DML-jog vagy megengedő
+  policy; a szerveroldali, üres `search_path`-os tulajdonosi függvények továbbra is
+  működnek. A nyilvános profil-statisztika privilegizált része is a privát sémába
+  került, a publikus végpont pedig már `security invoker` burkoló.
+- [x] Külön helyi biztonsági próba védi az öt tábla RLS-állapotát, a közvetlen
+  `anon`, `authenticated` és `service_role` hozzáférés tiltását, valamint a
+  profil-statisztika privát/publikus függvényhatárát. A verseny-, pontozás-,
+  Dicsőségfal- és adminregressziók az RLS bekapcsolása után is sikeresek.
+- [ ] Az advisor még 20 bejelentkezett felhasználó által hívható, publikus
+  `security definer` RPC-t jelez. Ezeket funkciónként kell átnézni, majd ahol lehet,
+  privát implementáció + `security invoker` publikus burkoló mintára átállítani;
+  tömeges, ellenőrzés nélküli átírás nem biztonságos.
+- [ ] A kiszivárgott jelszavak automatikus Supabase Auth-ellenőrzése csak Pro
+  csomagtól érhető el, a PixelGuess projekt jelenleg Free csomagos. Csomagváltáskor
+  ezt be kell kapcsolni; addig a minimum jelszóhosszt és az e-mail-megerősítést kell
+  külön ellenőrizni.
 
 KÖVETKEZŐ KIS PWA-FEJLESZTÉS – LÁTHATÓ VERZIÓFRISSÍTÉS
 

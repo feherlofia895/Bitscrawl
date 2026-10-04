@@ -95,6 +95,7 @@ test('scoreboard separates empty, failed and unmounted loads',async()=>{
 async function profileApi({rpc=async()=>({data:[],error:null}),feed=async()=>({postCount:2,receivedLikeCount:7}),user={id:'synthetic'},profile={display_name:'Synthetic',avatar_pixels:null}}={}) {
   const chain={select:()=>chain,eq:()=>chain,maybeSingle:async()=>({data:profile,error:null})}
   return compile('../src/lib/profile.ts',{
+    './colorMixer':{isHexColor:value=>/^#[0-9a-f]{6}$/i.test(value)},
     './palette':{editorPalette32:[{hex:'#d3493b'}]},'./feed':{loadOwnFeedStats:feed},
     './supabase':{supabase:{rpc,from:()=>chain}},'./weekly':{getWeeklyUser:async()=>user},
   })
@@ -132,6 +133,7 @@ test('profile preview opens stats independently of avatar-like failure and links
       loadOwnProfileNote:async()=>null,
       setProfileAvatarLike:async()=>{throw new Error('unexpected write')},
     },
+    '../lib/weekly':{getWeeklyUser:async()=>({id:'synthetic'})},
   })
   const render=()=>rt.render(()=>api.ProfilePreviewButton({name:'Synthetic',pixels:null,children:'Open'}))
   render();rt.effects()
