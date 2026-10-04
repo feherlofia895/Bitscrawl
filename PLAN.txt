@@ -105,21 +105,28 @@ KÖVETKEZŐ HOZZÁFÉRÉSI FELADAT – VENDÉG SZERKESZTŐ
 
 KÖVETKEZŐ TARTALMI FELADAT – SZÓBANK ÉS SZINONIMÁK
 
-- [ ] Az összes játékmód teljes szóbankját egyenként át kell nézni abból a
+- [x] Az összes játékmód teljes szóbankját egyenként át kell nézni abból a
   szempontból, hogy a szó egyértelműen, méltányosan és az adott köridő alatt
   lerajzolható-e. A túl elvont, félreérthető vagy gyakorlatilag
   lerajzolhatatlan szavakat cseréljük vagy töröljük.
-- [ ] Minden megfejtendő fogalomhoz legyen egy kanonikus szó és szükség esetén
+- [x] Minden megfejtendő fogalomhoz legyen egy kanonikus szó és szükség esetén
   ellenőrzött elfogadott szinonimalista. Például ha a feladvány `cica`, a
   `macska` is legyen helyes megfejtés, vagy egységesítsük a feladványt `macska`
   alakra.
-- [ ] A szinonimák ellenőrzése ugyanazt az ékezet-, kis-/nagybetű- és
+- [x] A szinonimák ellenőrzése ugyanazt az ékezet-, kis-/nagybetű- és
   szóköz-normalizálást használja, mint a jelenlegi megfejtés, de ne fogadjon el
   túl tág vagy nem egyértelmű rokon értelmű válaszokat.
-- [ ] A kanonikus szavak és szinonimák szerveroldalon maradjanak; a kliens ne
+- [x] A kanonikus szavak és szinonimák szerveroldalon maradjanak; a kliens ne
   kaphassa meg a titkos megoldásokat. Legyen automatizált próba az elfogadott
   szinonimákra, az elutasított idegen válaszokra és minden érintett
   játékmódra.
+- 2026-10-04: a gyors játékmódok közös szóbankja 168 ellenőrzött, konkrét
+  feladványból áll. A kétértelmű vagy beszélt nyelvi alakok kanonikus nevet
+  kaptak (például `macska`, `televízió`, `falióra`), a `teve` / `tévé`
+  normalizálási ütközés és a `krumpli` / `burgonya` ismétlés megszűnt. A
+  célfogalomhoz kötött szinonimák privát szerveroldali táblában maradnak, és
+  külön helyi regressziós próba védi a játékmódokat, a titkos szót és a hibás
+  válaszok elutasítását.
 
 2026-09-21-i audit- és visszajelzési állapot:
 - [x] Bejelentkezett, mentett profillal az Új szoba és a Csatlakozás már nem kér

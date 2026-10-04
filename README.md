@@ -8,7 +8,8 @@ Nyilvános változat: **https://bitscrawl.pages.dev/**
 
 - React 19, TypeScript és Vite 8 kliens Supabase háttérrel.
 - Valódi, 2–6 fős klasszikus online játék kódos szobákkal, hostkezeléssel,
-  szerveroldali szóválasztással, köridővel, pontozással és újracsatlakozással.
+  szerveroldali, ellenőrzött szóbankkal és célhoz kötött szinonimákkal,
+  köridővel, pontozással és újracsatlakozással.
 - Párhuzamos rajzverseny közös szóval, névtelen szavazással és összesített
   eredménnyel.
 - Heti és havi rajzkihívás menthető vázlatokkal, szavazással, archív galériával,
