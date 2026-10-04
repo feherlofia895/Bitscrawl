@@ -126,6 +126,30 @@ test('advanced drawing tools are enabled in the editor and both challenges', asy
   }
 })
 
+test('guest editor access keeps basic colors and PNG export while locking advanced features', async () => {
+  const [appSource, editorSource, commentsSource, profilePreviewSource] = await Promise.all([
+    readFile(new URL('../src/App.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/DrawingEditor.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/GalleryComments.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/components/ProfilePreviewButton.tsx', import.meta.url), 'utf8'),
+  ])
+
+  assert.match(appSource, /hasAdvancedAccess=\{Boolean\(currentUserId && playerProfile\)\}/)
+  assert.match(editorSource, /hasAdvancedAccess \? initial\.paletteSize : 12/)
+  assert.match(editorSource, /setCustomPaletteActive\(false\)[\s\S]*?setPaletteSize\(12\)/)
+  assert.match(editorSource, /disabled=\{!hasAdvancedAccess\}[\s\S]*?Animáció · legfeljebb 3 képkocka/)
+  assert.match(editorSource, /allowColorMixer=\{hasAdvancedAccess\}/)
+  assert.match(editorSource, /allowEditorTools=\{hasAdvancedAccess\}/)
+  assert.match(editorSource, /paletteSize=\{hasAdvancedAccess \? paletteSize : 12\}/)
+  assert.match(editorSource, /Vendég mód[\s\S]*?12 alapszínnel[\s\S]*?Belépés \/ regisztráció/)
+  assert.match(editorSource, /!hasAdvancedAccess \? 'Kép letöltése'/)
+  assert.match(editorSource, /onClick=\{\(\) => void downloadPng\(\)\}/)
+  assert.match(commentsSource, /if \(!isSignedIn\) return null/)
+  assert.match(profilePreviewSource, /getWeeklyUser\(\)/)
+  assert.match(profilePreviewSource, /\{socialVisible \? <button[\s\S]*?profile-avatar-like-button/)
+  assert.match(profilePreviewSource, /\{socialVisible \? <>[\s\S]*?<span><strong>\{receivedLikes/)
+})
+
 test('empty drawings do not share mutable data', () => {
   const first = emptyDrawing()
   first[0] = '#d3493b'
@@ -280,8 +304,8 @@ test('the editor uses one share menu for the feed and both challenge entries', a
   assert.match(editorSource, /deleteOwnEditorGallerySlot\(slotIndex\)/)
   assert.match(editorSource, /A mentett kép a vásznon lévő rajz helyére kerül/)
   assert.match(editorSource, /<WeeklyArtwork[^>]*pixels=\{slot\.pixels\}/)
-  assert.match(editorSource, /onLoadFromGallery=\{animationMode \? undefined : \(\) => void openGalleryAction\('load'\)\}/)
-  assert.match(editorSource, /onSaveToGallery=\{animationMode \? undefined : \(\) => void openGalleryAction\('save'\)\}/)
+  assert.match(editorSource, /onLoadFromGallery=\{hasAdvancedAccess && !animationMode \? \(\) => void openGalleryAction\('load'\) : undefined\}/)
+  assert.match(editorSource, /onSaveToGallery=\{hasAdvancedAccess && !animationMode \? \(\) => void openGalleryAction\('save'\) : undefined\}/)
   assert.match(canvasSource, />Mentés<\/button>/)
   assert.match(canvasSource, />Betöltés<\/button>/)
   assert.match(editorSource, /saveGalleryAction \? 'Rajz mentése' : 'Rajz betöltése'/)

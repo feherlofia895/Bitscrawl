@@ -88,15 +88,18 @@ KÖVETKEZŐ KIEMELT FEJLESZTÉS – KÉT RÉTEG
 
 KÖVETKEZŐ HOZZÁFÉRÉSI FELADAT – VENDÉG SZERKESZTŐ
 
-- [ ] Bejelentkezés nélkül a Szerkesztő csak az alapvető statikus rajzolást, az
+- [x] Bejelentkezés nélkül a Szerkesztő csak az alapvető statikus rajzolást, az
   alapszínpalettát és a kép helyi letöltését engedje. Az alapszínek továbbra is
   kiválaszthatók legyenek.
-- [ ] A színkeverő, az egyéni színválasztó, a pipetta, az egyéni paletták és az
+- [x] A színkeverő, az egyéni színválasztó, a pipetta, az egyéni paletták és az
   animációkészítés csak bejelentkezett profillal legyen elérhető.
-- [ ] A felhőmentés, a saját galéria, a profilkép, a megosztás/nevezés és minden
+- [x] A felhőmentés, a saját galéria, a profilkép, a megosztás/nevezés és minden
   további fiókhoz kötött szerkesztőfunkció maradjon bejelentkezéshez kötve. A
   lezárt vezérlők érthető belépési felhívást mutassanak.
-- [ ] Automatizált klienspróba ellenőrizze külön a vendég és a bejelentkezett
+- [x] A be nem jelentkezett vendég ne lássa a hozzászólásokat, a kommentek
+  kedveléseit, a profilképek kedveléseit és a rajzfali kedvelésszámokat. Ezek a
+  közösségi funkciók csak bejelentkezett profillal jelenjenek meg.
+- [x] Automatizált klienspróba ellenőrizze külön a vendég és a bejelentkezett
   Szerkesztő eszközeit, valamint azt is, hogy kijelentkezés után ne maradjon
   használható korábban megnyitott, fiókhoz kötött funkció.
 

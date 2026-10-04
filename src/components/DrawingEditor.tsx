@@ -92,9 +92,11 @@ function readDrawing() {
   return { pixels: emptyDrawing(), exported: true, paletteSize: 12 as const, storageAvailable: false }
 }
 
-export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
+export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpenProfile, onStorageChange }: {
+  hasAdvancedAccess: boolean
   onBack: () => void
   onDirtyChange: (dirty: boolean) => void
+  onOpenProfile: () => void
   onStorageChange: (available: boolean) => void
 }) {
   const [initial] = useState(readDrawing)
@@ -106,8 +108,8 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
   const animationFlushRef = useRef<() => void>(() => undefined)
   const [revision, setRevision] = useState(0)
   const [scale, setScale] = useState(1)
-  const [paletteSize, setPaletteSize] = useState<EditorPaletteSize>(initial.paletteSize)
-  const [customPaletteActive, setCustomPaletteActive] = useState(true)
+  const [paletteSize, setPaletteSize] = useState<EditorPaletteSize>(hasAdvancedAccess ? initial.paletteSize : 12)
+  const [customPaletteActive, setCustomPaletteActive] = useState(hasAdvancedAccess)
   const [customPalettes, setCustomPalettes] = useState(loadLocalEditorPalettes)
   const [activePaletteSlot, setActivePaletteSlot] = useState<EditorPaletteSlotIndex>(1)
   const [paletteSyncStatus, setPaletteSyncStatus] = useState('Saját paletták betöltése…')
@@ -149,6 +151,10 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
   }, [])
 
   useEffect(() => {
+    if (!hasAdvancedAccess) {
+      setPaletteSyncStatus('Saját palettákhoz jelentkezz be.')
+      return
+    }
     let active = true
     void loadOwnEditorPalettes()
       .then(result => {
@@ -162,7 +168,7 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
         }
       })
     return () => { active = false }
-  }, [])
+  }, [hasAdvancedAccess])
 
   useEffect(() => {
     if (!galleryAction) return
@@ -254,6 +260,10 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
   }
 
   const switchEditorMode = (nextMode: 'drawing' | 'animation') => {
+    if (nextMode === 'animation' && !hasAdvancedAccess) {
+      setStatus('Animáció készítéséhez jelentkezz be.')
+      return
+    }
     animationFlushRef.current()
     const useAnimation = nextMode === 'animation'
     setAnimationMode(useAnimation)
@@ -263,6 +273,19 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
     setServerPaletteReady(pixelsRef.current.every(color => serverColors.has(color)))
     setRevision(value => value + 1)
   }
+
+  useEffect(() => {
+    if (hasAdvancedAccess) return
+    setCustomPaletteActive(false)
+    setPaletteSize(12)
+    if (!animationMode) return
+    animationFlushRef.current()
+    setAnimationMode(false)
+    pixelsRef.current = [...staticPixelsRef.current]
+    setServerPaletteReady(pixelsRef.current.every(color => serverColors.has(color)))
+    setStatus('A vendég módban az állókép-szerkesztő használható.')
+    setRevision(value => value + 1)
+  }, [animationMode, hasAdvancedAccess])
 
   const updateAnimationSettings = (nextFps: number, nextOnionSkin: boolean) => {
     setAnimationFps(nextFps)
@@ -340,6 +363,7 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
   }
 
   const changePalette = (nextPalette: EditorPaletteSize) => {
+    if (!hasAdvancedAccess && nextPalette !== 12) return
     setCustomPaletteActive(false)
     setPaletteSize(nextPalette)
     if (persist(staticPixelsRef.current, !dirty, nextPalette)) setStatus(text.local)
@@ -374,6 +398,7 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
   }
 
   const updateCustomPaletteColors = (colors: string[]) => {
+    if (!hasAdvancedAccess) return
     const normalizedColors = sanitizeEditorPaletteColors(colors)
     const palette = { ...activeCustomPalette, colors: normalizedColors }
     replaceCustomPalette(palette)
@@ -381,6 +406,7 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
   }
 
   const saveCustomColor = (color: string) => {
+    if (!hasAdvancedAccess) return
     const colors = [
       color,
       ...activeCustomPalette.colors.filter(saved => saved.toLowerCase() !== color.toLowerCase()),
@@ -389,10 +415,12 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
   }
 
   const updateCustomPaletteName = (name: string) => {
+    if (!hasAdvancedAccess) return
     replaceCustomPalette({ ...activeCustomPalette, name: name.slice(0, 24) })
   }
 
   const saveCustomPaletteName = () => {
+    if (!hasAdvancedAccess) return
     const palette = {
       ...activeCustomPalette,
       name: sanitizeEditorPaletteName(activeCustomPalette.name, activeCustomPalette.slotIndex),
@@ -402,6 +430,7 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
   }
 
   const clearCustomPalette = async (slotIndex: EditorPaletteSlotIndex) => {
+    if (!hasAdvancedAccess) return
     customPaletteTouchedRef.current = true
     setPaletteSyncStatus('Paletta ürítése…')
     const cleared = loadLocalEditorPalettes().map(palette => palette.slotIndex === slotIndex
@@ -842,14 +871,23 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
       <div className="editor-intro">
         <h1 id="drawing-editor-title">{text.editor}</h1>
         <p>{text.intro}</p>
+        {!hasAdvancedAccess ? (
+          <aside className="editor-access-notice" aria-label="Vendég szerkesztő korlátozásai">
+            <div>
+              <strong>Vendég mód</strong>
+              <p>A 12 alapszínnel rajzolhatsz, és PNG-ként letöltheted a képet. A bővített és egyéni paletta, a színkeverő, a pipetta, valamint az animáció belépés után érhető el.</p>
+            </div>
+            <button className="primary-button" onClick={onOpenProfile} type="button">Belépés / regisztráció</button>
+          </aside>
+        ) : null}
         <div className="editor-actions">
           <button onClick={onBack} type="button">{text.backPlay}</button>
           <button onClick={startNewDrawing} disabled={exporting} type="button">{text.newDrawing}</button>
           <details className="editor-share-menu" onToggle={event => {
-            if (event.target === event.currentTarget && event.currentTarget.open) void refreshShareState()
+            if (hasAdvancedAccess && event.target === event.currentTarget && event.currentTarget.open) void refreshShareState()
           }} ref={shareMenuRef}>
             <summary aria-disabled={exporting || sharing}>
-              {animationMode ? 'Megosztás / mentés' : 'Megosztás / nevezés'}
+              {!hasAdvancedAccess ? 'Kép letöltése' : animationMode ? 'Megosztás / mentés' : 'Megosztás / nevezés'}
             </summary>
             <div className="editor-share-options">
               {animationMode ? (
@@ -945,7 +983,7 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
         </div>
         <div className="editor-animation-mode" aria-label="Szerkesztési mód">
           <button aria-pressed={!animationMode} onClick={() => switchEditorMode('drawing')} type="button">Állókép</button>
-          <button aria-pressed={animationMode} onClick={() => switchEditorMode('animation')} type="button">Animáció · legfeljebb 3 képkocka</button>
+          <button aria-pressed={animationMode} disabled={!hasAdvancedAccess} onClick={() => switchEditorMode('animation')} title={!hasAdvancedAccess ? 'Animáció készítéséhez jelentkezz be.' : undefined} type="button">Animáció · legfeljebb 3 képkocka</button>
         </div>
         {animationMode ? (
           <p className="status-message" role="status">
@@ -954,7 +992,7 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
               : status}
           </p>
         ) : null}
-        <fieldset className="palette-mode-fieldset editor-palette-picker">
+        {hasAdvancedAccess ? <fieldset className="palette-mode-fieldset editor-palette-picker">
           <legend>{text.palette}</legend>
           <label className="editor-palette-select">
             <span>Paletta</span>
@@ -1003,7 +1041,7 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
               <small aria-live="polite">{activeCustomPalette.colors.length}/{EDITOR_PALETTE_COLOR_LIMIT} szín · {paletteSyncStatus}</small>
             </div>
           ) : null}
-        </fieldset>
+        </fieldset> : null}
       </div>
       {animationMode ? (
         <EditorAnimationControls
@@ -1020,34 +1058,34 @@ export function DrawingEditor({ onBack, onDirtyChange, onStorageChange }: {
         />
       ) : null}
       <PixelCanvas
-        allowColorMixer
-        allowEditorTools
+        allowColorMixer={hasAdvancedAccess}
+        allowEditorTools={hasAdvancedAccess}
         canDraw
         chosenWord={null}
         drawingEndsAt={null}
         events={[]}
-        customPaletteActive={customPaletteActive}
-        customPaletteColors={activeCustomPalette.colors}
-        customPaletteOptions={customPalettes.map(palette => ({
+        customPaletteActive={hasAdvancedAccess && customPaletteActive}
+        customPaletteColors={hasAdvancedAccess ? activeCustomPalette.colors : []}
+        customPaletteOptions={hasAdvancedAccess ? customPalettes.map(palette => ({
           label: `${palette.name || `Saját paletta ${palette.slotIndex}`} · ${palette.colors.length}/${EDITOR_PALETTE_COLOR_LIMIT}`,
           slotIndex: palette.slotIndex,
-        }))}
+        })) : []}
         customPaletteSlot={activePaletteSlot}
         onionSkinPixels={animationMode && onionSkin && activeAnimationFrame > 0
           ? animationFrames[activeAnimationFrame - 1]
           : null}
         onError={() => setStatus(text.storageError)}
-        onLoadFromGallery={animationMode ? undefined : () => void openGalleryAction('load')}
-        onCustomPaletteActiveChange={setCustomPaletteActive}
-        onCustomPaletteColorSave={saveCustomColor}
-        onCustomPaletteColorsChange={updateCustomPaletteColors}
-        onCustomPaletteSlotChange={slotIndex => {
+        onLoadFromGallery={hasAdvancedAccess && !animationMode ? () => void openGalleryAction('load') : undefined}
+        onCustomPaletteActiveChange={hasAdvancedAccess ? setCustomPaletteActive : undefined}
+        onCustomPaletteColorSave={hasAdvancedAccess ? saveCustomColor : undefined}
+        onCustomPaletteColorsChange={hasAdvancedAccess ? updateCustomPaletteColors : undefined}
+        onCustomPaletteSlotChange={hasAdvancedAccess ? slotIndex => {
           if (slotIndex === 1 || slotIndex === 2 || slotIndex === 3) setActivePaletteSlot(slotIndex)
-        }}
-        onPaletteSizeChange={size => changePalette(size === 32 ? 32 : 12)}
-        onSaveToGallery={animationMode ? undefined : () => void openGalleryAction('save')}
+        } : undefined}
+        onPaletteSizeChange={hasAdvancedAccess ? size => changePalette(size === 32 ? 32 : 12) : undefined}
+        onSaveToGallery={hasAdvancedAccess && !animationMode ? () => void openGalleryAction('save') : undefined}
         onSubmit={async () => undefined}
-        paletteSize={paletteSize}
+        paletteSize={hasAdvancedAccess ? paletteSize : 12}
         roundId={revision}
         serverNow=""
         localDrawing={{
