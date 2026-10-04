@@ -22,8 +22,8 @@ export function isValidDrawingPixels(value: unknown): value is string[] {
     value.every((color: unknown) => typeof color === 'string' && validColors.has(color))
 }
 
-// The standalone editor may use locally mixed colors. Server-backed drawings
-// intentionally keep using the stricter official-palette validator above.
+// Editors that support mixed colors use this validator. Multiplayer drawing
+// still uses the stricter official-palette validator above.
 export function isValidEditorDrawingPixels(
   value: unknown,
   drawingSize: DrawingSize = DRAWING_SIZE,

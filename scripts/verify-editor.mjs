@@ -297,7 +297,7 @@ test('the editor uses one share menu for the feed and both challenge entries', a
   assert.match(editorSource, /saveProfileAvatar\(snapshot\)/)
   assert.match(editorSource, />\s*Beállítás profilképnek\s*<\/button>/)
   assert.match(editorSource, /Biztosan beállítod ezt a rajzot profilképnek\? A mostani profilképed elveszik/)
-  assert.match(editorSource, /A kevert színeket a heti és havi kihívás fogadja/)
+  assert.match(editorSource, /A kevert színeket a Rajzfal, a profilkép/)
   assert.match(editorSource, /disabled=\{sharing \|\| !shareState\.weekly/)
   assert.match(editorSource, /disabled=\{sharing \|\| !shareState\.monthly/)
   assert.match(editorSource, /A Rajzfal adatbázis-frissítése még nincs telepítve/)
@@ -327,15 +327,14 @@ test('the editor uses one share menu for the feed and both challenge entries', a
   assert.match(cssSource, /\.feed-entry-actions\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,/)
 })
 
-test('the profile avatar editor uses the expanded 32-color palette', async () => {
+test('the profile avatar editor accepts official and mixed hexadecimal colors', async () => {
   const [panelSource, profileSource] = await Promise.all([
     readFile(new URL('../src/components/ProfilePanel.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/lib/profile.ts', import.meta.url), 'utf8'),
   ])
   assert.match(panelSource, /32 színű bővített palettával/)
   assert.match(panelSource, /<PixelCanvas[\s\S]*?paletteSize=\{32\}/)
-  assert.match(profileSource, /editorPalette32/)
-  assert.doesNotMatch(profileSource, /validAvatarColors = new Set\(\['transparent', \.\.\.basePalette/)
+  assert.match(profileSource, /color === 'transparent' \|\| isHexColor\(color\)/)
 })
 
 test('the mobile lobby chat keeps its composer inside the panel', async () => {
@@ -465,7 +464,7 @@ test('drawing layers flatten in fixed order and preserve alpha blending', () => 
   assert.deepEqual(composeDrawingLayers([bottom, top], [false, true]).slice(0, 2), ['#ff000080', '#d3493b'])
 })
 
-test('standalone editor extras stay out of the challenge editors', async () => {
+test('compact mobile tools are the default while standalone-only layers stay out of challenges', async () => {
   const [editorSource, pixelCanvasSource, weeklySource, monthlySource] = await Promise.all([
     readFile(new URL('../src/components/DrawingEditor.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/components/PixelCanvas.tsx', import.meta.url), 'utf8'),
@@ -477,12 +476,15 @@ test('standalone editor extras stay out of the challenge editors', async () => {
   assert.match(editorSource, /<summary className="editor-collapsible-summary">/)
   assert.match(editorSource, /compactMobileToolbar/)
   assert.match(editorSource, /showDrawModeBadge=\{false\}/)
+  assert.match(pixelCanvasSource, /compactMobileToolbar = true/)
   assert.match(pixelCanvasSource, /className="tool-sprite-button shape-tool-toggle"/)
   assert.match(pixelCanvasSource, /className="mobile-shape-tool-options"/)
   assert.match(pixelCanvasSource, /className="editor-palette-actions"/)
   assert.match(editorSource, /getDisplayColor: animationMode \? undefined : displayEditorLayerColor/)
   assert.doesNotMatch(weeklySource, /editor-layer-panel|composeDrawingLayers/)
   assert.doesNotMatch(monthlySource, /editor-layer-panel|composeDrawingLayers/)
+  assert.doesNotMatch(weeklySource, /compactMobileToolbar=\{false\}/)
+  assert.doesNotMatch(monthlySource, /compactMobileToolbar=\{false\}/)
 })
 
 test('corrupt or unsupported drafts cannot become pixel data', () => {

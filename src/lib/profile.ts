@@ -1,6 +1,6 @@
 import type { User } from '@supabase/supabase-js'
 import type { Json } from '../types/database'
-import { editorPalette32 } from './palette'
+import { isHexColor } from './colorMixer'
 import { loadOwnFeedStats } from './feed'
 import { supabase } from './supabase'
 import { getWeeklyUser } from './weekly'
@@ -38,7 +38,6 @@ export type PublicProfileStats = {
   trophyCount: number
 }
 
-const validAvatarColors = new Set(['transparent', ...editorPalette32.map(color => color.hex)])
 const avatarStoragePrefix = 'bitscrawl-profile-avatar:'
 
 function localAvatarKey(userId: string) {
@@ -76,7 +75,7 @@ function publicProfileStatsEndpointIsMissing(error: { code?: string; message?: s
 
 export function parseAvatarPixels(value: Json | null): string[] | null {
   return Array.isArray(value) && value.length === 1024 &&
-    value.every(color => typeof color === 'string' && validAvatarColors.has(color))
+    value.every(color => typeof color === 'string' && (color === 'transparent' || isHexColor(color)))
     ? value as string[]
     : null
 }

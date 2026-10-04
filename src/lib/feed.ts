@@ -1,5 +1,5 @@
 import type { Json } from '../types/database'
-import { editorPalette32 } from './palette'
+import { isHexColor } from './colorMixer'
 import { supabase } from './supabase'
 import { hydrateCommentLikes, type GalleryComment, type GallerySort } from './galleryComments'
 
@@ -43,8 +43,6 @@ export type OwnFeedStats = {
   receivedLikeCount: number
 }
 
-const validColors = new Set(['transparent', ...editorPalette32.map(color => color.hex)])
-
 const messages: Record<string, string> = {
   FEED_DRAWING_INVALID: 'A megosztáshoz készíts egy érvényes, nem üres 32×32-es rajzot.',
   FEED_DAILY_LIMIT: `Ma már ${FEED_DAILY_POST_LIMIT} képet tettél közzé. Töröld az egyiket, ha újat szeretnél feltölteni.`,
@@ -71,7 +69,7 @@ function feedError(error: unknown) {
 
 export function parseFeedPixels(value: Json | null): string[] | null {
   return Array.isArray(value) && value.length === 1024 &&
-    value.every(color => typeof color === 'string' && validColors.has(color))
+    value.every(color => typeof color === 'string' && (color === 'transparent' || isHexColor(color)))
     ? value as string[]
     : null
 }

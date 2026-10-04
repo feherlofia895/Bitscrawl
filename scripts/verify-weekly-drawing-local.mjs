@@ -88,11 +88,12 @@ test('profile avatars are validated, private and copied beside room names', asyn
     /PROFILE_AVATAR_INVALID/,
   )
   await assert.rejects(
-    asUser(users[0], 'select public.set_profile_avatar($1::jsonb)', [JSON.stringify(drawing('#ffffff'))]),
+    asUser(users[0], 'select public.set_profile_avatar($1::jsonb)', [JSON.stringify(drawing('#fff'))]),
     /PROFILE_AVATAR_INVALID/,
   )
 
-  const firstAvatar = drawing(colors[0])
+  const firstAvatar = drawing('#123456')
+  firstAvatar[4] = '#abcdef80'
   await asUser(users[0], 'select public.set_profile_avatar($1::jsonb)', [JSON.stringify(firstAvatar)])
   const ownProfile = await asUser(users[0], 'select avatar_pixels from public.profiles where user_id = $1', [users[0]])
   const hiddenProfile = await asUser(users[1], 'select avatar_pixels from public.profiles where user_id = $1', [users[0]])
@@ -200,7 +201,7 @@ test('each permanent profile owns exactly two private editor gallery slots', asy
 })
 
 test('daily feed limits posts by Budapest day and protects likes, comments and profile totals', async () => {
-  const expandedDrawing = drawing('#f7f3e8')
+  const expandedDrawing = drawing('#12345680')
   await assert.rejects(
     asUser(anonymousUser, 'select public.publish_daily_feed_post($1::jsonb)', [JSON.stringify(expandedDrawing)], { anonymous: true }),
     /WEEKLY_ACCOUNT_REQUIRED/,
@@ -210,7 +211,7 @@ test('daily feed limits posts by Budapest day and protects likes, comments and p
     /FEED_DRAWING_INVALID/,
   )
   await assert.rejects(
-    asUser(users[0], 'select public.publish_daily_feed_post($1::jsonb)', [JSON.stringify(drawing('#ffffff'))]),
+    asUser(users[0], 'select public.publish_daily_feed_post($1::jsonb)', [JSON.stringify(drawing('red'))]),
     /FEED_DRAWING_INVALID/,
   )
   await assert.rejects(

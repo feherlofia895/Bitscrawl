@@ -107,7 +107,7 @@ test('both challenges expose official and custom palettes, and monthly entries r
   assert.match(monthly, /<ChallengePalettePicker/)
   assert.match(palettePicker, /Egyéni paletta/)
   assert.match(editor, /challenge_status === 'drawing' \|\| challenge\.challenge_status === 'voting'/)
-  assert.match(editor, /A kevert színeket a heti és havi kihívás fogadja/)
+  assert.match(editor, /A kevert színeket a Rajzfal, a profilkép/)
   assert.match(monthly, /account\.submittedAt \? challenge\?\.submission_ends_at[^:]+: challenge\?\.ends_at/)
   assert.match(monthly, /Új nevezés:[\s\S]*Beküldött kép szerkesztése:[\s\S]*Szavazás:/)
   assert.match(pixelCanvas, /\{canvasSize\} × \{canvasSize\} pixel/)

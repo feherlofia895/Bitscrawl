@@ -87,10 +87,11 @@ async function editor({ hasAdvancedAccess = true, initial = drawing.emptyDrawing
   const source = await readFile(new URL('../src/components/DrawingEditor.tsx', import.meta.url), 'utf8')
   const output = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText
   const exports = {}
-  new Function('require', 'exports', 'localStorage', 'document', 'HTMLElement', output)(
+  new Function('require', 'exports', 'localStorage', 'document', 'HTMLElement', 'window', output)(
     name => { assert.ok(name in available, `Unmocked dependency: ${name}`); return available[name] }, exports,
     { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) },
     { activeElement: null }, class HTMLElement {},
+    { requestAnimationFrame: callback => callback(), scrollTo() {} },
   )
   const render = () => { cursor = 0; return exports.DrawingEditor({ hasAdvancedAccess, onBack() {}, onDirtyChange() {}, onOpenProfile() { profileOpenCount++ }, onStorageChange() {} }) }
   const canvas = () => nodes(render(), 'PixelCanvas')[0].props

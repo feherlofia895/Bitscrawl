@@ -153,7 +153,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
   const [galleryAction, setGalleryAction] = useState<'load' | 'save' | 'animation-load' | 'animation-save' | null>(null)
   const [galleryActionLoading, setGalleryActionLoading] = useState(false)
   const [galleryActionError, setGalleryActionError] = useState<string | null>(null)
-  const [serverPaletteReady, setServerPaletteReady] = useState(
+  const [galleryPaletteReady, setGalleryPaletteReady] = useState(
     () => initial.pixels.every(color => serverColors.has(color)),
   )
   const [confirmation, setConfirmation] = useState<{
@@ -261,7 +261,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
   const handleChange = useCallback((pixels: string[]) => {
     pixelsRef.current = pixels
     if (animationMode) {
-      setServerPaletteReady(pixels.every(color => serverColors.has(color)))
+      setGalleryPaletteReady(pixels.every(color => serverColors.has(color)))
       const frames = replaceAnimationFrame(
         animationFramesRef.current,
         activeAnimationFrameRef.current,
@@ -279,7 +279,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
     )) as EditorDrawingLayers
     editorLayersRef.current = layers
     staticPixelsRef.current = composeDrawingLayers(layers, layerVisibilityRef.current)
-    setServerPaletteReady(staticPixelsRef.current.every(color => serverColors.has(color)))
+    setGalleryPaletteReady(staticPixelsRef.current.every(color => serverColors.has(color)))
     setDirty(true)
     if (persist(layers, false)) setStatus(text.local)
   }, [animationMode, persist, persistAnimationDraft])
@@ -303,7 +303,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
     activeAnimationFrameRef.current = nextIndex
     setActiveAnimationFrame(nextIndex)
     pixelsRef.current = [...frames[nextIndex]]
-    setServerPaletteReady(pixelsRef.current.every(color => serverColors.has(color)))
+    setGalleryPaletteReady(pixelsRef.current.every(color => serverColors.has(color)))
     persistAnimationDraft(frames, nextIndex)
     setRevision(value => value + 1)
   }
@@ -323,7 +323,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
       ? pixelsRef.current
       : composeDrawingLayers(editorLayersRef.current, layerVisibilityRef.current)
     staticPixelsRef.current = useAnimation ? staticPixelsRef.current : outputPixels
-    setServerPaletteReady(outputPixels.every(color => serverColors.has(color)))
+    setGalleryPaletteReady(outputPixels.every(color => serverColors.has(color)))
     setRevision(value => value + 1)
   }
 
@@ -336,7 +336,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
     setAnimationMode(false)
     pixelsRef.current = [...editorLayersRef.current[activeLayerRef.current]]
     staticPixelsRef.current = composeDrawingLayers(editorLayersRef.current, layerVisibilityRef.current)
-    setServerPaletteReady(staticPixelsRef.current.every(color => serverColors.has(color)))
+    setGalleryPaletteReady(staticPixelsRef.current.every(color => serverColors.has(color)))
     setStatus('A vendég módban az állókép-szerkesztő használható.')
     setRevision(value => value + 1)
   }, [animationMode, hasAdvancedAccess])
@@ -359,7 +359,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
     layerVisibilityRef.current = visibility
     setLayerVisibility(visibility)
     staticPixelsRef.current = composeDrawingLayers(editorLayersRef.current, visibility)
-    setServerPaletteReady(staticPixelsRef.current.every(color => serverColors.has(color)))
+    setGalleryPaletteReady(staticPixelsRef.current.every(color => serverColors.has(color)))
     setDirty(true)
     if (persist(editorLayersRef.current, false, paletteSize, activeLayerRef.current, visibility)) {
       setStatus(text.local)
@@ -425,7 +425,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
     setLayerVisibility(visibility)
     staticPixelsRef.current = emptyDrawing()
     pixelsRef.current = layers[0]
-    setServerPaletteReady(true)
+    setGalleryPaletteReady(true)
     setDirty(false)
     if (persist(layers, true, paletteSize, 0, visibility)) setStatus(text.local)
     setRevision(value => value + 1)
@@ -439,7 +439,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
     setAnimationFrames(frames)
     setActiveAnimationFrame(0)
     setAnimationDirty(false)
-    setServerPaletteReady(true)
+    setGalleryPaletteReady(true)
     if (persistAnimationDraft(frames, 0)) setStatus('Új animáció indítva.')
     setRevision(value => value + 1)
   }
@@ -634,10 +634,6 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
       setStatus('Előbb rajzolj valamit a megosztáshoz.')
       return
     }
-    if (target === 'feed' && !serverPaletteReady) {
-      setStatus('Kevert színes rajzot a Rajzfal még nem fogad.')
-      return
-    }
     setSharing(true)
     try {
       if (target === 'feed') {
@@ -664,10 +660,6 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
     const snapshot = composeDrawingLayers(editorLayersRef.current, layerVisibilityRef.current)
     if (!snapshot.some(color => color !== 'transparent')) {
       setStatus('Előbb rajzolj valamit a profilképedhez.')
-      return
-    }
-    if (!serverPaletteReady) {
-      setStatus('Kevert színes rajz még nem állítható be profilképnek.')
       return
     }
     setSharing(true)
@@ -736,7 +728,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
       setStatus('Előbb rajzolj valamit a saját galériába mentéshez.')
       return
     }
-    if (!serverPaletteReady) {
+    if (!galleryPaletteReady) {
       setStatus('Kevert színes rajz még nem menthető a szerveres saját galériába.')
       return
     }
@@ -779,7 +771,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
     setLayerVisibility(visibility)
     setPaletteSize(slot.paletteSize)
     setCustomPaletteActive(false)
-    setServerPaletteReady(pixels.every(color => serverColors.has(color)))
+    setGalleryPaletteReady(pixels.every(color => serverColors.has(color)))
     setDirty(true)
     const storedLocally = persist(layers, false, slot.paletteSize, 0, visibility)
     setRevision(value => value + 1)
@@ -866,7 +858,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
     setActiveAnimationFrame(0)
     setAnimationFps(slot.fps)
     setAnimationDirty(false)
-    setServerPaletteReady(pixelsRef.current.every(color => serverColors.has(color)))
+    setGalleryPaletteReady(pixelsRef.current.every(color => serverColors.has(color)))
     const storedLocally = persistAnimationDraft(frames, 0, slot.fps, onionSkin)
     setRevision(value => value + 1)
     if (storedLocally) setStatus(`Az animációs galéria ${slot.slotIndex}. animációja betöltve szerkesztésre.`)
@@ -1045,7 +1037,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
                   />
                   <small>{feedDescription.length}/{FEED_DESCRIPTION_MAX_LENGTH} karakter · legfeljebb {FEED_DESCRIPTION_MAX_LINES} sor</small>
                 </label>
-                <button disabled={sharing || !serverPaletteReady || Boolean(shareState.feedUnavailableMessage) || shareState.feedPostCount >= FEED_DAILY_POST_LIMIT} onClick={() => void shareDrawing('feed')} type="button">
+                <button disabled={sharing || Boolean(shareState.feedUnavailableMessage) || shareState.feedPostCount >= FEED_DAILY_POST_LIMIT} onClick={() => void shareDrawing('feed')} type="button">
                   {shareState.feedUnavailableMessage ? 'Rajzfal – frissítésre vár' : shareState.feedPostCount >= FEED_DAILY_POST_LIMIT ? 'A mai három kép már megosztva' : `Megosztás a Rajzfalon (${shareState.feedPostCount}/${FEED_DAILY_POST_LIMIT})`}
                 </button>
                 <button disabled={sharing || !shareState.weekly || shareState.weekly.submitted} onClick={() => void shareDrawing('weekly')} type="button">
@@ -1054,7 +1046,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
                 <button disabled={sharing || !shareState.monthly || shareState.monthly.submitted} onClick={() => void shareDrawing('monthly')} type="button">
                   {shareState.monthly ? shareState.monthly.submitted ? 'Havi nevezés már beküldve' : `Havi kihívás: ${shareState.monthly.prompt}` : 'Nincs aktív havi kihívás'}
                 </button>
-                <button disabled={sharing || !serverPaletteReady} onClick={requestProfileAvatar} type="button">
+                <button disabled={sharing} onClick={requestProfileAvatar} type="button">
                   Beállítás profilképnek
                 </button>
                 <details className="editor-own-gallery">
@@ -1073,7 +1065,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
                             ) : <div className="editor-own-gallery-empty">Üres hely</div>}
                             <div className="editor-own-gallery-actions">
                               {slot ? <button disabled={sharing} onClick={() => requestLoadGallerySlot(slot)} type="button">Betöltés</button> : null}
-                              <button disabled={sharing || !serverPaletteReady} onClick={() => requestSaveGallerySlot(slotIndex, Boolean(slot))} type="button">
+                              <button disabled={sharing || !galleryPaletteReady} onClick={() => requestSaveGallerySlot(slotIndex, Boolean(slot))} type="button">
                                 {slot ? 'Felülírás' : 'Ide mentem'}
                               </button>
                               {slot ? <button className="danger-button" disabled={sharing} onClick={() => requestDeleteGallerySlot(slotIndex)} type="button">Törlés</button> : null}
@@ -1085,7 +1077,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
                   )}
                 </details>
                 {shareState.feedUnavailableMessage ? <small>{shareState.feedUnavailableMessage}</small> : null}
-                {!serverPaletteReady ? <small>A kevert színeket a heti és havi kihívás fogadja; a Rajzfal, a profilkép és a saját galéria továbbra is a 32 hivatalos színt használja.</small> : null}
+                {!galleryPaletteReady ? <small>A kevert színeket a Rajzfal, a profilkép, valamint a heti és havi kihívás is fogadja. A saját galéria továbbra is a 32 hivatalos színt használja.</small> : null}
               </>}
               </>}
               {status !== text.local ? <p className="status-message editor-share-status" role="status">{status}</p> : null}
@@ -1313,7 +1305,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
                       <strong>{slotIndex}. hely</strong>
                       {slot ? <WeeklyArtwork label={`A saját galéria ${slotIndex}. képe`} pixels={slot.pixels} /> : <div className="editor-own-gallery-empty">Üres hely</div>}
                       {saveGalleryAction ? (
-                        <button disabled={sharing || !serverPaletteReady} onClick={() => requestSaveGallerySlot(slotIndex, Boolean(slot))} type="button">{slot ? 'Felülírás' : 'Ide mentem'}</button>
+                        <button disabled={sharing || !galleryPaletteReady} onClick={() => requestSaveGallerySlot(slotIndex, Boolean(slot))} type="button">{slot ? 'Felülírás' : 'Ide mentem'}</button>
                       ) : (
                         <button disabled={sharing || !slot} onClick={() => slot && requestLoadGallerySlot(slot)} type="button">{slot ? 'Betöltés' : 'Üres hely'}</button>
                       )}

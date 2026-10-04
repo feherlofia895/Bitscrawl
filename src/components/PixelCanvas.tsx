@@ -301,7 +301,7 @@ export function PixelCanvas({
   allowEditorTools = false,
   canvasSize = 32,
   clearCanvasLabel = 'Teljes vászon törlése',
-  compactMobileToolbar = false,
+  compactMobileToolbar = true,
   customPaletteActive = false,
   customPaletteColors,
   customPaletteOptions,

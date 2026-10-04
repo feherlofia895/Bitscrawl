@@ -64,8 +64,8 @@ test('the mixer and saved custom palettes are available in the editor and both c
   ])
 
   assert.match(editor, /allowColorMixer/)
-  assert.match(editor, /serverPaletteReady/)
-  assert.match(editor, /A kevert színeket a heti és havi kihívás fogadja/)
+  assert.match(editor, /galleryPaletteReady/)
+  assert.match(editor, /A kevert színeket a Rajzfal, a profilkép/)
   assert.match(pixelCanvas, /bitscrawl-editor-custom-palette-v1/)
   assert.match(pixelCanvas, /<ColorMixer/)
   const mixer = await readSource('../src/components/ColorMixer.tsx')
@@ -79,6 +79,7 @@ test('the mixer and saved custom palettes are available in the editor and both c
   assert.match(pixelCanvas, /Az Egyéni paletta még üres/)
   assert.match(weekly, /allowColorMixer/)
   assert.match(monthly, /allowColorMixer/)
+  assert.match(pixelCanvas, /compactMobileToolbar = true/)
   assert.match(weekly, /customPaletteColors=\{palette\.activeCustomPalette\.colors\}/)
   assert.match(monthly, /customPaletteColors=\{palette\.activeCustomPalette\.colors\}/)
   assert.match(challengePicker, /<option value="custom">Egyéni paletta<\/option>/)
