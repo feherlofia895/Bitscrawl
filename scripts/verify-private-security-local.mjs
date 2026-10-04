@@ -34,6 +34,24 @@ const authenticatedDefinerRpcs = [
   ['touch_global_lobby_presence', ''],
   ['touch_room_presence', 'target_room_id bigint'],
 ]
+const permanentAccountPolicies = [
+  'lobby_messages_profile_read',
+  'monthly_entries_owner_read',
+  'monthly_votes_owner_read',
+  'profiles_owner_read',
+  'weekly_drafts_owner_read',
+  'weekly_entries_owner_read',
+  'weekly_votes_owner_read',
+]
+const guestGameplayPolicies = [
+  'competition_rounds_member_select',
+  'game_rounds_member_select',
+  'room_messages_member_select',
+  'room_players_member_select',
+  'rooms_member_select',
+  'round_draw_events_member_select',
+  'round_messages_member_select',
+]
 
 async function asRole(role, sql, params = []) {
   await db.exec(`set role ${role}`)
@@ -41,6 +59,19 @@ async function asRole(role, sql, params = []) {
     return (await db.query(sql, params)).rows
   } finally {
     await db.exec('reset role')
+  }
+}
+
+async function asAuthenticatedUser(userId, anonymous, sql, params = []) {
+  await db.query("select set_config('request.jwt.claim.sub', $1, false)", [userId])
+  await db.query("select set_config('request.jwt.claims', $1, false)", [
+    JSON.stringify({ is_anonymous: anonymous }),
+  ])
+  try {
+    return await asRole('authenticated', sql, params)
+  } finally {
+    await db.query("select set_config('request.jwt.claim.sub', '', false)")
+    await db.query("select set_config('request.jwt.claims', '{}', false)")
   }
 }
 
@@ -196,4 +227,87 @@ test('no public security definer remains callable by authenticated users', async
   `)).rows
 
   assert.equal(functionCount, 0)
+})
+
+test('account-only RLS checks the anonymous JWT while gameplay remains guest-enabled', async () => {
+  const accountPolicies = (await db.query(`
+    select policyname, qual
+    from pg_catalog.pg_policies
+    where schemaname = 'public'
+      and policyname = any($1::text[])
+    order by policyname
+  `, [permanentAccountPolicies])).rows
+
+  assert.deepEqual(accountPolicies.map((policy) => policy.policyname), permanentAccountPolicies)
+  for (const policy of accountPolicies) {
+    assert.match(policy.qual, /is_anonymous/)
+  }
+
+  const gameplayPolicies = (await db.query(`
+    select policyname, qual
+    from pg_catalog.pg_policies
+    where schemaname = 'public'
+      and policyname = any($1::text[])
+    order by policyname
+  `, [guestGameplayPolicies])).rows
+
+  assert.deepEqual(gameplayPolicies.map((policy) => policy.policyname), guestGameplayPolicies)
+  for (const policy of gameplayPolicies) {
+    assert.doesNotMatch(policy.qual, /is_anonymous/)
+  }
+
+  const permanentUser = '90000000-0000-4000-8000-000000000001'
+  const anonymousUser = '90000000-0000-4000-8000-000000000002'
+  await db.query('insert into auth.users (id) values ($1), ($2)', [permanentUser, anonymousUser])
+  await db.query(`
+    insert into public.profiles (user_id, display_name)
+    values ($1, 'AuditAccount'), ($2, 'AuditGuest')
+  `, [permanentUser, anonymousUser])
+  await db.query(`
+    insert into public.lobby_messages (user_id, content)
+    values ($1, 'Account-only audit message')
+  `, [permanentUser])
+
+  assert.deepEqual(
+    await asAuthenticatedUser(
+      permanentUser,
+      false,
+      'select display_name from public.profiles where user_id = $1',
+      [permanentUser],
+    ),
+    [{ display_name: 'AuditAccount' }],
+  )
+  assert.deepEqual(
+    await asAuthenticatedUser(
+      anonymousUser,
+      true,
+      'select display_name from public.profiles where user_id = $1',
+      [anonymousUser],
+    ),
+    [],
+  )
+  assert.deepEqual(
+    await asAuthenticatedUser(
+      anonymousUser,
+      true,
+      'select content from public.lobby_messages',
+    ),
+    [],
+  )
+
+  const [room] = await asAuthenticatedUser(
+    anonymousUser,
+    true,
+    "select * from public.create_room('AuditGuest')",
+  )
+  assert.equal(typeof room.room_code, 'string')
+  assert.equal(
+    (await asAuthenticatedUser(
+      anonymousUser,
+      true,
+      'select count(*)::integer as count from public.rooms where id = $1',
+      [room.room_id],
+    ))[0].count,
+    1,
+  )
 })

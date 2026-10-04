@@ -82,6 +82,16 @@ ADATVÉDELEM ÉS AUTOMATIKUS ADATTÖRLÉS
   `search_path`-ot használ. A helyi biztonsági és játékmenet-regressziók, a lint és
   a build sikeresek; az éles migráció után az advisor ilyen figyelmeztetése 20-ról
   nullára csökkent.
+- [x] A Supabase névtelen Auth-fiókjai továbbra is használhatják a vendégként
+  szükséges multiplayer-folyamatokat és küldhetnek hibajelentést, de a profil-,
+  heti/havi saját nevezés-, szavazat-, előszoba-chat- és Realtime-jelenlét policy-k
+  már külön ellenőrzik az `is_anonymous = false` JWT-jelzőt. Mind a kilenc fiókos
+  policy egyszer, InitPlanként értékeli ki az Auth-függvényeket. A helyi próba valódi
+  vendég JWT-vel is ellenőrzi, hogy a fiókos adatok rejtve maradnak, miközben a
+  szobalétrehozás és a tagsághoz kötött szobaolvasás működik. Az advisor anonymous
+  jelzései már csak a hét szándékosan vendégbarát multiplayer-policyt és a Supabase
+  két saját cron-policyjét mutatják; az átmenetileg megjelent kilenc RLS InitPlan
+  teljesítményjelzés javítás után nullára csökkent.
 - [ ] A kiszivárgott jelszavak automatikus Supabase Auth-ellenőrzése csak Pro
   csomagtól érhető el, a PixelGuess projekt jelenleg Free csomagos. Csomagváltáskor
   ezt be kell kapcsolni; addig a minimum jelszóhosszt és az e-mail-megerősítést kell
