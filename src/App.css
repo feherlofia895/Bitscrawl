@@ -1062,7 +1062,7 @@ footer {
 
 .guess-panel.is-immersive.is-guessing {
   position: fixed;
-  bottom: max(12px, env(safe-area-inset-bottom));
+  bottom: calc(max(12px, env(safe-area-inset-bottom)) + var(--guess-keyboard-offset, 0px));
   left: 50%;
   z-index: 1200;
   width: min(560px, calc(100vw - 32px));
@@ -3065,7 +3065,7 @@ button,
   .round-play-area.is-guesser .guess-panel.is-guessing {
     position: fixed;
     right: max(10px, env(safe-area-inset-right));
-    bottom: max(8px, env(safe-area-inset-bottom));
+    bottom: calc(max(8px, env(safe-area-inset-bottom)) + var(--guess-keyboard-offset, 0px));
     left: max(10px, env(safe-area-inset-left));
     z-index: 1200;
     width: auto;

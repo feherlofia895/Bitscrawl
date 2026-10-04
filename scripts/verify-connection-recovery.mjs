@@ -35,6 +35,7 @@ const hostUserId = hostAuth.data.user.id
 const guestUserId = guestAuth.data.user.id
 const room = await rpc(host, 'create_room', { player_name: 'RecoveryHost' })
 
+try {
 await rpc(guest, 'join_room', {
   player_name: 'RecoveryGuest',
   room_code: room.room_code,
@@ -127,3 +128,7 @@ console.log(
     roundFinished: recovery.round_finished,
   }),
 )
+} finally {
+  await host.rpc('leave_room', { target_room_id: room.room_id })
+  await guest.rpc('leave_room', { target_room_id: room.room_id })
+}

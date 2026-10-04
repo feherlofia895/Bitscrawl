@@ -114,7 +114,7 @@ test('the standalone editor exposes playback, frame editing and onion skin only 
   assert.match(controls, /<AnimationActionIcon kind="duplicate"/)
   assert.match(controls, /<AnimationActionIcon kind="remove"/)
   assert.doesNotMatch(controls, /editor-animation-storage-actions/)
-  assert.match(editor, /animationMode \? 'Megosztás \/ mentés' : 'Megosztás \/ nevezés'/)
+  assert.match(editor, /<summary>Megosztás<\/summary>/)
   assert.match(editor, /GIF export · 256×256/)
   assert.match(editor, /Mentés az animációs galériába/)
   assert.match(editor, /openGalleryAction\('animation-save'\)/)

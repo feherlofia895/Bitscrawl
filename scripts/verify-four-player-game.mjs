@@ -116,11 +116,39 @@ try {
   assert(scores.data.length === playerCount, 'A meccs végére nem maradt meg minden játékos.')
   assert(scores.data.every((player) => player.score > 0), 'Valamelyik játékos nem kapott pontot.')
 
+  const restarted = await rpc(clients[0], 'restart_game', {
+    target_room_id: room.room_id,
+  })
+  assert(restarted.room_status === 'playing', 'Az új játék nem indult el ugyanabban a szobában.')
+
+  const restartedViews = await Promise.all(clients.map((client) =>
+    rpc(client, 'get_round_view', { target_room_id: room.room_id }),
+  ))
+  assert(
+    restartedViews.every((view) => view.round_number === 1 && view.round_status === 'choosing'),
+    'Az új játék nem az első szóválasztó körrel indult.',
+  )
+  assert(
+    restartedViews.every((view) => view.drawer_user_id === users[0].id),
+    'Az új játék első rajzolója nem a várakozás szerint indult.',
+  )
+
+  const restartedScores = await clients[0]
+    .from('room_players')
+    .select('score')
+    .eq('room_id', room.room_id)
+  if (restartedScores.error) throw restartedScores.error
+  assert(
+    restartedScores.data.length === playerCount && restartedScores.data.every((player) => player.score === 0),
+    'Az új játék előtt nem nullázódtak a pontszámok.',
+  )
+
   console.log(JSON.stringify({
     event: 'multiplayer-game-ok',
     players: playerCount,
     rounds: roundCount,
     roomId: room.room_id,
+    sameGroupRestarted: true,
     allPlayersDrew: drawers.size === playerCount,
     scores: scores.data.map((player) => player.score),
   }))

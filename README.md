@@ -114,11 +114,12 @@ tesztet csak izolált próbaadattal futtass, majd töröld a létrehozott adatok
 A kapcsolat-helyreállítás kétjátékos integrációs próbája fejlesztői ellenőrzéshez:
 
 ```bash
-node --env-file=.env.local scripts/verify-connection-recovery.mjs
+npm run test:connection-recovery
 ```
 
 A teszt körülbelül egy percig fut: két külön játékost hoz létre, majd ellenőrzi
-a 45 másodperces türelmi időt, a hostátadást és a következő kör indulását.
+a 45 másodperces türelmi időt, a hostátadást és a következő kör indulását. Az
+ideiglenes tesztszobát sikeres és hibás futás után is eltávolítja.
 
 A multiplayer-jogosultságok és az egyszemélyes korlátlan idő ellenőrzése:
 
@@ -130,6 +131,13 @@ A háromjátékos, kilenckörös teljes meccsszimuláció futtatása:
 
 ```bash
 npm run test:three-player
+```
+
+A kétjátékos MVP-próba ugyanennek a szkriptnek a rövidebb változata. Hat teljes
+kört, a pontozást, majd az ugyanazzal a társasággal újraindított játékot ellenőrzi:
+
+```bash
+npm run test:two-player
 ```
 
 Az adatbázis változásai a `supabase/migrations` mappában találhatók.
@@ -146,7 +154,7 @@ ellenőrizd a jogosultságait.
 
 - Az aktuális fejlesztői átadás az `ATADAS.md` fájlban található.
 - A részletes funkcióterv és az elfogadási feltételek a `PLAN.txt` fájlban vannak.
-- A látható PWA-verziófrissítési jelzés és a kliensből olvasható buildazonosító
-  elkészült; a valós A → B frissítési próba még hátravan.
+- A látható PWA-verziófrissítési jelzés, a kliensből olvasható buildazonosító és a
+  valós A → B frissítési próba elkészült.
 - A statikus Szerkesztő két szerkeszthető rajzréteget használ. A heti/havi
   kihívás, az animáció és a multiplayer-vászon egyelőre változatlanul egyrétegű.

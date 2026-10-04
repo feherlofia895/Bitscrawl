@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { RoundMessage } from '../lib/game'
 import type { RoomPlayer } from '../lib/lobby'
 import { parseAvatarPixels } from '../lib/profile'
@@ -33,6 +33,9 @@ export function RoundChat({
   const [guess, setGuess] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submittedCorrectly, setSubmittedCorrectly] = useState(false)
+  const guessInputRef = useRef<HTMLInputElement>(null)
+  const panelRef = useRef<HTMLElement>(null)
+  const layoutViewportHeightRef = useRef(0)
   const hasGuessedCorrectly =
     submittedCorrectly ||
     messages.some(
@@ -52,6 +55,56 @@ export function RoundChat({
     setSubmittedCorrectly(false)
   }, [roundId])
 
+  useEffect(() => {
+    const visualViewport = window.visualViewport
+    const panel = panelRef.current
+    if (!visualViewport || !panel || !canSubmitGuess) return
+
+    let animationFrame = 0
+    const updateKeyboardOffset = () => {
+      window.cancelAnimationFrame(animationFrame)
+      animationFrame = window.requestAnimationFrame(() => {
+        const isGuessFocused = document.activeElement === guessInputRef.current
+        const layoutHeight = Math.max(
+          document.documentElement.clientHeight,
+          window.innerHeight,
+        )
+
+        if (!isGuessFocused) {
+          layoutViewportHeightRef.current = layoutHeight
+          panel.style.removeProperty('--guess-keyboard-offset')
+          return
+        }
+
+        const visibleBottom = visualViewport.offsetTop + visualViewport.height
+        const keyboardOffset = Math.max(
+          0,
+          layoutViewportHeightRef.current - visibleBottom,
+        )
+        panel.style.setProperty(
+          '--guess-keyboard-offset',
+          `${Math.round(keyboardOffset)}px`,
+        )
+      })
+    }
+
+    layoutViewportHeightRef.current = Math.max(
+      document.documentElement.clientHeight,
+      window.innerHeight,
+    )
+    visualViewport.addEventListener('resize', updateKeyboardOffset)
+    visualViewport.addEventListener('scroll', updateKeyboardOffset)
+    window.addEventListener('orientationchange', updateKeyboardOffset)
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame)
+      visualViewport.removeEventListener('resize', updateKeyboardOffset)
+      visualViewport.removeEventListener('scroll', updateKeyboardOffset)
+      window.removeEventListener('orientationchange', updateKeyboardOffset)
+      panel.style.removeProperty('--guess-keyboard-offset')
+    }
+  }, [canSubmitGuess])
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const cleanGuess = guess.trim()
@@ -61,7 +114,9 @@ export function RoundChat({
 
     try {
       const result = await onSubmit(cleanGuess)
-      setGuess('')
+      setGuess((currentGuess) => (
+        currentGuess.trim() === cleanGuess ? '' : currentGuess
+      ))
       if (result.is_correct) setSubmittedCorrectly(true)
     } catch (error) {
       onError(error)
@@ -73,7 +128,7 @@ export function RoundChat({
   const playerProfile = (userId: string) => players.find((player) => player.user_id === userId)
 
   return (
-    <section className={panelClassName} aria-labelledby="round-chat-title">
+    <section className={panelClassName} aria-labelledby="round-chat-title" ref={panelRef}>
       <div className="round-chat-heading">
         <div>
           <p className="round-label">Csak a szerver ellenőrzi</p>
@@ -110,18 +165,21 @@ export function RoundChat({
       ) : hasGuessedCorrectly ? (
         <p className="correct-guess-note">Helyes megfejtés! ✓</p>
       ) : (
-        <form className="guess-form" onSubmit={(event) => void handleSubmit(event)}>
+        <form aria-busy={isSubmitting} className="guess-form" onSubmit={(event) => void handleSubmit(event)}>
           <label className="visually-hidden" htmlFor="round-guess">
             Tipp
           </label>
           <input
             autoCapitalize="none"
             autoComplete="off"
-            disabled={isSubmitting}
+            enterKeyHint="send"
             id="round-guess"
+            inputMode="text"
             maxLength={80}
             onChange={(event) => setGuess(event.target.value)}
+            onBlur={() => panelRef.current?.style.removeProperty('--guess-keyboard-offset')}
             placeholder="Írd be a megfejtést…"
+            ref={guessInputRef}
             spellCheck={false}
             type="text"
             value={guess}

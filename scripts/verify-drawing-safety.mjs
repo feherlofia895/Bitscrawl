@@ -201,6 +201,21 @@ test('very narrow phones keep the guess input readable beside a compact send but
   assert.match(css, /@media \(max-width: 400px\)[\s\S]*?\.guess-panel\.is-guessing \.guess-form input\s*\{[\s\S]*?max-width:\s*100%;/)
 })
 
+test('the iPhone guess keyboard stays open and the dock follows the visual viewport', async () => {
+  const [chat, css] = await Promise.all([
+    readFile(new URL('../src/components/RoundChat.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/App.css', import.meta.url), 'utf8'),
+  ])
+
+  assert.match(chat, /enterKeyHint="send"/)
+  assert.match(chat, /inputMode="text"/)
+  assert.doesNotMatch(chat, /disabled=\{isSubmitting\}[\s\S]*?id="round-guess"/)
+  assert.match(chat, /window\.visualViewport/)
+  assert.match(chat, /--guess-keyboard-offset/)
+  assert.match(chat, /currentGuess\.trim\(\) === cleanGuess \? '' : currentGuess/)
+  assert.match(css, /bottom:\s*calc\(max\(8px, env\(safe-area-inset-bottom\)\) \+ var\(--guess-keyboard-offset, 0px\)\)/)
+})
+
 test('the same guess form stays available over immersive canvas on desktop and mobile', async () => {
   const [app, canvas, chat, css] = await Promise.all([
     readFile(new URL('../src/App.tsx', import.meta.url), 'utf8'),
