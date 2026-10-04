@@ -469,7 +469,9 @@ test('two layers are limited to the standalone editor', async () => {
     readFile(new URL('../src/components/WeeklyDraw.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/components/MonthlyDraw.tsx', import.meta.url), 'utf8'),
   ])
-  assert.match(editorSource, /className="editor-layer-panel"/)
+  assert.match(editorSource, /<details className="editor-layer-panel editor-collapsible-panel">/)
+  assert.match(editorSource, /<details className="editor-palette-panel editor-collapsible-panel">/)
+  assert.match(editorSource, /<summary className="editor-collapsible-summary">/)
   assert.match(editorSource, /getDisplayColor: animationMode \? undefined : displayEditorLayerColor/)
   assert.doesNotMatch(weeklySource, /editor-layer-panel|composeDrawingLayers/)
   assert.doesNotMatch(monthlySource, /editor-layer-panel|composeDrawingLayers/)

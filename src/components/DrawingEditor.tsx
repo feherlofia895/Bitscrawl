@@ -1086,45 +1086,45 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
           <button aria-pressed={animationMode} disabled={!hasAdvancedAccess} onClick={() => switchEditorMode('animation')} title={!hasAdvancedAccess ? 'Animáció készítéséhez jelentkezz be.' : undefined} type="button">Animáció · legfeljebb 3 képkocka</button>
         </div>
         {!animationMode ? (
-          <section className="editor-layer-panel" aria-labelledby="editor-layer-title">
-            <div className="editor-layer-heading">
-              <div>
-                <p className="step-label">Állókép</p>
-                <h2 id="editor-layer-title">Rétegek</h2>
+          <details className="editor-layer-panel editor-collapsible-panel">
+            <summary className="editor-collapsible-summary">
+              <strong>Rétegek</strong>
+              <small>{activeLayer === 1 ? 'Felső aktív' : 'Alsó aktív'}</small>
+            </summary>
+            <div className="editor-layer-content">
+              <small className="editor-layer-note">A mentés és megosztás lapított képet készít.</small>
+              <div className="editor-layer-list">
+                {([1, 0] as const).map(layer => {
+                  const isActive = activeLayer === layer
+                  const isVisible = layerVisibility[layer]
+                  const layerName = layer === 1 ? 'Felső réteg' : 'Alsó réteg'
+                  return (
+                    <article className="editor-layer-row" data-active={isActive} key={layer}>
+                      <button
+                        aria-pressed={isActive}
+                        className="editor-layer-select"
+                        onClick={() => selectEditorLayer(layer)}
+                        type="button"
+                      >
+                        <strong>{layerName}</strong>
+                        <span>{isActive ? 'Aktív' : 'Kiválasztás'}</span>
+                      </button>
+                      <button
+                        aria-label={`${layerName} ${isVisible ? 'elrejtése' : 'megjelenítése'}`}
+                        aria-pressed={isVisible}
+                        className="editor-layer-visibility"
+                        onClick={() => toggleEditorLayerVisibility(layer)}
+                        type="button"
+                      >{isVisible ? 'Látható' : 'Rejtett'}</button>
+                    </article>
+                  )
+                })}
               </div>
-              <small>A mentés és megosztás lapított képet készít.</small>
+              {!layerVisibility[activeLayer] ? (
+                <p className="editor-layer-warning" role="status">Az aktív réteg rejtett; a módosításai csak újbóli megjelenítéskor látszanak.</p>
+              ) : null}
             </div>
-            <div className="editor-layer-list">
-              {([1, 0] as const).map(layer => {
-                const isActive = activeLayer === layer
-                const isVisible = layerVisibility[layer]
-                const layerName = layer === 1 ? 'Felső réteg' : 'Alsó réteg'
-                return (
-                  <article className="editor-layer-row" data-active={isActive} key={layer}>
-                    <button
-                      aria-pressed={isActive}
-                      className="editor-layer-select"
-                      onClick={() => selectEditorLayer(layer)}
-                      type="button"
-                    >
-                      <strong>{layerName}</strong>
-                      <span>{isActive ? 'Aktív' : 'Kiválasztás'}</span>
-                    </button>
-                    <button
-                      aria-label={`${layerName} ${isVisible ? 'elrejtése' : 'megjelenítése'}`}
-                      aria-pressed={isVisible}
-                      className="editor-layer-visibility"
-                      onClick={() => toggleEditorLayerVisibility(layer)}
-                      type="button"
-                    >{isVisible ? 'Látható' : 'Rejtett'}</button>
-                  </article>
-                )
-              })}
-            </div>
-            {!layerVisibility[activeLayer] ? (
-              <p className="editor-layer-warning" role="status">Az aktív réteg rejtett; a módosításai csak újbóli megjelenítéskor látszanak.</p>
-            ) : null}
-          </section>
+          </details>
         ) : null}
         {animationMode ? (
           <p className="status-message" role="status">
@@ -1133,56 +1133,67 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
               : status}
           </p>
         ) : null}
-        {hasAdvancedAccess ? <fieldset className="palette-mode-fieldset editor-palette-picker">
-          <legend>{text.palette}</legend>
-          <label className="editor-palette-select">
-            <span>Paletta</span>
-            <select
-              aria-label="Paletta kiválasztása"
-              onChange={event => {
-                if (event.target.value === 'custom') setCustomPaletteActive(true)
-                else changePalette(event.target.value === '32' ? 32 : 12)
-              }}
-              value={customPaletteActive ? 'custom' : String(paletteSize)}
-            >
-              <option value="custom">Egyéni paletta</option>
-              <option value="12">{text.paletteBase}</option>
-              <option value="32">{text.paletteExpanded}</option>
-            </select>
-          </label>
-          {customPaletteActive ? (
-            <div className="editor-custom-palette-manager">
+        {hasAdvancedAccess ? (
+          <details className="editor-palette-panel editor-collapsible-panel">
+            <summary className="editor-collapsible-summary">
+              <strong>{text.palette}</strong>
+              <small>
+                {customPaletteActive
+                  ? `${activeCustomPalette.name || `Saját paletta ${activePaletteSlot}`} · ${activeCustomPalette.colors.length}/${EDITOR_PALETTE_COLOR_LIMIT}`
+                  : paletteSize === 32 ? text.paletteExpanded : text.paletteBase}
+              </small>
+            </summary>
+            <fieldset aria-label={text.palette} className="palette-mode-fieldset editor-palette-picker">
               <label className="editor-palette-select">
-                <span>Saját paletta</span>
+                <span>Paletta</span>
                 <select
-                  aria-label="Saját paletta kiválasztása"
-                  onChange={event => setActivePaletteSlot(Number(event.target.value) as EditorPaletteSlotIndex)}
-                  value={activePaletteSlot}
+                  aria-label="Paletta kiválasztása"
+                  onChange={event => {
+                    if (event.target.value === 'custom') setCustomPaletteActive(true)
+                    else changePalette(event.target.value === '32' ? 32 : 12)
+                  }}
+                  value={customPaletteActive ? 'custom' : String(paletteSize)}
                 >
-                  {customPalettes.map(palette => (
-                    <option key={palette.slotIndex} value={palette.slotIndex}>
-                      {palette.name || `Saját paletta ${palette.slotIndex}`} · {palette.colors.length}/{EDITOR_PALETTE_COLOR_LIMIT}
-                    </option>
-                  ))}
+                  <option value="custom">Egyéni paletta</option>
+                  <option value="12">{text.paletteBase}</option>
+                  <option value="32">{text.paletteExpanded}</option>
                 </select>
               </label>
-              <div className="editor-palette-name-row">
-                <label>
-                  <span>Paletta neve</span>
-                  <input
-                    aria-label="Saját paletta neve"
-                    maxLength={24}
-                    onChange={event => updateCustomPaletteName(event.target.value)}
-                    value={activeCustomPalette.name}
-                  />
-                </label>
-                <button onClick={saveCustomPaletteName} type="button">Név mentése</button>
-                <button disabled={activeCustomPalette.colors.length === 0} onClick={requestClearCustomPalette} type="button">Kiürítés</button>
-              </div>
-              <small aria-live="polite">{activeCustomPalette.colors.length}/{EDITOR_PALETTE_COLOR_LIMIT} szín · {paletteSyncStatus}</small>
-            </div>
-          ) : null}
-        </fieldset> : null}
+              {customPaletteActive ? (
+                <div className="editor-custom-palette-manager">
+                  <label className="editor-palette-select">
+                    <span>Saját paletta</span>
+                    <select
+                      aria-label="Saját paletta kiválasztása"
+                      onChange={event => setActivePaletteSlot(Number(event.target.value) as EditorPaletteSlotIndex)}
+                      value={activePaletteSlot}
+                    >
+                      {customPalettes.map(palette => (
+                        <option key={palette.slotIndex} value={palette.slotIndex}>
+                          {palette.name || `Saját paletta ${palette.slotIndex}`} · {palette.colors.length}/{EDITOR_PALETTE_COLOR_LIMIT}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="editor-palette-name-row">
+                    <label>
+                      <span>Paletta neve</span>
+                      <input
+                        aria-label="Saját paletta neve"
+                        maxLength={24}
+                        onChange={event => updateCustomPaletteName(event.target.value)}
+                        value={activeCustomPalette.name}
+                      />
+                    </label>
+                    <button onClick={saveCustomPaletteName} type="button">Név mentése</button>
+                    <button disabled={activeCustomPalette.colors.length === 0} onClick={requestClearCustomPalette} type="button">Kiürítés</button>
+                  </div>
+                  <small aria-live="polite">{activeCustomPalette.colors.length}/{EDITOR_PALETTE_COLOR_LIMIT} szín · {paletteSyncStatus}</small>
+                </div>
+              ) : null}
+            </fieldset>
+          </details>
+        ) : null}
       </div>
       {animationMode ? (
         <EditorAnimationControls
