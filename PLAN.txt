@@ -1065,9 +1065,8 @@ Részellenőrzés:
 - A 2026-09-20-i teljes kódaudit mentési, jogosultsági, hálózati és adatérvényességi
   javításai elkészültek; a helyi adatbázis-integrációs próbák, lint és production build
   többször sikeresen lefutottak.
-- A teljes lezáráshoz még egy fizikai iPhone-os megnyíló-billentyűzetes próba, az
-  érintéses teljes nézet és a készüléken végzett valós Wi-Fi-kimaradás/
-  újracsatlakozás ellenőrzése szükséges.
+- A 14. pont teljes, részletes mobilos lezárásához még az érintéses teljes nézet és
+  a készüléken végzett valós Wi-Fi-kimaradás/újracsatlakozás ellenőrzése szükséges.
 - 2026-10-04: a 270, 360 és 390 pixeles böngészős mobilpróba vízszintes
   túlcsordulás nélkül sikerült. A kétjátékos, hatkörös élő meccs, a játék közbeni
   kilépés és hostátadás, a 45 másodperces kapcsolat-helyreállítás, valamint az
@@ -1077,8 +1076,8 @@ Részellenőrzés:
 - 2026-10-04: az iPhone-os megfejtésküldés javítást kapott. Küldés közben a mező
   nem veszti el a fókuszt a letiltás miatt, az iOS billentyűzet Küldés gombot kap,
   a megfejtéssáv pedig a Visual Viewport alapján a billentyűzet fölött marad. A
-  célzott automatizált próba sikeres; az éles fizikai iPhone-os visszapróba még
-  szükséges.
+  célzott automatizált próba és a felhasználó éles fizikai iPhone-os visszapróbája
+  is sikeres.
 - 2026-10-04: a teljes helyi szerkesztő-, animáció-, galéria-, moderáció-,
   pontozás-, kihívás-, PWA-, adatvédelmi, adatmegőrzési és biztonsági tesztcsomag,
   továbbá a production build és a lint sikeresen lefutott.
@@ -1104,6 +1103,8 @@ Fizikai telefonos próba – 2026-10-03:
   törölhető; az állókép saját galériájával nem keveredik.
 - [ ] A profilnév, palettanév, chat, megfejtés, komment és hibajelentő mezőknél a megnyíló
   billentyűzet nem takarja el végleg a mezőt vagy a küldés gombját.
+- [x] Az éles iPhone-os klasszikus játékban a megfejtésmező és a küldés a javítás
+  után megfelelően működik a megnyíló billentyűzettel.
 - [ ] Wi-Fi rövid kikapcsolása és visszakapcsolása után az oldal helyreáll vagy
   érthető hibát jelez; a helyi rajz és animáció nem vész el.
 - [ ] A próba végén az eredményt, az esetleges hibák képernyőképét és a reprodukció
@@ -1149,13 +1150,13 @@ Első PWA-alap (2026-09-20):
 - A multiplayerhez továbbra is internetkapcsolat szükséges; teljes offline játék nem cél.
 
 
-[>] 16. MVP KIADÁSI ELLENŐRZÉS
+[x] 16. MVP KIADÁSI ELLENŐRZÉS
 
 - [x] Legalább két játékossal többször végigjátszható teljes meccs.
-- [ ] Nincs ismert játékot megakasztó hiba. Az iPhone-os megfejtésmező javítása után
-  még egy fizikai készülékes visszapróba szükséges.
-- [ ] Telefonon és PC-n használható rajzolás, chat és megfejtés. Az Android-próba
-  sikeres; az iPhone-os megfejtésküldést az új javítással még ellenőrizni kell.
+- [x] Nincs ismert játékot megakasztó hiba; az iPhone-os megfejtésmező javításának
+  fizikai készülékes visszapróbája is sikeres.
+- [x] Telefonon és PC-n használható rajzolás, chat és megfejtés; az Android- és az
+  iPhone-próba is sikeres.
 - [x] A titkos szó, pontozás, rajzoló és időzítés szerveroldalon védett.
 - [x] Ugyanazzal a társasággal új játék indítható.
 - [x] Rövid README a játék elindításához, teszteléséhez és publikálásához.
