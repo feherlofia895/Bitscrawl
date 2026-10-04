@@ -61,11 +61,11 @@ before(async () => {
 })
 after(async () => { await db.close() })
 
-test('historical week cleanup preserves Gomba and leaves the published Witch schedule', async () => {
+test('historical week cleanup preserves Gomba and publishes the Witch and Ghost schedule', async () => {
   const rows = (await db.query(`
     select week_key, prompt, starts_at, ends_at
     from public.weekly_challenges
-    where week_key in ('2026-W38', '2026-W39', '2026-W40')
+    where week_key in ('2026-W38', '2026-W39', '2026-W40', '2026-W41')
     order by week_key
   `)).rows
   assert.ok(rows.some(row => row.week_key === '2026-W38' && row.prompt === 'Gomba'))
@@ -73,7 +73,11 @@ test('historical week cleanup preserves Gomba and leaves the published Witch sch
   const witch = rows.find(row => row.week_key === '2026-W40')
   assert.equal(witch?.prompt, 'Boszorkány')
   assert.equal(new Date(witch.starts_at).toISOString(), '2026-09-27T21:00:00.000Z')
-  assert.equal(new Date(witch.ends_at).toISOString(), '2026-10-04T18:00:00.000Z')
+  assert.equal(new Date(witch.ends_at).toISOString(), '2026-10-04T20:00:00.000Z')
+  const ghost = rows.find(row => row.week_key === '2026-W41')
+  assert.equal(ghost?.prompt, 'Szellem')
+  assert.equal(new Date(ghost.starts_at).toISOString(), '2026-10-04T22:00:00.000Z')
+  assert.equal(new Date(ghost.ends_at).toISOString(), '2026-10-11T18:00:00.000Z')
 })
 
 test('weekly submissions accept expanded, custom, and alpha colors while retaining legacy palette rows', async () => {

@@ -48,7 +48,16 @@ before(async () => {
     try { await db.exec(await readFile(new URL(file, migrationDir), 'utf8')) }
     catch (error) { throw new Error(`Migration failed: ${file}: ${error.message}`) }
   }
-  ;[{ challenge_id: challengeId }] = await asUser(null, 'select * from public.get_weekly_challenges()', [], { role: 'anon' })
+  ;[{ id: challengeId }] = (await db.query(`
+    insert into public.weekly_challenges (week_key, prompt, starts_at, ends_at)
+    values (
+      'synthetic-weekly-flow',
+      'Synthetic weekly flow',
+      clock_timestamp() - interval '1 hour',
+      clock_timestamp() + interval '1 day'
+    )
+    returning id
+  `)).rows
   ;[{ challenge_id: monthlyChallengeId }] = await asUser(null, 'select * from public.get_monthly_challenges()', [], { role: 'anon' })
 })
 
@@ -780,6 +789,11 @@ test('finalizing the challenge freezes writes and marks every official tied lead
   const topVotes = gallery.reduce((max, entry) => Math.max(max, Number(entry.vote_count)), 0)
   assert(gallery.filter(entry => entry.is_winner).every(entry => Number(entry.vote_count) === topVotes))
   assert(gallery.some(entry => entry.is_winner))
-  const [challenge] = await asUser(null, 'select * from public.get_weekly_challenges()', [], { role: 'anon' })
+  const [challenge] = await asUser(
+    null,
+    'select * from public.get_weekly_challenges() where challenge_id = $1',
+    [challengeId],
+    { role: 'anon' },
+  )
   assert.equal(challenge.challenge_status, 'closed')
 })

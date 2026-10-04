@@ -1342,6 +1342,9 @@ szóra és ugyanazzal a palettával készülnek rajzok.
   moderációs elrejtést, spamkorlátozást, mobil felületet és automatizált próbákat kapjon.
 
 Éles állapot (2026-09-19, a Bitscrawl Heti Rajz v0.1 átadó alapján):
+- 2026-10-04: a Boszorkány hét szavazása budapesti idő szerint 22:00-ig
+  meghosszabbodott. A 2026-W41 heti téma a korábbi Robot helyett Szellem; a
+  szerveroldali témarotáció és a regressziós próbák is ezt követik.
 - Elkészült a külön heti adatmodell, a hétfő 00:00-kor (Europe/Budapest) váltó
   szerveridős ciklus, a 12 színű rajzellenőrzés és a nyilvános galéria.
 - Elkészült az e-mailes fiók, a megjelenített név, a szerverre mentett vázlat,

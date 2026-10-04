@@ -110,7 +110,7 @@ test('public-vote challenges use only reviewed visual themes without answer matc
 
   const weeklyRotation = [
     'Sárkány', 'Világítótorony', 'Űrhajó', 'Gombaház', 'Gomba', 'Polip',
-    'Vulkán', 'Robot', 'Kastély', 'Macska', 'Hőlégballon', 'Tengeralattjáró',
+    'Vulkán', 'Szellem', 'Kastély', 'Macska', 'Hőlégballon', 'Tengeralattjáró',
   ]
   const monthlyRotation = [
     'Béka', 'Bagoly', 'Űrállomás', 'Kalózhajó', 'Varázserdő', 'Tengeri szörny',
