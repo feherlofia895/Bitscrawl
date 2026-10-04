@@ -37,6 +37,7 @@
     "test:palette-modes": "node --env-file=.env.local scripts/verify-palette-modes.mjs",
     "test:word-bank": "node --test scripts/verify-word-bank-local.mjs",
     "test:privacy": "node --test scripts/verify-privacy-notice.mjs",
+    "test:data-retention": "node --test scripts/verify-data-retention-local.mjs",
     "deploy": "npm run build && wrangler pages deploy dist --project-name bitscrawl --branch main"
   },
   "dependencies": {

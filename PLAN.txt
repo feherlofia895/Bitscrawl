@@ -1,12 +1,12 @@
 Bitscrawl MVP – FEJLESZTÉSI TERV
-Frissítve: 2026-10-03
+Frissítve: 2026-10-04
 
 Jelölések:
 [x] elkészült
 [>] folyamatban
 [ ] még hátra van
 
-2026-10-03-i aktuális állapot:
+2026-10-04-i aktuális állapot:
 - [x] A Dicsőségfal „A legmenőbbek” része már nem sorolja fel külön minden hét és
   hónap dobogósait. Csak a legalább egy érmet szerzett játékosok látszanak, mindenki
   egyszer, az összesített arany-, ezüst- és bronzérmeivel.
@@ -47,6 +47,28 @@ Jelölések:
   az oldal pedig nem tart fenn offline alkalmazás-cache-t. iPhone-on a teljes
   bezárás és újranyitás tölti be biztosan az új klienst; az alkalmazásikon és a
   manifest erősebb iOS-cache miatt ikoncserekor még igényelhet újratelepítést.
+
+ADATVÉDELEM ÉS AUTOMATIKUS ADATTÖRLÉS
+
+- [x] Az első adatvédelmi tájékoztató élesben elérhető. Tartalmazza az adatkezelő
+  nevét és kapcsolattartási e-mail-címét, a Supabase szerepét, az érintetti jogokat,
+  valamint a jelenlegi adatkezelési célokat és megőrzési időket.
+- [x] Az éles Supabase-adatbázis naponta 03:15 UTC-kor automatikusan törli a 30
+  napnál régebbi előszobaüzeneteket, valamint a több mint 30 napja befejezett vagy
+  inaktív szobákat. A szobákhoz tartozó klasszikus és versenyfordulók,
+  rajzesemények és chatadatok idegenkulcsos kaszkáddal együtt törlődnek.
+- [x] A Rajzfal képei, a heti/havi kihívásnevezések, a profilképek és a szerkesztő
+  saját galériája nem része a 30 napos takarításnak; ezek a tájékoztató szerinti
+  hosszabb megőrzésben maradnak.
+- [x] Külön helyi regressziós próba ellenőrzi a lejárt és aktív adatok szétválasztását,
+  a klasszikus és versenyadatok kaszkádos törlését, a Rajzfal és kihívásképek
+  megőrzését, továbbá azt, hogy a kliensszerepkörök ne tudják kézzel meghívni a
+  takarítást.
+- [ ] Külön Supabase-biztonsági auditban át kell nézni az advisor meglévő jelzéseit.
+  Elsőként az öt RLS nélküli privát táblát (`competition_entries`,
+  `competition_votes`, `app_admins`, `weekly_score_awards`, `monthly_score_awards`)
+  és a kiszivárgott jelszavak elleni Auth-védelem beállítását kell ellenőrizni.
+  RLS-t csak a jelenlegi privát jogosultságok és RPC-k próbája után szabad bekapcsolni.
 
 KÖVETKEZŐ KIS PWA-FEJLESZTÉS – LÁTHATÓ VERZIÓFRISSÍTÉS
 
