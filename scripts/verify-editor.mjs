@@ -139,7 +139,7 @@ test('guest editor access keeps basic colors and PNG export while locking advanc
   assert.match(appSource, /hasAdvancedAccess=\{Boolean\(currentUserId && playerProfile\)\}/)
   assert.match(editorSource, /hasAdvancedAccess \? initial\.paletteSize : 12/)
   assert.match(editorSource, /setCustomPaletteActive\(false\)[\s\S]*?setPaletteSize\(12\)/)
-  assert.match(editorSource, /\{hasAdvancedAccess \? \([\s\S]*?<EditorAnimationControls/)
+  assert.match(editorSource, /<EditorAnimationControls[\s\S]*?allowAnimation=\{hasAdvancedAccess\}/)
   assert.match(editorSource, /allowColorMixer=\{hasAdvancedAccess\}/)
   assert.match(editorSource, /allowEditorTools=\{hasAdvancedAccess\}/)
   assert.match(editorSource, /paletteSize=\{hasAdvancedAccess \? paletteSize : 12\}/)
@@ -464,14 +464,16 @@ test('drawing layers flatten in fixed order and preserve alpha blending', () => 
   assert.deepEqual(composeDrawingLayers([bottom, top], [false, true]).slice(0, 2), ['#ff000080', '#d3493b'])
 })
 
-test('compact mobile tools are the default while standalone-only layers stay out of challenges', async () => {
+test('compact mobile tools and the unified timeline stay out of challenges', async () => {
   const [editorSource, pixelCanvasSource, weeklySource, monthlySource] = await Promise.all([
     readFile(new URL('../src/components/DrawingEditor.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/components/PixelCanvas.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/components/WeeklyDraw.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/components/MonthlyDraw.tsx', import.meta.url), 'utf8'),
   ])
-  assert.match(editorSource, /<details className="editor-layer-panel editor-collapsible-panel">/)
+  assert.match(editorSource, /<EditorAnimationControls/)
+  assert.match(editorSource, /onSelectCell=\{selectEditorCell\}/)
+  assert.doesNotMatch(editorSource, /Felső réteg|Középső réteg|Alsó réteg/)
   assert.match(editorSource, /<details className="editor-palette-panel editor-collapsible-panel">/)
   assert.match(editorSource, /<summary className="editor-collapsible-summary">/)
   assert.match(editorSource, /compactMobileToolbar/)
@@ -481,8 +483,8 @@ test('compact mobile tools are the default while standalone-only layers stay out
   assert.match(pixelCanvasSource, /className="mobile-shape-tool-options"/)
   assert.match(pixelCanvasSource, /className="editor-palette-actions"/)
   assert.match(editorSource, /getDisplayColor: displayEditorLayerColor/)
-  assert.doesNotMatch(weeklySource, /editor-layer-panel|composeDrawingLayers/)
-  assert.doesNotMatch(monthlySource, /editor-layer-panel|composeDrawingLayers/)
+  assert.doesNotMatch(weeklySource, /EditorAnimationControls|composeDrawingLayers/)
+  assert.doesNotMatch(monthlySource, /EditorAnimationControls|composeDrawingLayers/)
   assert.doesNotMatch(weeklySource, /compactMobileToolbar=\{false\}/)
   assert.doesNotMatch(monthlySource, /compactMobileToolbar=\{false\}/)
 })

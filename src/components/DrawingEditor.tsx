@@ -239,17 +239,21 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
     return () => window.removeEventListener('beforeunload', warn)
   }, [dirty])
 
-  const showAnimationFrame = useCallback((index: number) => {
+  const selectEditorCell = useCallback((index: number, nextLayer: EditorProjectLayerIndex) => {
+    if (index === activeFrameRef.current && nextLayer === activeLayerRef.current) return
     animationFlushRef.current()
     const next = cloneEditorProject(projectRef.current)
     const nextIndex = Math.max(0, Math.min(next.frames.length - 1, index))
     next.activeFrameIndex = nextIndex
+    next.activeLayer = nextLayer
     projectRef.current = next
     activeFrameRef.current = nextIndex
+    activeLayerRef.current = nextLayer
     setActiveFrame(nextIndex)
-    pixelsRef.current = [...next.frames[nextIndex].layers[activeLayerRef.current]]
+    setActiveLayer(nextLayer)
+    pixelsRef.current = [...next.frames[nextIndex].layers[nextLayer]]
     staticPixelsRef.current = composeEditorProjectFrame(next, nextIndex)
-    persist(next)
+    if (persist(next)) setStatus(text.local)
     setRevision(value => value + 1)
   }, [persist])
 
@@ -257,21 +261,8 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
     if (hasAdvancedAccess) return
     setCustomPaletteActive(false)
     setPaletteSize(12)
-    if (activeFrameRef.current !== 0) showAnimationFrame(0)
-  }, [hasAdvancedAccess, showAnimationFrame])
-
-  const selectEditorLayer = (nextLayer: EditorProjectLayerIndex) => {
-    if (nextLayer === activeLayerRef.current) return
-    animationFlushRef.current()
-    const next = cloneEditorProject(projectRef.current)
-    next.activeLayer = nextLayer
-    projectRef.current = next
-    activeLayerRef.current = nextLayer
-    setActiveLayer(nextLayer)
-    pixelsRef.current = [...next.frames[activeFrameRef.current].layers[nextLayer]]
-    if (persist(next)) setStatus(text.local)
-    setRevision(value => value + 1)
-  }
+    if (activeFrameRef.current !== 0) selectEditorCell(0, activeLayerRef.current)
+  }, [hasAdvancedAccess, selectEditorCell])
 
   const toggleEditorLayerVisibility = (layer: EditorProjectLayerIndex) => {
     animationFlushRef.current()
@@ -925,68 +916,24 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
           </details>
         </div>
         <section aria-label="Képkockák és rétegek" className="editor-project-structure">
-          <details className="editor-layer-panel editor-collapsible-panel">
-            <summary className="editor-collapsible-summary">
-              <strong>Rétegek</strong>
-              <small>{activeLayer === 2 ? 'Felső aktív' : activeLayer === 1 ? 'Középső aktív' : 'Alsó aktív'}</small>
-            </summary>
-            <div className="editor-layer-content">
-              <small className="editor-layer-note">A három réteg minden képkockán külön megmarad. Exportáláskor és megosztáskor egy képpé állnak össze.</small>
-              <div className="editor-layer-list">
-                {([2, 1, 0] as const).map(layer => {
-                  const isActive = activeLayer === layer
-                  const isVisible = layerVisibility[layer]
-                  const layerName = layer === 2 ? 'Felső réteg' : layer === 1 ? 'Középső réteg' : 'Alsó réteg'
-                  return (
-                    <article className="editor-layer-row" data-active={isActive} key={layer}>
-                      <button
-                        aria-pressed={isActive}
-                        className="editor-layer-select"
-                        onClick={() => selectEditorLayer(layer)}
-                        type="button"
-                      >
-                        <strong>{layerName}</strong>
-                        <span>{isActive ? 'Aktív' : 'Kiválasztás'}</span>
-                      </button>
-                      <button
-                        aria-label={`${layerName} ${isVisible ? 'elrejtése' : 'megjelenítése'}`}
-                        aria-pressed={isVisible}
-                        className="editor-layer-visibility"
-                        onClick={() => toggleEditorLayerVisibility(layer)}
-                        type="button"
-                      >{isVisible ? 'Látható' : 'Rejtett'}</button>
-                    </article>
-                  )
-                })}
-              </div>
-              <div className="editor-layer-order-actions">
-                <button className="editor-layer-swap" disabled={activeLayer === 0} onClick={() => moveActiveLayer(-1)} type="button">
-                  <span aria-hidden="true">↓</span> Réteg lejjebb
-                </button>
-                <button className="editor-layer-swap" disabled={activeLayer === 2} onClick={() => moveActiveLayer(1)} type="button">
-                  <span aria-hidden="true">↑</span> Réteg feljebb
-                </button>
-              </div>
-              <small className="editor-layer-note">A sorrend módosítása minden képkockára érvényes.</small>
-              {!layerVisibility[activeLayer] ? (
-                <p className="editor-layer-warning" role="status">Az aktív réteg rejtett; a módosításai csak újbóli megjelenítéskor látszanak.</p>
-              ) : null}
-            </div>
-          </details>
-          {hasAdvancedAccess ? (
-            <EditorAnimationControls
-              activeFrameIndex={activeFrame}
-              fps={animationFps}
-              frames={projectFrames}
-              onionSkin={onionSkin}
-              onAddFrame={() => addFrame(false)}
-              onDeleteFrame={removeActiveFrame}
-              onDuplicateFrame={() => addFrame(true)}
-              onFpsChange={fps => updateAnimationSettings(fps, onionSkin)}
-              onOnionSkinChange={active => updateAnimationSettings(animationFps, active)}
-              onSelectFrame={showAnimationFrame}
-            />
-          ) : null}
+          <EditorAnimationControls
+            activeFrameIndex={activeFrame}
+            activeLayerIndex={activeLayer}
+            allowAnimation={hasAdvancedAccess}
+            fps={animationFps}
+            frames={projectFrames}
+            layerVisibility={layerVisibility}
+            onionSkin={onionSkin}
+            projectFrames={projectRef.current.frames}
+            onAddFrame={() => addFrame(false)}
+            onDeleteFrame={removeActiveFrame}
+            onDuplicateFrame={() => addFrame(true)}
+            onFpsChange={fps => updateAnimationSettings(fps, onionSkin)}
+            onMoveLayer={moveActiveLayer}
+            onOnionSkinChange={active => updateAnimationSettings(animationFps, active)}
+            onSelectCell={selectEditorCell}
+            onToggleLayerVisibility={toggleEditorLayerVisibility}
+          />
         </section>
         {animationMode ? (
           <p className="status-message" role="status">

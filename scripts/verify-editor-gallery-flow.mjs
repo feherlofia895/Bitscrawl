@@ -157,7 +157,7 @@ test('custom RGB and RGBA projects can be saved from the editor', async () => {
   }
 })
 
-test('guest editor exposes PNG download but no project or animation entry points', async () => {
+test('guest editor exposes PNG download and layers but no animation entry points', async () => {
   const app = await editor({ hasAdvancedAccess: false })
   const canvas = app.canvas()
   assert.equal(canvas.allowColorMixer, false)
@@ -166,7 +166,8 @@ test('guest editor exposes PNG download but no project or animation entry points
   assert.equal(canvas.customPaletteActive, false)
   assert.equal(canvas.onLoadFromGallery, undefined)
   assert.equal(canvas.onSaveToGallery, undefined)
-  assert.equal(app.controls(), undefined)
+  assert.equal(app.controls().allowAnimation, false)
+  assert.equal(app.controls().frames.length, 1)
 
   const buttons = nodes(app.render(), 'button')
   assert.equal(buttons.find(button => text(button) === editorText.export)?.props.disabled, false)
@@ -198,9 +199,7 @@ test('layer switching edits one of three layers and visibility changes the compo
   const bottom = colored(palette.basePalette[0].hex)
   const top = colored(palette.basePalette[1].hex)
   const app = await editor({ initial: bottom })
-  const upperButton = nodes(app.render(), 'button').find(button => text(button).startsWith('Felső réteg'))
-  assert.ok(upperButton)
-  upperButton.props.onClick()
+  app.controls().onSelectCell(0, 2)
   assert.deepEqual(app.canvas().localDrawing.initialPixels, drawing.emptyDrawing())
   app.canvas().localDrawing.onChange(top)
 
@@ -209,9 +208,7 @@ test('layer switching edits one of three layers and visibility changes the compo
   assert.equal(draft.activeLayer, 2)
   assert.equal(app.canvas().localDrawing.getDisplayColor(top[37], 37), top[37])
 
-  const hideUpper = nodes(app.render(), 'button').find(button => button.props['aria-label'] === 'Felső réteg elrejtése')
-  assert.ok(hideUpper)
-  hideUpper.props.onClick()
+  app.controls().onToggleLayerVisibility(2)
   draft = JSON.parse(app.storage.get('bitscrawl-editor-v1'))
   assert.deepEqual(draft.layerVisibility, [true, true, false])
   assert.equal(app.canvas().localDrawing.getDisplayColor(top[37], 37), bottom[37])
@@ -221,10 +218,10 @@ test('moving a layer changes its content, visibility and active index together',
   const bottom = colored(palette.basePalette[0].hex)
   const top = colored(palette.basePalette[1].hex)
   const app = await editor({ initial: bottom })
-  nodes(app.render(), 'button').find(button => text(button).startsWith('Felső réteg')).props.onClick()
+  app.controls().onSelectCell(0, 2)
   app.canvas().localDrawing.onChange(top)
-  nodes(app.render(), 'button').find(button => button.props['aria-label'] === 'Felső réteg elrejtése').props.onClick()
-  nodes(app.render(), 'button').find(button => text(button).includes('Réteg lejjebb')).props.onClick()
+  app.controls().onToggleLayerVisibility(2)
+  app.controls().onMoveLayer(-1)
 
   const draft = JSON.parse(app.storage.get('bitscrawl-editor-v1'))
   assert.deepEqual(draft.frames[0].layers, [bottom, top, drawing.emptyDrawing()])
@@ -237,10 +234,9 @@ test('moving a layer changes its content, visibility and active index together',
 
 test('hidden layer content still requires confirmation before starting a new project', async () => {
   const app = await editor()
-  const upperButton = nodes(app.render(), 'button').find(button => text(button).startsWith('Felső réteg'))
-  upperButton.props.onClick()
+  app.controls().onSelectCell(0, 2)
   app.canvas().localDrawing.onChange(colored())
-  nodes(app.render(), 'button').find(button => button.props['aria-label'] === 'Felső réteg elrejtése').props.onClick()
+  app.controls().onToggleLayerVisibility(2)
   nodes(app.render(), 'button').find(button => text(button) === editorText.newDrawing).props.onClick()
   assert.equal(nodes(app.render(), 'ConfirmModal').length, 1)
 })

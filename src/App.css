@@ -3811,6 +3811,201 @@ button,
   }
 }
 
+.editor-timeline-scroll {
+  max-width: 100%;
+  padding: 3px 3px 7px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-color: var(--ink) color-mix(in srgb, var(--paper) 70%, transparent);
+}
+
+.editor-timeline-grid {
+  display: grid;
+  grid-template-columns: 76px repeat(var(--editor-frame-count), 66px);
+  gap: 6px;
+  width: max-content;
+  min-width: 100%;
+  padding: 8px;
+  background: color-mix(in srgb, var(--paper) 72%, transparent);
+  border: 2px solid var(--ink);
+}
+
+.editor-timeline-corner,
+.editor-timeline-frame-heading {
+  display: grid;
+  min-width: 0;
+  height: 34px;
+  place-items: center;
+  color: var(--ink);
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+  font: 900 .72rem/1 var(--pixel-font);
+}
+
+.editor-timeline-corner {
+  background: color-mix(in srgb, var(--olive) 72%, var(--paper));
+}
+
+.editor-timeline-frame-heading {
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.editor-timeline-frame-heading[aria-pressed='true'] {
+  background: var(--mint);
+  outline: 2px solid var(--blue);
+  outline-offset: -4px;
+}
+
+.editor-timeline-layer-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 31px;
+  gap: 4px;
+  height: 66px;
+  padding: 4px;
+  background: color-mix(in srgb, var(--olive) 72%, var(--paper));
+  border: 2px solid var(--ink);
+}
+
+.editor-timeline-layer-heading[data-active='true'] {
+  background: var(--mint);
+  outline: 2px solid var(--blue);
+  outline-offset: -4px;
+}
+
+.editor-timeline-layer-number,
+.editor-timeline-layer-visibility {
+  display: grid;
+  min-width: 0;
+  padding: 4px;
+  place-items: center;
+  color: var(--ink);
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  font: 900 .8rem/1 var(--pixel-font);
+}
+
+.editor-timeline-layer-number[aria-pressed='true'],
+.editor-timeline-layer-visibility[aria-pressed='true'] {
+  background: var(--mint);
+}
+
+.editor-timeline-layer-visibility[aria-pressed='false'] {
+  opacity: .58;
+  background: #bdbdbd;
+}
+
+.editor-timeline-layer-visibility svg {
+  width: 18px;
+  height: 18px;
+}
+
+.editor-timeline-cell {
+  display: grid;
+  width: 66px;
+  height: 66px;
+  padding: 5px;
+  place-items: center;
+  color: var(--ink);
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.editor-timeline-cell[data-active-frame='true'],
+.editor-timeline-cell[data-active-layer='true'] {
+  background: color-mix(in srgb, var(--mint) 24%, var(--paper));
+}
+
+.editor-timeline-cell[aria-pressed='true'] {
+  background: var(--mint);
+  outline: 3px solid var(--blue);
+  outline-offset: -5px;
+}
+
+.editor-timeline-cell[data-visible='false'] {
+  opacity: .48;
+}
+
+.editor-timeline-cell .weekly-artwork {
+  width: 52px;
+  height: 52px;
+  background-color: #eee;
+  background-image:
+    linear-gradient(45deg, #d4d4d4 25%, transparent 25%),
+    linear-gradient(-45deg, #d4d4d4 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #d4d4d4 75%),
+    linear-gradient(-45deg, transparent 75%, #d4d4d4 75%);
+  background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+  background-size: 8px 8px;
+  border: 1px solid color-mix(in srgb, var(--ink) 65%, transparent);
+  image-rendering: pixelated;
+}
+
+.editor-timeline-footer {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.editor-timeline-footer .editor-layer-order-actions {
+  max-width: 320px;
+}
+
+.editor-timeline-footer .editor-animation-actions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 560px) {
+  .editor-animation-heading-copy > p:last-child {
+    display: none;
+  }
+
+  .editor-animation-heading-copy h2 {
+    font-size: 1.12rem;
+  }
+
+  .editor-timeline-grid {
+    grid-template-columns: 68px repeat(var(--editor-frame-count), 58px);
+    gap: 5px;
+    padding: 6px;
+  }
+
+  .editor-timeline-layer-heading,
+  .editor-timeline-cell {
+    height: 58px;
+  }
+
+  .editor-timeline-layer-heading {
+    grid-template-columns: minmax(0, 1fr) 28px;
+    gap: 3px;
+    padding: 3px;
+  }
+
+  .editor-timeline-cell {
+    width: 58px;
+    padding: 4px;
+  }
+
+  .editor-timeline-cell .weekly-artwork {
+    width: 46px;
+    height: 46px;
+  }
+
+  .editor-timeline-footer {
+    grid-template-columns: 1fr;
+  }
+
+  .editor-timeline-footer .editor-layer-order-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: none;
+  }
+
+  .editor-timeline-footer .editor-animation-actions {
+    justify-content: flex-start;
+  }
+}
+
 .weekly-page {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
