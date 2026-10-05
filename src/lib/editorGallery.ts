@@ -1,6 +1,7 @@
 import type { Json } from '../types/database'
 import type { EditorPaletteSize } from './palette'
-import { editorPalette32 } from './palette'
+import { basePalette } from './palette'
+import { isValidEditorDrawingPixels } from './drawing'
 import { supabase } from './supabase'
 
 export type EditorGallerySlotIndex = 1 | 2
@@ -12,11 +13,10 @@ export type EditorGallerySlot = {
   updatedAt: string
 }
 
-const editorColors = new Set(['transparent', ...editorPalette32.map(color => color.hex)])
+const baseColors = new Set(['transparent', ...basePalette.map(color => color.hex)])
 
 function parsePixels(value: Json): string[] | null {
-  return Array.isArray(value) && value.length === 1024 &&
-    value.every(color => typeof color === 'string' && editorColors.has(color))
+  return isValidEditorDrawingPixels(value)
     ? value as string[]
     : null
 }
@@ -66,7 +66,7 @@ export async function saveOwnEditorGallerySlot(
 ) {
   const { data, error } = await supabase.rpc('save_own_editor_gallery_slot', {
     drawing_pixels: pixels,
-    requested_palette_size: paletteSize,
+    requested_palette_size: paletteSize === 12 && pixels.every(color => baseColors.has(color)) ? 12 : 32,
     target_slot: slotIndex,
   })
   if (error) throw galleryError(error)

@@ -111,6 +111,50 @@ function colored(color = palette.basePalette[0].hex) {
 }
 const slot = () => ({ slotIndex: 1, paletteSize: 32, pixels: colored(palette.editorPalette32[20].hex), updatedAt: '2026-01-01T00:00:00Z' })
 
+test('custom RGB and RGBA drawings can be saved from the editor', async () => {
+  for (const color of ['#123456', '#12345680']) {
+    const pixels = colored(color)
+    const app = await editor({ initial: pixels })
+    app.canvas().onSaveToGallery()
+    await settle()
+    app.click('Ide mentem')
+    await settle()
+    assert.equal(app.saved.length, 1)
+    assert.deepEqual(app.saved[0][1], pixels)
+  }
+})
+
+test('gallery client roundtrips custom colors and upgrades stale base-palette metadata', async () => {
+  const source = await readFile(new URL('../src/lib/editorGallery.ts', import.meta.url), 'utf8')
+  const output = ts.transpileModule(source, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
+  }).outputText
+  let stored
+  const api = {}
+  new Function('require', 'exports', output)(name => {
+    if (name === './palette') return palette
+    if (name === './drawing') return drawing
+    assert.equal(name, './supabase')
+    return { supabase: { rpc: async (name, args) => {
+      if (name === 'save_own_editor_gallery_slot') {
+        stored = { pixels: args.drawing_pixels, palette_size: args.requested_palette_size,
+          slot_index: args.target_slot, updated_at: '2026-10-05T00:00:00Z' }
+        return { data: stored.updated_at, error: null }
+      }
+      return { data: [stored], error: null }
+    } } }
+  }, api)
+  for (const color of ['#123456', '#12345680', palette.basePalette[0].hex]) {
+    const pixels = colored(color)
+    await api.saveOwnEditorGallerySlot(1, pixels, 12)
+    const [loaded] = await api.loadOwnEditorGallery()
+    assert.deepEqual(loaded.pixels, pixels)
+    assert.equal(loaded.paletteSize, color === palette.basePalette[0].hex ? 12 : 32)
+  }
+  stored.pixels = colored('not-a-color')
+  await assert.rejects(api.loadOwnEditorGallery(), /megsérült/)
+})
+
 test('guest editor exposes the base palette and PNG download but no advanced entry points', async () => {
   const app = await editor({ hasAdvancedAccess: false })
   const canvas = app.canvas()

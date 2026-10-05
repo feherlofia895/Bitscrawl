@@ -8,6 +8,7 @@ import {
   composeDrawingLayers,
   compositeDrawingPixel,
   emptyDrawing,
+  isValidEditorDrawingPixels,
   parseDrawingDraft,
   rasterizeDrawing,
   type EditorDrawingLayers,
@@ -16,7 +17,6 @@ import {
 } from '../lib/drawing'
 import { editorText as text } from '../lib/editorText'
 import type { EditorPaletteSize } from '../lib/palette'
-import { editorPalette32 } from '../lib/palette'
 import { loadOwnProfile, saveProfileAvatar } from '../lib/profile'
 import {
   FEED_DAILY_POST_LIMIT,
@@ -67,7 +67,6 @@ import {
 import { createEditorAnimationGifBlob } from '../lib/editorGif'
 
 const STORAGE_KEY = 'bitscrawl-editor-v1'
-const serverColors = new Set(['transparent', ...editorPalette32.map(color => color.hex)])
 
 type EditorShareState = {
   animationSlots: EditorAnimationGallerySlot[]
@@ -154,7 +153,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
   const [galleryActionLoading, setGalleryActionLoading] = useState(false)
   const [galleryActionError, setGalleryActionError] = useState<string | null>(null)
   const [galleryPaletteReady, setGalleryPaletteReady] = useState(
-    () => initial.pixels.every(color => serverColors.has(color)),
+    () => isValidEditorDrawingPixels(initial.pixels),
   )
   const [confirmation, setConfirmation] = useState<{
     title: string
@@ -261,7 +260,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
   const handleChange = useCallback((pixels: string[]) => {
     pixelsRef.current = pixels
     if (animationMode) {
-      setGalleryPaletteReady(pixels.every(color => serverColors.has(color)))
+      setGalleryPaletteReady(isValidEditorDrawingPixels(pixels))
       const frames = replaceAnimationFrame(
         animationFramesRef.current,
         activeAnimationFrameRef.current,
@@ -279,7 +278,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
     )) as EditorDrawingLayers
     editorLayersRef.current = layers
     staticPixelsRef.current = composeDrawingLayers(layers, layerVisibilityRef.current)
-    setGalleryPaletteReady(staticPixelsRef.current.every(color => serverColors.has(color)))
+    setGalleryPaletteReady(isValidEditorDrawingPixels(staticPixelsRef.current))
     setDirty(true)
     if (persist(layers, false)) setStatus(text.local)
   }, [animationMode, persist, persistAnimationDraft])
@@ -303,7 +302,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
     activeAnimationFrameRef.current = nextIndex
     setActiveAnimationFrame(nextIndex)
     pixelsRef.current = [...frames[nextIndex]]
-    setGalleryPaletteReady(pixelsRef.current.every(color => serverColors.has(color)))
+    setGalleryPaletteReady(isValidEditorDrawingPixels(pixelsRef.current))
     persistAnimationDraft(frames, nextIndex)
     setRevision(value => value + 1)
   }
@@ -323,7 +322,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
       ? pixelsRef.current
       : composeDrawingLayers(editorLayersRef.current, layerVisibilityRef.current)
     staticPixelsRef.current = useAnimation ? staticPixelsRef.current : outputPixels
-    setGalleryPaletteReady(outputPixels.every(color => serverColors.has(color)))
+    setGalleryPaletteReady(isValidEditorDrawingPixels(outputPixels))
     setRevision(value => value + 1)
   }
 
@@ -336,7 +335,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
     setAnimationMode(false)
     pixelsRef.current = [...editorLayersRef.current[activeLayerRef.current]]
     staticPixelsRef.current = composeDrawingLayers(editorLayersRef.current, layerVisibilityRef.current)
-    setGalleryPaletteReady(staticPixelsRef.current.every(color => serverColors.has(color)))
+    setGalleryPaletteReady(isValidEditorDrawingPixels(staticPixelsRef.current))
     setStatus('A vendég módban az állókép-szerkesztő használható.')
     setRevision(value => value + 1)
   }, [animationMode, hasAdvancedAccess])
@@ -359,7 +358,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
     layerVisibilityRef.current = visibility
     setLayerVisibility(visibility)
     staticPixelsRef.current = composeDrawingLayers(editorLayersRef.current, visibility)
-    setGalleryPaletteReady(staticPixelsRef.current.every(color => serverColors.has(color)))
+    setGalleryPaletteReady(isValidEditorDrawingPixels(staticPixelsRef.current))
     setDirty(true)
     if (persist(editorLayersRef.current, false, paletteSize, activeLayerRef.current, visibility)) {
       setStatus(text.local)
@@ -729,7 +728,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
       return
     }
     if (!galleryPaletteReady) {
-      setStatus('Kevert színes rajz még nem menthető a szerveres saját galériába.')
+      setStatus('A rajz hibás adatokat tartalmaz, ezért nem menthető.')
       return
     }
     setSharing(true)
@@ -771,7 +770,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
     setLayerVisibility(visibility)
     setPaletteSize(slot.paletteSize)
     setCustomPaletteActive(false)
-    setGalleryPaletteReady(pixels.every(color => serverColors.has(color)))
+    setGalleryPaletteReady(isValidEditorDrawingPixels(pixels))
     setDirty(true)
     const storedLocally = persist(layers, false, slot.paletteSize, 0, visibility)
     setRevision(value => value + 1)
@@ -858,7 +857,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
     setActiveAnimationFrame(0)
     setAnimationFps(slot.fps)
     setAnimationDirty(false)
-    setGalleryPaletteReady(pixelsRef.current.every(color => serverColors.has(color)))
+    setGalleryPaletteReady(isValidEditorDrawingPixels(pixelsRef.current))
     const storedLocally = persistAnimationDraft(frames, 0, slot.fps, onionSkin)
     setRevision(value => value + 1)
     if (storedLocally) setStatus(`Az animációs galéria ${slot.slotIndex}. animációja betöltve szerkesztésre.`)
@@ -1077,7 +1076,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
                   )}
                 </details>
                 {shareState.feedUnavailableMessage ? <small>{shareState.feedUnavailableMessage}</small> : null}
-                {!galleryPaletteReady ? <small>A kevert színeket a Rajzfal, a profilkép, valamint a heti és havi kihívás is fogadja. A saját galéria továbbra is a 32 hivatalos színt használja.</small> : null}
+                {!galleryPaletteReady ? <small>A rajz hibás adatokat tartalmaz, ezért nem menthető.</small> : null}
               </>}
               </>}
               {status !== text.local ? <p className="status-message editor-share-status" role="status">{status}</p> : null}
