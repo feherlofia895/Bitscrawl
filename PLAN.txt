@@ -176,10 +176,12 @@ KÖVETKEZŐ NAGY SZERKESZTŐFEJLESZTÉS – EGYESÍTETT RÉTEGEK ÉS ANIMÁCIÓ
   a régi mentéseket: a régi állókép egy képkocka alsó rétegére, a régi animáció
   képkockánként az alsó rétegre kerüljön.
 - [ ] A külön Saját galéria és Animációs galéria helyett közös „Saját projektek”
-  mentést használjunk, mert ugyanaz a dokumentum később egy képkockából több-
-  képkockássá alakítható. A régi két kép- és két animációhely egyik mentése se
-  vesszen el a migrációkor; a felület továbbra is külön jelölje az állóképet és
-  az animációt, valamint mutassa a képkockák számát.
+  mentést használjunk pontosan négy hellyel, mert ugyanaz a dokumentum később egy
+  képkockából többképkockássá alakítható. Mind a négy hely a teljes projektet
+  őrizze meg minden képkockával, réteggel, láthatósággal, sebességgel és
+  palettabeállítással. A régi két kép- és két animációhely egyik mentése se vesszen
+  el a migrációkor; ezek kerüljenek át a négy közös projektbe. A felület továbbra
+  is külön jelölje az állóképet és az animációt, valamint mutassa a képkockák számát.
 - [ ] A galériakártyák gyors előnézetéhez a strukturált dokumentum mellett maradjon
   szerver által ellenőrzött lapított előnézet. A Rajzfalra, profilképnek és heti/
   havi kihívásba küldött kép továbbra is lapított, nem szerkeszthető publikáció
@@ -197,6 +199,40 @@ KÖVETKEZŐ NAGY SZERKESZTŐFEJLESZTÉS – EGYESÍTETT RÉTEGEK ÉS ANIMÁCIÓ
   és idővonal; felhős saját galéria; export és megosztás; automatizált regresszió;
   végül fizikai iPhone-, Android- és asztali próba. Az adatbázis-migráció csak a
   régi és új formátum együttes visszatöltésének helyi ellenőrzése után mehet élesbe.
+- 2026-10-05-i kapacitásellenőrzés: a Free csomagos PixelGuess adatbázis 19 MB-ot
+  használ az 500 MB-os adatbáziskeretből; 36 mentett profil és 208 Auth-fiók van.
+  Négy maximális, 3 × 5 × 32 × 32 pixeles projekt nyers JSON-becslése körülbelül
+  0,75–0,9 MB profilonként, ezért a jelenlegi felhasználószám mellett kényelmesen
+  elfér. Mentéskor ettől függetlenül legyen projektenkénti méretkorlát és mérés;
+  70–75% adatbázis-kihasználtságnál már jelezzünk, mielőtt a Free csomag elérné a
+  csak olvasható állapotot.
+
+KÖVETKEZŐ PROFILFEJLESZTÉS – PUBLIKUS ALKOTÁSGALÉRIA
+
+- [ ] Más játékos profilján jelenjen meg egy kompakt alkotásgaléria a játékos már
+  nyilvánosan beküldött Rajzfal-, heti és havi kihívásképeiből. Első körben a hat
+  legfrissebb kép látszódjon bélyegképként, és megnyitható legyen nagyobb nézetben.
+- [ ] A saját profil Beállításaiban legyen „Profilgaléria megjelenítése” kapcsoló
+  Publikus / Elrejtett állapottal. A kapcsoló alapértelmezésben lehet publikus,
+  mivel csak már közzétett alkotásokat gyűjt össze; a felület egyértelműen írja ki,
+  hogy az elrejtés csak a profil összesített galériáját rejti el, az eredeti
+  Rajzfal- vagy kihívásbejegyzést nem törli és nem teszi priváttá.
+- [ ] A profilgaléria ne másolja le a pixeltömböket új táblába. Egy lapozható,
+  szerveroldali lekérdezés a meglévő `feed_posts`, `weekly_entries` és
+  `monthly_entries` publikus rekordjaiból állítsa össze időrendben, így az új
+  funkció tárhelyigénye csak a profil egy láthatósági jelzője és néhány index.
+- [ ] A lekérdezés tartsa tiszteletben az eredeti közzétételi szabályokat: folyamatban
+  lévő vagy még nem nyilvános kihívásnevezést, privát szerkesztőprojektet, piszkozatot,
+  törölt vagy moderációval elrejtett képet soha ne adjon vissza. A rejtett galériát
+  más felhasználó ne tudja közvetlen RPC-hívással sem lekérni; a tulajdonos a saját
+  profilján ettől még előnézhesse.
+- [ ] A publikus profilgaléria ugyanazt a teljes képes nézetet használja, mint a
+  jelenlegi galériák, és lehetőleg az eredeti Rajzfal- vagy kihívásbejegyzéshez
+  vezessen, hogy a kedvelések és hozzászólások ne duplázódjanak.
+- [ ] Automatizált RLS/RPC-próba ellenőrizze a publikus és elrejtett állapotot, a
+  tulajdonosi módosítást, a kihívások közzétételi időablakát, a moderált/törölt
+  képek kizárását, a lapozást és azt, hogy privát Saját projekt soha ne kerüljön
+  más profilgalériájába.
 
 KÖVETKEZŐ HOZZÁFÉRÉSI FELADAT – VENDÉG SZERKESZTŐ
 
