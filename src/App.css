@@ -7567,7 +7567,7 @@ canvas.player-avatar {
 
   .mobile-extra-tool-options {
     display: grid;
-    grid-template-columns: repeat(5, 42px);
+    grid-template-columns: repeat(6, 42px);
     justify-content: center;
     gap: 8px;
     padding: 8px;

@@ -92,7 +92,7 @@ test('canvas controls swap above the palette while fullscreen becomes the eleven
   assert.match(css, /\.immersive-quick-tools\s*\{[^}]*position:\s*fixed[^}]*grid-template-columns:\s*repeat\(5, 42px\)/)
 })
 
-test('the regular toolbar omits its duplicate pan hand and enlarges the drawn controls', async () => {
+test('the regular toolbar moves the pan hand into the mobile overflow and enlarges the drawn controls', async () => {
   const [css, canvasSource] = await Promise.all([
     readFile(new URL('../src/App.css', import.meta.url), 'utf8'),
     readFile(new URL('../src/components/PixelCanvas.tsx', import.meta.url), 'utf8'),
@@ -102,7 +102,7 @@ test('the regular toolbar omits its duplicate pan hand and enlarges the drawn co
   const regularToolbar = canvasSource.slice(toolbarStart, toolbarEnd)
 
   assert(toolbarStart >= 0 && toolbarEnd > toolbarStart)
-  assert.doesNotMatch(regularToolbar, /Vászon mozgatása|\/icons\/tools\/pan\.svg/)
+  assert.match(regularToolbar, /className="mobile-extra-tool-options"[\s\S]*?aria-label="Vászon mozgatása"[\s\S]*?\/icons\/tools\/pan\.svg/)
   assert.match(css, /\.tool-buttons \.tool-sprite-button\s*\{[^}]*width:\s*42px[^}]*height:\s*48px/)
   assert.match(css, /background-size:\s*78px 384px/)
   assert.match(css, /\.immersive-side-controls \.tool-sprite-button,[\s\S]*?\.immersive-quick-tools \.tool-sprite-button\s*\{[^}]*width:\s*42px[^}]*height:\s*48px[^}]*background-size:\s*78px 384px/)
@@ -521,7 +521,7 @@ test('compact mobile tools and the unified timeline stay out of challenges', asy
   )
   assert.match(
     pixelCanvasSource,
-    /className="mobile-extra-tool-options"[\s\S]*?isShapeTool\(tool\)[\s\S]*?aria-label="Újra"[\s\S]*?aria-label=\{clearCanvasLabel\}[\s\S]*?aria-label="Kijelölés"[\s\S]*?aria-label="Színcsere"[\s\S]*?aria-label="Kicsinyítés"[\s\S]*?aria-label="Nagyítás"[\s\S]*?aria-label="Rács"/,
+    /className="mobile-extra-tool-options"[\s\S]*?isShapeTool\(tool\)[\s\S]*?aria-label="Újra"[\s\S]*?aria-label=\{clearCanvasLabel\}[\s\S]*?aria-label="Kijelölés"[\s\S]*?aria-label="Színcsere"[\s\S]*?aria-label="Vászon mozgatása"[\s\S]*?aria-label="Kicsinyítés"[\s\S]*?aria-label="Nagyítás"[\s\S]*?aria-label="Rács"/,
   )
   assert.match(
     await readFile(new URL('../src/App.css', import.meta.url), 'utf8'),

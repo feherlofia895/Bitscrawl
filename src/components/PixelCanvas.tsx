@@ -1491,7 +1491,7 @@ export function PixelCanvas({
         <button
           aria-label="Mozgatás"
           aria-pressed={isPanMode}
-          className="canvas-pan-button"
+          className="canvas-pan-button mobile-overflow-view-control"
           disabled={zoom === MIN_ZOOM}
           onClick={() => setIsPanMode((current) => !current)}
           title="Mozgatás"
@@ -1702,6 +1702,20 @@ export function PixelCanvas({
                   <img alt="" aria-hidden="true" src="/icons/tools/replace-color.svg" />
                 </button>
               ) : null}
+              <button
+                aria-label="Vászon mozgatása"
+                aria-pressed={isPanMode}
+                className="tool-icon-button"
+                disabled={zoom === MIN_ZOOM}
+                onClick={() => {
+                  selectPanTool()
+                  setAreMobileToolsOpen(false)
+                }}
+                title="Vászon mozgatása"
+                type="button"
+              >
+                <img alt="" aria-hidden="true" src="/icons/tools/pan.svg" />
+              </button>
               <button
                 aria-label="Kicsinyítés"
                 className="tool-icon-button mobile-view-tool-button"
