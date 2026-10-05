@@ -916,24 +916,30 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
           </details>
         </div>
         <section aria-label="Képkockák és rétegek" className="editor-project-structure">
-          <EditorAnimationControls
-            activeFrameIndex={activeFrame}
-            activeLayerIndex={activeLayer}
-            allowAnimation={hasAdvancedAccess}
-            fps={animationFps}
-            frames={projectFrames}
-            layerVisibility={layerVisibility}
-            onionSkin={onionSkin}
-            projectFrames={projectRef.current.frames}
-            onAddFrame={() => addFrame(false)}
-            onDeleteFrame={removeActiveFrame}
-            onDuplicateFrame={() => addFrame(true)}
-            onFpsChange={fps => updateAnimationSettings(fps, onionSkin)}
-            onMoveLayer={moveActiveLayer}
-            onOnionSkinChange={active => updateAnimationSettings(animationFps, active)}
-            onSelectCell={selectEditorCell}
-            onToggleLayerVisibility={toggleEditorLayerVisibility}
-          />
+          <details className="editor-project-panel editor-collapsible-panel">
+            <summary className="editor-collapsible-summary">
+              <strong>Rétegek × képkockák</strong>
+              <small>{activeLayer + 1}. réteg · {projectFrames.length}/5 képkocka</small>
+            </summary>
+            <EditorAnimationControls
+              activeFrameIndex={activeFrame}
+              activeLayerIndex={activeLayer}
+              allowAnimation={hasAdvancedAccess}
+              fps={animationFps}
+              frames={projectFrames}
+              layerVisibility={layerVisibility}
+              onionSkin={onionSkin}
+              projectFrames={projectRef.current.frames}
+              onAddFrame={() => addFrame(false)}
+              onDeleteFrame={removeActiveFrame}
+              onDuplicateFrame={() => addFrame(true)}
+              onFpsChange={fps => updateAnimationSettings(fps, onionSkin)}
+              onMoveLayer={moveActiveLayer}
+              onOnionSkinChange={active => updateAnimationSettings(animationFps, active)}
+              onSelectCell={selectEditorCell}
+              onToggleLayerVisibility={toggleEditorLayerVisibility}
+            />
+          </details>
         </section>
         {animationMode ? (
           <p className="status-message" role="status">

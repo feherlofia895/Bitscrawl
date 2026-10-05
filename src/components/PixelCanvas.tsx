@@ -224,6 +224,10 @@ function isShapeTool(tool: DrawingTool): tool is ShapeTool {
   return tool === 'line' || tool === 'rectangle' || tool === 'ellipse'
 }
 
+function isBrushTool(tool: DrawingTool) {
+  return tool === 'pencil' || tool === 'eraser'
+}
+
 const toolButtons: Array<{
   icon?: string
   label: string
@@ -238,6 +242,13 @@ const toolButtons: Array<{
   { label: 'Négyzet vagy téglalap', spriteRow: 7, tool: 'rectangle' },
   { label: 'Kör vagy ellipszis', spriteRow: 3, tool: 'ellipse' },
   { icon: '/icons/tools/select.svg', label: 'Kijelölés', tool: 'select' },
+]
+
+const immersiveQuickTools: DrawingTool[] = [
+  'pencil',
+  'eraser',
+  'eyedropper',
+  'fill',
 ]
 
 function toolSpriteStyle(spriteRow: number) {
@@ -377,6 +388,7 @@ export function PixelCanvas({
   const [preferredShapeTool, setPreferredShapeTool] = useState<ShapeTool>('line')
   const [isShapeToolMenuOpen, setIsShapeToolMenuOpen] = useState(false)
   const [brushSize, setBrushSize] = useState<BrushSize>(1)
+  const [isBrushSizeOpen, setIsBrushSizeOpen] = useState(true)
   const [canUndo, setCanUndo] = useState(false)
   const [canRedo, setCanRedo] = useState(false)
   const [brushPreviewPoint, setBrushPreviewPoint] = useState<PixelPoint | null>(null)
@@ -511,6 +523,7 @@ export function PixelCanvas({
 
   const selectDrawingTool = (tool: DrawingTool) => {
     setActiveTool(tool)
+    if (!isBrushTool(tool)) setIsBrushSizeOpen(false)
     if (isShapeTool(tool)) setPreferredShapeTool(tool)
     setIsShapeToolMenuOpen(false)
     setIsPanMode(false)
@@ -521,7 +534,17 @@ export function PixelCanvas({
     }
   }
 
+  const selectToolbarTool = (tool: DrawingTool) => {
+    if (isBrushTool(tool)) {
+      setIsBrushSizeOpen(current => activeTool === tool ? !current : true)
+    } else {
+      setIsBrushSizeOpen(false)
+    }
+    selectDrawingTool(tool)
+  }
+
   const selectPanTool = () => {
+    setIsBrushSizeOpen(false)
     setIsPanMode(true)
     setSelectedArea(null)
     setSelectionOffset({ x: 0, y: 0 })
@@ -1273,8 +1296,6 @@ export function PixelCanvas({
     setIsImmersive(false)
   }, [roundId])
 
-  const activeToolDetails =
-    toolButtons.find(({ tool }) => tool === activeTool) ?? toolButtons[0]
   const immersiveTimeLabel =
     immersiveSecondsLeft === null
       ? '∞'
@@ -1305,7 +1326,10 @@ export function PixelCanvas({
           aria-label={`${size}×${size} pixeles ${activeTool === 'eraser' ? 'radír' : 'ecset'}`}
           aria-pressed={brushSize === size}
           key={size}
-          onClick={() => setBrushSize(size)}
+          onClick={() => {
+            setBrushSize(size)
+            setIsBrushSizeOpen(false)
+          }}
           type="button"
         >
           {size}×
@@ -1444,6 +1468,65 @@ export function PixelCanvas({
         </div>
       )}
 
+      <div className="canvas-view-controls canvas-view-controls-primary" aria-label="Vászon nézetének vezérlése">
+        <button
+          aria-label="Kicsinyítés"
+          className="canvas-zoom-button"
+          disabled={zoom <= MIN_ZOOM}
+          onClick={() => stepZoom(-1)}
+          type="button"
+        >
+          −
+        </button>
+        <button
+          aria-label="Nagyítás"
+          className="canvas-zoom-button"
+          disabled={zoom >= maximumZoom()}
+          onClick={() => stepZoom(1)}
+          type="button"
+        >
+          +
+        </button>
+        <button
+          aria-label="Mozgatás"
+          aria-pressed={isPanMode}
+          className="canvas-pan-button"
+          disabled={zoom === MIN_ZOOM}
+          onClick={() => setIsPanMode((current) => !current)}
+          title="Mozgatás"
+          type="button"
+        >
+          <img alt="" aria-hidden="true" src="/icons/tools/pan.svg" />
+        </button>
+        <button
+          aria-pressed={showGrid}
+          className="canvas-grid-button"
+          onClick={() => setShowGrid((current) => !current)}
+          type="button"
+        >
+          Rács
+        </button>
+        {onSaveToGallery ? <button className="canvas-gallery-button" onClick={onSaveToGallery} type="button">Mentés</button> : null}
+        {onLoadFromGallery ? <button className="canvas-gallery-button" onClick={onLoadFromGallery} type="button">Betöltés</button> : null}
+        {onShare ? <button className="canvas-share-button" disabled={shareDisabled} onClick={onShare} type="button">Megosztás</button> : null}
+        {canDraw && customPaletteActive && effectiveCustomColors.length > 0 ? (
+          <button
+            aria-expanded={isCustomPaletteEditing}
+            className="canvas-palette-button"
+            onClick={() => setIsCustomPaletteEditing(current => !current)}
+            type="button"
+          >{isCustomPaletteEditing ? 'Szerkesztés bezárása' : 'Paletta szerkesztése'}</button>
+        ) : null}
+        {canDraw && allowColorMixer ? (
+          <button
+            aria-expanded={isColorMixerOpen}
+            className="canvas-palette-button"
+            onClick={() => setIsColorMixerOpen(current => !current)}
+            type="button"
+          >Színkeverő</button>
+        ) : null}
+      </div>
+
       {canDraw ? (
         <div className="pixel-toolbar" aria-label="Rajzeszközök">
           <div className={`tool-buttons${compactMobileToolbar ? ' is-compact-mobile' : ''}`}>
@@ -1455,7 +1538,7 @@ export function PixelCanvas({
                 aria-pressed={activeTool === tool}
                 className={`${spriteRow === undefined ? 'tool-icon-button' : 'tool-sprite-button'}${isShapeTool(tool) ? ' shape-tool-individual' : ''}`}
                 key={tool}
-                onClick={() => selectDrawingTool(tool)}
+                onClick={() => selectToolbarTool(tool)}
                 style={spriteRow === undefined ? undefined : toolSpriteStyle(spriteRow)}
                 title={label}
                 type="button"
@@ -1509,7 +1592,7 @@ export function PixelCanvas({
               aria-label="Kijelölés"
               aria-pressed={activeTool === 'select'}
               className="tool-icon-button"
-              onClick={() => selectDrawingTool('select')}
+              onClick={() => selectToolbarTool('select')}
               title="Kijelölés"
               type="button"
             >
@@ -1523,6 +1606,7 @@ export function PixelCanvas({
                 className="tool-icon-button"
                 onClick={() => {
                   setIsColorReplaceOpen(current => !current)
+                  setIsBrushSizeOpen(false)
                   setIsPickingReplaceSource(false)
                   setIsPanMode(false)
                 }}
@@ -1532,6 +1616,15 @@ export function PixelCanvas({
                 <img alt="" aria-hidden="true" src="/icons/tools/replace-color.svg" />
               </button>
             ) : null}
+            <button
+              aria-label="Teljes nézet"
+              className="tool-icon-button canvas-immersive-tool-button"
+              onClick={enterImmersiveMode}
+              title="Teljes nézet"
+              type="button"
+            >
+              <img alt="" aria-hidden="true" src="/icons/tools/fullscreen.svg" />
+            </button>
           </div>
           {compactMobileToolbar && isShapeToolMenuOpen ? (
             <div aria-label="Alakzat kiválasztása" className="mobile-shape-tool-options">
@@ -1541,7 +1634,7 @@ export function PixelCanvas({
                   aria-pressed={activeTool === tool}
                   className="tool-sprite-button"
                   key={tool}
-                  onClick={() => selectDrawingTool(tool)}
+                  onClick={() => selectToolbarTool(tool)}
                   style={toolSpriteStyle(spriteRow ?? 4)}
                   title={label}
                   type="button"
@@ -1549,7 +1642,7 @@ export function PixelCanvas({
               ))}
             </div>
           ) : null}
-          {allowEditorTools && (activeTool === 'pencil' || activeTool === 'eraser')
+          {allowEditorTools && isBrushTool(activeTool) && isBrushSizeOpen
             ? brushSizeControls()
             : null}
           {allowEditorTools && isColorReplaceOpen && !isImmersive
@@ -1575,123 +1668,29 @@ export function PixelCanvas({
               <small className="custom-palette-empty">Még nincs kikevert szín.</small>
             ) : null}
           </div>
-          {compactMobileToolbar ? (
-            <>
-              {customPaletteActive && effectiveCustomColors.length > 0 || allowColorMixer ? (
-                <div className="editor-palette-actions">
-                  {customPaletteActive && effectiveCustomColors.length > 0 ? (
-                    <button
-                      aria-expanded={isCustomPaletteEditing}
-                      className="custom-palette-edit-toggle"
-                      onClick={() => setIsCustomPaletteEditing(current => !current)}
-                      type="button"
-                    >{isCustomPaletteEditing ? 'Szerkesztés bezárása' : 'Paletta szerkesztése'}</button>
-                  ) : null}
-                  {allowColorMixer ? (
-                    <button
-                      aria-expanded={isColorMixerOpen}
-                      className="color-mixer-toggle"
-                      onClick={() => setIsColorMixerOpen(current => !current)}
-                      type="button"
-                    >Színkeverő</button>
-                  ) : null}
-                </div>
-              ) : null}
-              {customPaletteActive && effectiveCustomColors.length > 0 && isCustomPaletteEditing
-                ? customPaletteControls()
-                : null}
-              {allowColorMixer ? (
-                <>
-                  <small className="editor-color-mixer-note">A mentett színek az Egyéni palettára kerülnek.</small>
-                  {isColorMixerOpen ? (
-                    <div className="editor-color-mixer">
-                      <ColorMixer
-                        activeColor={activeColor}
-                        onClose={() => setIsColorMixerOpen(false)}
-                        onSave={saveMixedColor}
-                        onUse={chooseColor}
-                      />
-                    </div>
-                  ) : null}
-                </>
-              ) : null}
-            </>
-          ) : (
-            <>
-              {customPaletteActive && effectiveCustomColors.length > 0 ? customPaletteEditor() : null}
-              {allowColorMixer ? (
-                <div className="editor-color-mixer">
-                  <div className="editor-color-mixer-bar">
-                    <button
-                      aria-expanded={isColorMixerOpen}
-                      className="color-mixer-toggle"
-                      onClick={() => setIsColorMixerOpen(current => !current)}
-                      type="button"
-                    >
-                      Színkeverő
-                    </button>
-                    <small>A mentett színek az Egyéni palettára kerülnek.</small>
-                  </div>
-                  {isColorMixerOpen ? (
-                    <ColorMixer
-                      activeColor={activeColor}
-                      onClose={() => setIsColorMixerOpen(false)}
-                      onSave={saveMixedColor}
-                      onUse={chooseColor}
-                    />
-                  ) : null}
-                </div>
-              ) : null}
-            </>
-          )}
+          {customPaletteActive && effectiveCustomColors.length > 0 && isCustomPaletteEditing
+            ? customPaletteControls()
+            : null}
+          {allowColorMixer && isColorMixerOpen ? (
+            <div className="editor-color-mixer">
+              <ColorMixer
+                activeColor={activeColor}
+                onClose={() => setIsColorMixerOpen(false)}
+                onSave={saveMixedColor}
+                onUse={chooseColor}
+              />
+            </div>
+          ) : null}
         </div>
       ) : null}
 
-      <div className="canvas-view-controls" aria-label="Vászon nézetének vezérlése">
-        <button
-          aria-label="Kicsinyítés"
-          className="canvas-zoom-button"
-          disabled={zoom <= MIN_ZOOM}
-          onClick={() => stepZoom(-1)}
-          type="button"
-        >
-          −
-        </button>
-        <button
-          aria-label="Nagyítás"
-          className="canvas-zoom-button"
-          disabled={zoom >= maximumZoom()}
-          onClick={() => stepZoom(1)}
-          type="button"
-        >
-          +
-        </button>
-        <button
-          aria-label="Mozgatás"
-          aria-pressed={isPanMode}
-          className="canvas-pan-button"
-          disabled={zoom === MIN_ZOOM}
-          onClick={() => setIsPanMode((current) => !current)}
-          title="Mozgatás"
-          type="button"
-        >
-          <img alt="" aria-hidden="true" src="/icons/tools/pan.svg" />
-        </button>
-        <button
-          aria-pressed={showGrid}
-          className="canvas-grid-button"
-          onClick={() => setShowGrid((current) => !current)}
-          type="button"
-        >
-          Rács
-        </button>
-        {onSaveToGallery ? <button className="canvas-gallery-button" onClick={onSaveToGallery} type="button">Mentés</button> : null}
-        {onLoadFromGallery ? <button className="canvas-gallery-button" onClick={onLoadFromGallery} type="button">Betöltés</button> : null}
-        {onShare ? <button className="canvas-share-button" disabled={shareDisabled} onClick={onShare} type="button">Megosztás</button> : null}
-        <button className="canvas-immersive-button" onClick={enterImmersiveMode} type="button">
-          Teljes nézet
-        </button>
-      </div>
+      {!canDraw ? (
+        <div className="canvas-view-controls canvas-immersive-controls" aria-label="Teljes nézet vezérlése">
+          <button className="canvas-immersive-button" onClick={enterImmersiveMode} type="button">
+            Teljes nézet
+          </button>
+        </div>
+      ) : null}
 
       {canDraw && activeTool === 'select' && selectedArea ? (
         <div className="selection-transform-controls" aria-label="Kijelölés átalakítása">
@@ -1724,28 +1723,65 @@ export function PixelCanvas({
       ) : null}
 
       {isImmersive ? (
+        canDraw ? (
+          <nav className="immersive-quick-tools" aria-label="Gyors rajzeszközök">
+            {toolButtons.filter(({ tool }) => (
+              immersiveQuickTools.includes(tool) && (allowEditorTools || tool !== 'eyedropper')
+            )).map(({ icon, label, spriteRow, tool }) => (
+              <button
+                aria-label={label}
+                aria-pressed={activeTool === tool}
+                className={spriteRow === undefined ? 'tool-icon-button' : 'tool-sprite-button'}
+                key={tool}
+                onClick={() => {
+                  selectToolbarTool(tool)
+                  setAreImmersiveToolsOpen(false)
+                }}
+                style={spriteRow === undefined ? undefined : toolSpriteStyle(spriteRow)}
+                title={label}
+                type="button"
+              >
+                {icon ? <img alt="" aria-hidden="true" src={icon} /> : null}
+              </button>
+            ))}
+            <button
+              aria-label="Visszavonás"
+              className="tool-sprite-button"
+              disabled={!canUndo}
+              onClick={undoLastStep}
+              style={toolSpriteStyle(6)}
+              title="Visszavonás"
+              type="button"
+            />
+            {allowEditorTools && isBrushTool(activeTool) && isBrushSizeOpen
+              ? brushSizeControls(true)
+              : null}
+          </nav>
+        ) : null
+      ) : null}
+
+      {isImmersive ? (
         <aside className="immersive-side-controls" aria-label="Vászon vezérlői">
           {canDraw ? (
             <div className="immersive-control-group">
               <button
                 aria-expanded={areImmersiveToolsOpen}
-                aria-label="Rajzeszközök"
+                aria-label="További eszközök"
                 aria-pressed={areImmersiveToolsOpen}
-                className={`immersive-tool-toggle ${activeToolDetails.spriteRow === undefined ? 'tool-icon-button' : 'tool-sprite-button'}`}
+                className="immersive-tool-toggle immersive-more-tools-toggle tool-icon-button"
                 onClick={() => {
                   setAreImmersiveToolsOpen((current) => !current)
                   setIsImmersivePaletteOpen(false)
                 }}
-                style={activeToolDetails.spriteRow === undefined ? undefined : toolSpriteStyle(activeToolDetails.spriteRow)}
-                title={activeToolDetails.label}
+                title="További eszközök"
                 type="button"
               >
-                {activeToolDetails.icon ? <img alt="" aria-hidden="true" src={activeToolDetails.icon} /> : null}
+                <span aria-hidden="true">•••</span>
               </button>
               {areImmersiveToolsOpen ? (
                 <div className="immersive-tool-menu" aria-label="Rajzeszköz választása">
                   {toolButtons.filter(({ tool }) => (
-                    allowEditorTools || tool !== 'eyedropper'
+                    !immersiveQuickTools.includes(tool) && (allowEditorTools || tool !== 'eyedropper')
                   )).map(({ icon, label, spriteRow, tool }) => (
                     <button
                       aria-label={label}
@@ -1753,7 +1789,7 @@ export function PixelCanvas({
                       className={spriteRow === undefined ? 'tool-icon-button' : 'tool-sprite-button'}
                       key={tool}
                       onClick={() => {
-                        selectDrawingTool(tool)
+                        selectToolbarTool(tool)
                         setAreImmersiveToolsOpen(false)
                       }}
                       style={spriteRow === undefined ? undefined : toolSpriteStyle(spriteRow)}
@@ -1777,15 +1813,6 @@ export function PixelCanvas({
                   >
                     <img alt="" aria-hidden="true" src="/icons/tools/pan.svg" />
                   </button>
-                  <button
-                    aria-label="Visszavonás"
-                    className="tool-sprite-button"
-                    disabled={!canUndo}
-                    onClick={undoLastStep}
-                    style={toolSpriteStyle(6)}
-                    title="Visszavonás"
-                    type="button"
-                  />
                   {allowEditorTools ? (
                     <button
                       aria-label="Újra"
@@ -1815,6 +1842,7 @@ export function PixelCanvas({
                       className="tool-icon-button"
                       onClick={() => {
                         setIsColorReplaceOpen(current => !current)
+                        setIsBrushSizeOpen(false)
                         setIsPickingReplaceSource(false)
                         setIsPanMode(false)
                         setIsImmersivePaletteOpen(false)
@@ -1826,9 +1854,6 @@ export function PixelCanvas({
                       <img alt="" aria-hidden="true" src="/icons/tools/replace-color.svg" />
                     </button>
                   ) : null}
-                  {allowEditorTools && (activeTool === 'pencil' || activeTool === 'eraser')
-                    ? brushSizeControls(true)
-                    : null}
                 </div>
               ) : null}
             </div>
@@ -2293,6 +2318,28 @@ export function PixelCanvas({
           />
         </div>
       </div>
+      {canDraw && isImmersive ? (
+        <div
+          aria-label="Gyors színpaletta"
+          className="immersive-floating-palette"
+          data-palette-size={customPaletteActive ? 'custom' : paletteSize}
+        >
+          {visiblePalette.map(color => (
+            <button
+              aria-label={`${color.name}, ${color.hex}`}
+              aria-pressed={activeColor === color.hex}
+              key={color.hex}
+              onClick={() => chooseColor(color.hex)}
+              style={{ backgroundColor: color.hex }}
+              title={color.name}
+              type="button"
+            />
+          ))}
+          {visiblePalette.length === 0 ? (
+            <small>Az Egyéni paletta még üres.</small>
+          ) : null}
+        </div>
+      ) : null}
       <p className="canvas-navigation-hint">
         Görgess a vásznon vagy csippents két ujjal a nagyításhoz. Mozgatás módban
         nyomva tartva húzhatod a rajzot.

@@ -85,20 +85,26 @@ export function ColorMixer({
           </label>
         ))}
       </div>
-      <div className="color-mixer-result">
-        <span aria-hidden="true" className="color-mixer-result-swatch">
-          <i style={{ backgroundColor: mixedColor }} />
-        </span>
-        <div>
-          <small>Kikevert szín</small>
-          <strong>{mixedColor}</strong>
+      <div className="color-mixer-footer">
+        <div className="color-mixer-result">
+          <span aria-hidden="true" className="color-mixer-result-swatch">
+            <i style={{ backgroundColor: mixedColor }} />
+          </span>
+          <div>
+            <small>Kikevert szín</small>
+            <strong>{mixedColor}</strong>
+          </div>
         </div>
-      </div>
-      <div className="color-mixer-actions">
-        <button onClick={() => onUse(mixedColor)} type="button">Használom</button>
-        <button className="primary-button" onClick={() => onSave(mixedColor)} type="button">
-          Mentés a saját színekhez
-        </button>
+        <div className="color-mixer-actions">
+          <button onClick={() => onUse(mixedColor)} type="button">Használom</button>
+          <button
+            aria-label="Mentés a saját színekhez"
+            className="color-mixer-save-button"
+            onClick={() => onSave(mixedColor)}
+            title="Mentés a saját színekhez"
+            type="button"
+          >Mentés</button>
+        </div>
       </div>
     </section>
   )

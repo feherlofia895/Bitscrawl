@@ -106,14 +106,9 @@ export function EditorAnimationControls({
   const gridStyle = { '--editor-frame-count': visibleFrames.length } as CSSProperties
 
   return (
-    <section className="editor-animation-controls" aria-labelledby="animation-controls-title">
-      <div className="editor-animation-heading">
-        <div className="editor-animation-heading-copy">
-          <p className="step-label">3 × {EDITOR_ANIMATION_FRAME_LIMIT}</p>
-          <h2 id="animation-controls-title">Rétegek × képkockák</h2>
-          <p>Kattints egy cellára, és azon a rétegen, abban a képkockában rajzolsz.</p>
-        </div>
-        {allowAnimation ? (
+    <section className="editor-animation-controls" aria-label="Réteg- és képkockaszerkesztő">
+      {allowAnimation ? (
+        <div className="editor-animation-heading is-compact">
           <div className="editor-animation-preview">
             <WeeklyArtwork label="Animáció előnézete" pixels={visibleFrames[previewFrameIndex] ?? visibleFrames[0]} />
             <label className="editor-animation-speed">
@@ -141,8 +136,8 @@ export function EditorAnimationControls({
               <AnimationPlayIcon paused={playing} />
             </button>
           </div>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       <div className="editor-timeline-scroll" role="group" aria-label="Réteg- és képkockarács">
         <div className="editor-timeline-grid" style={gridStyle}>

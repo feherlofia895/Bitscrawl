@@ -50,7 +50,7 @@ test('the editor 32-color palette is unique, keeps every base color and uses a f
   )
 })
 
-test('canvas view controls use compact zoom buttons and omit coordinates', async () => {
+test('canvas controls swap above the palette while fullscreen becomes the eleventh tool', async () => {
   const [css, canvasSource] = await Promise.all([
     readFile(new URL('../src/App.css', import.meta.url), 'utf8'),
     readFile(new URL('../src/components/PixelCanvas.tsx', import.meta.url), 'utf8'),
@@ -60,10 +60,36 @@ test('canvas view controls use compact zoom buttons and omit coordinates', async
   assert.match(canvasSource, /className="canvas-zoom-button"[\s\S]*?>\s*\+\s*<\/button>/)
   assert.match(canvasSource, />\s*Rács\s*<\/button>/)
   assert.doesNotMatch(canvasSource, /Koordináták|showCoordinates|PIXEL_COORDINATES/)
+  const primaryControls = canvasSource.indexOf('canvas-view-controls canvas-view-controls-primary')
+  const primaryControlsEnd = canvasSource.indexOf('<div className="pixel-toolbar"', primaryControls)
+  const primaryControlsSource = canvasSource.slice(primaryControls, primaryControlsEnd)
+  const palette = canvasSource.indexOf('className="drawing-palette"')
+  const tools = canvasSource.indexOf('<div className={`tool-buttons')
+  const canvas = canvasSource.indexOf('className="pixel-canvas-frame"')
+  assert(primaryControls >= 0 && primaryControls < tools)
+  assert.match(primaryControlsSource, /className="canvas-palette-button"/)
+  assert.match(primaryControlsSource, /Paletta szerkesztése/)
+  assert.match(primaryControlsSource, />Színkeverő<\/button>/)
+  assert(tools < palette && palette < canvas)
+  assert.doesNotMatch(canvasSource, /A mentett színek az Egyéni palettára kerülnek\./)
+  assert.match(canvasSource, /className="tool-icon-button canvas-immersive-tool-button"/)
+  assert.match(canvasSource, /src="\/icons\/tools\/fullscreen\.svg"/)
+  assert.match(canvasSource, /className="immersive-floating-palette"/)
+  assert.match(canvasSource, /aria-label="Gyors színpaletta"/)
+  assert.match(canvasSource, /className="immersive-quick-tools" aria-label="Gyors rajzeszközök"/)
+  assert.match(canvasSource, /const immersiveQuickTools: DrawingTool\[\] = \[[\s\S]*?'pencil'[\s\S]*?'eraser'[\s\S]*?'eyedropper'[\s\S]*?'fill'/)
+  assert.match(canvasSource, /className="immersive-quick-tools"[\s\S]*?aria-label="Visszavonás"[\s\S]*?<\/nav>/)
+  assert.match(canvasSource, /aria-label="További eszközök"[\s\S]*?<span aria-hidden="true">•••<\/span>/)
+  assert.match(canvasSource, /!immersiveQuickTools\.includes\(tool\)/)
+  assert.match(canvasSource, /!canDraw \? \([\s\S]*?canvas-immersive-controls[\s\S]*?Teljes nézet/)
   assert.match(
     css,
     /\.canvas-view-controls \.canvas-zoom-button,[\s\S]*?width:\s*34px/,
   )
+  assert.match(css, /\.pixel-toolbar > \.tool-buttons\s*\{[^}]*order:\s*20/)
+  assert.match(css, /\.tool-buttons\.is-compact-mobile\s*\{[^}]*grid-template-columns:\s*repeat\(6, 42px\)/)
+  assert.match(css, /\.immersive-floating-palette\s*\{[^}]*position:\s*fixed[^}]*grid-template-columns:\s*repeat\(12, 22px\)/)
+  assert.match(css, /\.immersive-quick-tools\s*\{[^}]*position:\s*fixed[^}]*grid-template-columns:\s*repeat\(5, 42px\)/)
 })
 
 test('the regular toolbar omits its duplicate pan hand and enlarges the drawn controls', async () => {
@@ -79,9 +105,9 @@ test('the regular toolbar omits its duplicate pan hand and enlarges the drawn co
   assert.doesNotMatch(regularToolbar, /Vászon mozgatása|\/icons\/tools\/pan\.svg/)
   assert.match(css, /\.tool-buttons \.tool-sprite-button\s*\{[^}]*width:\s*42px[^}]*height:\s*48px/)
   assert.match(css, /background-size:\s*78px 384px/)
-  assert.match(css, /\.immersive-side-controls \.tool-sprite-button,[\s\S]*?\.immersive-tool-menu \.tool-sprite-button\s*\{[^}]*width:\s*42px[^}]*height:\s*48px[^}]*background-size:\s*78px 384px/)
-  assert.match(css, /\.tool-buttons \.tool-icon-button,[\s\S]*?\.immersive-tool-menu \.tool-icon-button\s*\{[^}]*width:\s*42px[^}]*height:\s*48px/)
-  assert.match(css, /\.tool-buttons \.tool-icon-button img,[\s\S]*?\.immersive-tool-menu \.tool-icon-button img\s*\{[^}]*width:\s*27px[^}]*height:\s*27px/)
+  assert.match(css, /\.immersive-side-controls \.tool-sprite-button,[\s\S]*?\.immersive-quick-tools \.tool-sprite-button\s*\{[^}]*width:\s*42px[^}]*height:\s*48px[^}]*background-size:\s*78px 384px/)
+  assert.match(css, /\.tool-buttons \.tool-icon-button,[\s\S]*?\.immersive-quick-tools \.tool-icon-button\s*\{[^}]*width:\s*42px[^}]*height:\s*48px/)
+  assert.match(css, /\.tool-buttons \.tool-icon-button img,[\s\S]*?\.immersive-quick-tools \.tool-icon-button img\s*\{[^}]*width:\s*27px[^}]*height:\s*27px/)
   assert.match(css, /\.immersive-side-controls \.tool-sprite-button\[aria-pressed='true'\],[\s\S]*?background-image:\s*url\('\/ui\/toolbar-normal\.png'\)[^}]*outline:\s*3px solid var\(--blue\)/)
   assert.match(css, /\.tool-buttons \.tool-sprite-button\[aria-pressed='true'\][\s\S]*?background-image:\s*url\('\/ui\/toolbar-normal\.png'\)[^}]*outline:\s*3px solid var\(--blue\)/)
   assert.match(css, /\.tool-buttons button\[aria-pressed='true'\]\s*\{[^}]*background-color:\s*var\(--mint\)/)
@@ -92,6 +118,11 @@ test('the regular toolbar omits its duplicate pan hand and enlarges the drawn co
   assert.match(canvasSource, /label: 'Pipetta'/)
   assert.match(regularToolbar, /aria-label="Újra"/)
   assert.match(canvasSource, /const brushSizeControls/)
+  assert.match(canvasSource, /const \[isBrushSizeOpen, setIsBrushSizeOpen\] = useState\(true\)/)
+  assert.match(canvasSource, /const selectToolbarTool = \(tool: DrawingTool\)[\s\S]*?activeTool === tool \? !current : true/)
+  assert.match(canvasSource, /setBrushSize\(size\)[\s\S]*?setIsBrushSizeOpen\(false\)/)
+  assert.match(canvasSource, /isBrushTool\(activeTool\) && isBrushSizeOpen[\s\S]*?brushSizeControls\(\)/)
+  assert.match(canvasSource, /className="immersive-quick-tools"[\s\S]*?isBrushSizeOpen[\s\S]*?brushSizeControls\(true\)/)
   assert.match(canvasSource, />Teljes vászon<\/button>/)
   assert.match(canvasSource, />Kijelölésben<\/button>/)
 })
@@ -472,6 +503,7 @@ test('compact mobile tools and the unified timeline stay out of challenges', asy
     readFile(new URL('../src/components/MonthlyDraw.tsx', import.meta.url), 'utf8'),
   ])
   assert.match(editorSource, /<EditorAnimationControls/)
+  assert.match(editorSource, /<details className="editor-project-panel editor-collapsible-panel">/)
   assert.match(editorSource, /onSelectCell=\{selectEditorCell\}/)
   assert.doesNotMatch(editorSource, /Felső réteg|Középső réteg|Alsó réteg/)
   assert.match(editorSource, /<details className="editor-palette-panel editor-collapsible-panel">/)
@@ -481,7 +513,8 @@ test('compact mobile tools and the unified timeline stay out of challenges', asy
   assert.match(pixelCanvasSource, /compactMobileToolbar = true/)
   assert.match(pixelCanvasSource, /className="tool-sprite-button shape-tool-toggle"/)
   assert.match(pixelCanvasSource, /className="mobile-shape-tool-options"/)
-  assert.match(pixelCanvasSource, /className="editor-palette-actions"/)
+  assert.match(pixelCanvasSource, /className="canvas-palette-button"/)
+  assert.doesNotMatch(pixelCanvasSource, /editor-palette-actions|editor-color-mixer-note/)
   assert.match(editorSource, /getDisplayColor: displayEditorLayerColor/)
   assert.doesNotMatch(weeklySource, /EditorAnimationControls|composeDrawingLayers/)
   assert.doesNotMatch(monthlySource, /EditorAnimationControls|composeDrawingLayers/)
