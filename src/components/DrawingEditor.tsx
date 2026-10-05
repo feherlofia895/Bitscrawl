@@ -366,6 +366,33 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
     setRevision(value => value + 1)
   }
 
+  const swapEditorLayers = () => {
+    if (animationMode) return
+    animationFlushRef.current()
+    const layers: EditorDrawingLayers = [
+      [...editorLayersRef.current[1]],
+      [...editorLayersRef.current[0]],
+    ]
+    const visibility: EditorLayerVisibility = [
+      layerVisibilityRef.current[1],
+      layerVisibilityRef.current[0],
+    ]
+    const nextActiveLayer: EditorLayerIndex = activeLayerRef.current === 0 ? 1 : 0
+    editorLayersRef.current = layers
+    activeLayerRef.current = nextActiveLayer
+    layerVisibilityRef.current = visibility
+    pixelsRef.current = [...layers[nextActiveLayer]]
+    staticPixelsRef.current = composeDrawingLayers(layers, visibility)
+    setActiveLayer(nextActiveLayer)
+    setLayerVisibility(visibility)
+    setGalleryPaletteReady(isValidEditorDrawingPixels(staticPixelsRef.current))
+    setDirty(true)
+    if (persist(layers, false, paletteSize, nextActiveLayer, visibility)) {
+      setStatus('Az alsó és a felső réteg helyet cserélt.')
+    }
+    setRevision(value => value + 1)
+  }
+
   const displayEditorLayerColor = useCallback((activeColor: string, index: number) => {
     const visibility = layerVisibilityRef.current
     const currentLayer = activeLayerRef.current
@@ -1022,6 +1049,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
                   </select>
                 </label>
                 <button className="primary-button" onClick={() => void downloadPng()} disabled={exporting} type="button">{text.export}</button>
+                <small>A kevert színeket a Rajzfal, a profilkép, a kihívások és a saját galéria is elfogadja.</small>
               </div>
               {shareLoading ? <p>Lehetőségek betöltése…</p> : !shareState.signedIn || !shareState.profileReady ? <p>Ehhez jelentkezz be, és mentsd el a profilodat.</p> : <>
                 <label className="editor-feed-description">
@@ -1122,6 +1150,10 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
                   )
                 })}
               </div>
+              <button className="editor-layer-swap" onClick={swapEditorLayers} type="button">
+                <span aria-hidden="true">⇅</span>
+                Alsó és felső réteg felcserélése
+              </button>
               {!layerVisibility[activeLayer] ? (
                 <p className="editor-layer-warning" role="status">Az aktív réteg rejtett; a módosításai csak újbóli megjelenítéskor látszanak.</p>
               ) : null}

@@ -217,6 +217,34 @@ test('layer switching edits only the active editor layer and visibility changes 
   assert.equal(app.canvas().localDrawing.getDisplayColor(top[37], 37), bottom[37])
 })
 
+test('swapping editor layers moves their content, visibility and active selection together', async () => {
+  const bottom = colored(palette.basePalette[0].hex)
+  const top = colored(palette.basePalette[1].hex)
+  const app = await editor({ initial: bottom })
+  const upperButton = nodes(app.render(), 'button').find(button => text(button).startsWith('Felső réteg'))
+  assert.ok(upperButton)
+  upperButton.props.onClick()
+  app.canvas().localDrawing.onChange(top)
+
+  const hideUpper = nodes(app.render(), 'button').find(button =>
+    button.props['aria-label'] === 'Felső réteg elrejtése')
+  assert.ok(hideUpper)
+  hideUpper.props.onClick()
+
+  const swapButton = nodes(app.render(), 'button').find(button =>
+    text(button).includes('Alsó és felső réteg felcserélése'))
+  assert.ok(swapButton)
+  swapButton.props.onClick()
+
+  const draft = JSON.parse(app.storage.get('bitscrawl-editor-v1'))
+  assert.deepEqual(draft.layers, [top, bottom])
+  assert.deepEqual(draft.layerVisibility, [false, true])
+  assert.equal(draft.activeLayer, 0)
+  assert.equal(draft.exported, false)
+  assert.deepEqual(app.canvas().localDrawing.initialPixels, top)
+  assert.equal(app.canvas().localDrawing.getDisplayColor(top[37], 37), bottom[37])
+})
+
 test('hidden layer content still requires confirmation before starting a new drawing', async () => {
   const app = await editor()
   const upperButton = nodes(app.render(), 'button').find(button => text(button).startsWith('Felső réteg'))

@@ -3516,6 +3516,24 @@ button,
   background: var(--mint);
 }
 
+.editor-layer-swap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 8px 12px;
+  color: var(--ink);
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  font: 900 .72rem/1.25 var(--pixel-font);
+}
+
+.editor-layer-swap span {
+  font: 900 1.25rem/1 sans-serif;
+}
+
 .editor-layer-visibility[aria-pressed='false'] {
   color: color-mix(in srgb, var(--ink) 65%, transparent);
   background: color-mix(in srgb, var(--paper) 72%, #a9a9a9);
