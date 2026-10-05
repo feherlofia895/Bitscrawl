@@ -152,7 +152,7 @@ KIEMELT FEJLESZTÉS – KÉT RÉTEG A SZERKESZTŐBEN
 
 KÖVETKEZŐ NAGY SZERKESZTŐFEJLESZTÉS – EGYESÍTETT RÉTEGEK ÉS ANIMÁCIÓ
 
-- [ ] Az állókép- és animációs mód külön adatmodellje szűnjön meg. A Szerkesztő
+- [x] Az állókép- és animációs mód külön adatmodellje szűnjön meg. A Szerkesztő
   egyetlen verziózott dokumentumot kezeljen, amely 1–5 képkockából áll, és minden
   képkockában ugyanaz a legfeljebb három, közös sorrendű réteg szerepel. Az
   egyképkockás dokumentum állókép, a többképkockás dokumentum animáció.
@@ -165,17 +165,17 @@ KÖVETKEZŐ NAGY SZERKESZTŐFEJLESZTÉS – EGYESÍTETT RÉTEGEK ÉS ANIMÁCIÓ
   másolt képkockát létrehozni, képkockát másolni és törölni, valamint a rétegeket
   láthatóvá/rejtetté tenni és átrendezni. A hagymahéj az előző és következő
   képkocka összelapított, látható rétegeit mutassa.
-- [ ] A helyi mentési formátum új, verziózott dokumentumsémát kapjon, például
+- [x] A helyi mentési formátum új, verziózott dokumentumsémát kapjon, például
   `frames[frameIndex].layers[layerIndex].pixels` felépítéssel, továbbá mentse az
   aktív képkockát, aktív réteget, rétegláthatóságot, képkockasebességet és a
   palettamódot. A jelenlegi két réteges állóképek és a jelenlegi egyrétegű
   animációk automatikusan, veszteség nélkül alakuljanak át az új formátumra.
-- [ ] A saját szerkesztőgaléria ne csak lapított pixeltömböt tároljon, hanem a teljes
+- [x] A saját szerkesztőgaléria ne csak lapított pixeltömböt tároljon, hanem a teljes
   verziózott dokumentumot minden képkockával és réteggel. Visszatöltés után minden
   réteg és képkocka külön szerkeszthető maradjon. Az adatbázis-migráció tartsa meg
   a régi mentéseket: a régi állókép egy képkocka alsó rétegére, a régi animáció
   képkockánként az alsó rétegre kerüljön.
-- [ ] A külön Saját galéria és Animációs galéria helyett közös „Saját projektek”
+- [x] A külön Saját galéria és Animációs galéria helyett közös „Saját projektek”
   mentést használjunk pontosan négy hellyel, mert ugyanaz a dokumentum később egy
   képkockából többképkockássá alakítható. Mind a négy hely a teljes projektet
   őrizze meg minden képkockával, réteggel, láthatósággal, sebességgel és
@@ -187,11 +187,11 @@ KÖVETKEZŐ NAGY SZERKESZTŐFEJLESZTÉS – EGYESÍTETT RÉTEGEK ÉS ANIMÁCIÓ
   havi kihívásba küldött kép továbbra is lapított, nem szerkeszthető publikáció
   legyen; a PNG az aktív képkockát, a GIF minden képkocka látható rétegeinek
   kompozitját exportálja.
-- [ ] A kliens és a szerver szigorúan ellenőrizze a 3 × 5 × 32 × 32 pixeles felső
+- [x] A kliens és a szerver szigorúan ellenőrizze a 3 × 5 × 32 × 32 pixeles felső
   korlátot, a színformátumot, a dokumentumverziót és a teljes payload méretét. A
   mobilos felület egyszerre csak az aktív vásznat renderelje; az előnézeteket
   gyorsítótárazott, lapított bélyegképek adják.
-- [ ] Automatizált próba védje a régi mentések migrációját, a képkocka–réteg
+- [x] Automatizált próba védje a régi mentések migrációját, a képkocka–réteg
   szerkesztést, a rétegsorrendet és láthatóságot, a teljes dokumentum felhőmentését
   és visszatöltését, a PNG/GIF kompozitálást, a hibás vagy túlméretes adatok
   elutasítását, valamint azt, hogy a publikus képek továbbra is lapítottak.
@@ -204,8 +204,20 @@ KÖVETKEZŐ NAGY SZERKESZTŐFEJLESZTÉS – EGYESÍTETT RÉTEGEK ÉS ANIMÁCIÓ
   Négy maximális, 3 × 5 × 32 × 32 pixeles projekt nyers JSON-becslése körülbelül
   0,75–0,9 MB profilonként, ezért a jelenlegi felhasználószám mellett kényelmesen
   elfér. Mentéskor ettől függetlenül legyen projektenkénti méretkorlát és mérés;
-  70–75% adatbázis-kihasználtságnál már jelezzünk, mielőtt a Free csomag elérné a
-  csak olvasható állapotot.
+  pontosan 70% adatbázis-kihasználtságnál már jelezzünk, mielőtt a Free csomag
+  elérné a csak olvasható állapotot.
+- Első ütem, 2026-10-05: elkészült és éles adatbázisba került a verziózott,
+  háromréteges és legfeljebb ötképkockás projektmodell, a négy privát Saját projekt
+  hely, valamint a régi két kép- és két animációhely veszteségmentes migrációja.
+  A kliensben megszűnt a külön állókép/animáció mód; a rétegek minden képkockán
+  külön szerkeszthetők és közösen átrendezhetők. Az éles, bejelentkezett próbában a
+  korábbi képek megjelentek az új projektválasztóban. A teljes Aseprite-szerű közös
+  képkocka–réteg rács és a következő képkockát is mutató hagymahéj még következő
+  felületi finomítás.
+- A 70%-os tárhelyfigyelmeztetés szerveroldali, admin-only mérésből dolgozik. Az
+  admin gomb figyelmeztető jelvényt ad, az Admin központ pedig kiírja a teljes
+  adatbázis- és a Saját projekt-foglalást. Az éles ellenőrzéskor a teljes adatbázis
+  18,6 MB / 500 MB (3,7%), a nyolc migrált projekt 13,7 kB volt.
 
 KÖVETKEZŐ PROFILFEJLESZTÉS – PUBLIKUS ALKOTÁSGALÉRIA
 

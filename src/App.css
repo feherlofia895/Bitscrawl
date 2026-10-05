@@ -3406,6 +3406,17 @@ button,
   box-shadow: 5px 5px 0 rgb(36 26 53 / 24%);
 }
 
+.editor-project-structure {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.editor-project-structure .editor-layer-panel,
+.editor-project-structure .editor-animation-controls {
+  margin: 0;
+}
+
 .editor-collapsible-summary {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto 24px;
@@ -3465,7 +3476,7 @@ button,
 
 .editor-layer-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -3534,6 +3545,17 @@ button,
   font: 900 1.25rem/1 sans-serif;
 }
 
+.editor-layer-order-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.editor-layer-swap:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
 .editor-layer-visibility[aria-pressed='false'] {
   color: color-mix(in srgb, var(--ink) 65%, transparent);
   background: color-mix(in srgb, var(--paper) 72%, #a9a9a9);
@@ -3547,6 +3569,10 @@ button,
 
 @media (max-width: 560px) {
   .editor-layer-list {
+    grid-template-columns: 1fr;
+  }
+
+  .editor-layer-order-actions {
     grid-template-columns: 1fr;
   }
 
@@ -5012,6 +5038,28 @@ button,
 
 .admin-feedback-heading p:not(.step-label) { margin: 10px 0 0; }
 .admin-feedback-heading .home-back-button { flex: 0 0 auto; min-width: 172px; }
+
+.admin-storage-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  background: color-mix(in srgb, var(--mint) 45%, var(--paper));
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.admin-storage-card[data-warning='true'] {
+  background: color-mix(in srgb, var(--coral) 54%, var(--paper));
+}
+
+.admin-storage-card p,
+.admin-storage-card small { margin: 0; }
+.admin-storage-card > div:first-child { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.admin-storage-card > div:first-child strong { font-family: var(--pixel-font); font-size: .78rem; }
+.admin-storage-meter { height: 18px; overflow: hidden; background: var(--paper); border: 2px solid var(--ink); }
+.admin-storage-meter span { display: block; width: 0; height: 100%; background: var(--olive); transition: width .2s ease; }
+.admin-storage-card[data-warning='true'] .admin-storage-meter span { background: var(--coral); }
+.admin-storage-warning { padding: 9px 11px; background: var(--yellow); border-left: 4px solid var(--coral); font-weight: 900; }
 
 .admin-feedback-filters {
   display: grid;

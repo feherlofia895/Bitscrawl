@@ -11,7 +11,7 @@ const output = ts.transpileModule(source, {
 const animation = {}
 new Function('require', 'exports', output)(
   name => {
-    if (name === './drawing') {
+    if (name === './drawing' || name === './drawing.ts') {
       return {
         emptyDrawing,
         isValidEditorDrawingPixels: value => Array.isArray(value) && value.length === 1024 && value.every(color => (
@@ -36,7 +36,7 @@ const {
   saveEditorAnimation,
 } = animation
 
-test('animation drafts keep one to three valid frames and clamp playback settings', () => {
+test('animation drafts keep one to five valid frames and clamp playback settings', () => {
   const first = emptyDrawing()
   const second = emptyDrawing()
   const third = emptyDrawing()
@@ -50,9 +50,9 @@ test('animation drafts keep one to three valid frames and clamp playback setting
     onionSkin: true,
   })
 
-  assert.equal(EDITOR_ANIMATION_FRAME_LIMIT, 3)
-  assert.equal(draft.frames.length, 3)
-  assert.equal(draft.activeFrameIndex, 2)
+  assert.equal(EDITOR_ANIMATION_FRAME_LIMIT, 5)
+  assert.equal(draft.frames.length, 4)
+  assert.equal(draft.activeFrameIndex, 3)
   assert.equal(draft.fps, 8)
   assert.equal(draft.onionSkin, true)
   assert.notEqual(draft.frames[0], first)
@@ -93,14 +93,15 @@ test('animation drafts persist locally without sharing mutable frame data', () =
   assert.ok(storage.has(EDITOR_ANIMATION_STORAGE_KEY))
 })
 
-test('the standalone editor exposes playback, frame editing and onion skin only in animation mode', async () => {
+test('the standalone editor combines three layers, five frames and four project slots', async () => {
   const [editor, controls, canvas, css] = await Promise.all([
     readFile(new URL('../src/components/DrawingEditor.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/components/EditorAnimationControls.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/components/PixelCanvas.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/App.css', import.meta.url), 'utf8'),
   ])
-  assert.match(editor, /Animáció · legfeljebb 3 képkocka/)
+  assert.match(editor, /Saját projektek · legfeljebb 4 mentés/)
+  assert.match(editor, /\(\[2, 1, 0\] as const\)/)
   assert.match(editor, /<EditorAnimationControls/)
   assert.match(editor, /onionSkinPixels=/)
   assert.doesNotMatch(editor, /hidden=\{animationMode\}/)
@@ -116,8 +117,8 @@ test('the standalone editor exposes playback, frame editing and onion skin only 
   assert.doesNotMatch(controls, /editor-animation-storage-actions/)
   assert.match(editor, /<summary>Megosztás<\/summary>/)
   assert.match(editor, /GIF export · 256×256/)
-  assert.match(editor, /Mentés az animációs galériába/)
-  assert.match(editor, /openGalleryAction\('animation-save'\)/)
+  assert.match(editor, /Teljes projekt mentése/)
+  assert.match(editor, /openGalleryAction\('save'\)/)
   assert.match(editor, /EditorAnimationThumbnail/)
   assert.match(canvas, /className="onion-skin-canvas"/)
   assert.match(css, /@media \(max-width: 560px\)[\s\S]*?\.editor-animation-preview\s*\{[\s\S]*?grid-template-columns:\s*54px minmax\(92px, 1fr\) 38px/)

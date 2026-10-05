@@ -207,14 +207,22 @@ Dokumentációs-only változást nem kell Cloudflare-re kiadni.
 
 ## Utolsó ellenőrzési eredmény
 
-- A két réteghez és az érintett Szerkesztő-, galéria-, animáció-, kihívás-,
-  rajzbiztonsági, színkeverő- és szóbankfolyamatokhoz kapcsolódó tesztek összesen
-  96 sikeres ellenőrzéssel, hiba és kihagyás nélkül lefutottak.
+- 2026-10-05-én elkészült a Szerkesztő egységes v3 projektmodelljének első üteme:
+  három réteg, legfeljebb öt képkocka, közös rétegsorrend és pontosan négy privát
+  Saját projekt hely. A régi két állókép- és két animációhely adatai az éles
+  Supabase-migrációban az új négy helyre kerültek.
+- A projektmodellhez, szerkesztőfelülethez, felhőmentéshez, animációhoz és az
+  admin tárhelyjelzéshez kapcsolódó célzott helyi próbák sikeresek; TypeScript/Vite
+  production build és OXLint is hibamentes.
 - TypeScript/Vite production build sikeres
 - OXLint sikeres
 - `git diff --check` sikeres
-- A rétegpanel helyi böngészőben asztali, 390×844 és 320×700 nézetben kilógás
-  nélkül működik. A változat még nincs élesítve.
+- A frissített réteg- és képkockafelület helyi böngészőben asztali nézetben működik;
+  a képkockamásolás/törlés és az éles Saját projekt-választó valódi fiókkal is
+  sikeresen megnyílt. A frontend-változat még nincs élesítve.
+- Az éles adatbázis 18,6 MB / 500 MB (3,7%). Az admin központban elkészült a
+  szerveroldali, kizárólag admin által olvasható mérés és a pontosan 70%-nál
+  aktiválódó figyelmeztetés; a nyolc migrált projekt 13,7 kB-ot használ.
 - A jelenlegi publikus kiadás buildazonosítója továbbra is
   `dad46bec968e-20261004T062346Z`.
 
@@ -227,7 +235,10 @@ dinamikusan betölteni.
 - Telepített PWA valós A → B frissítési próbája iPhone-on az aktuális éles buildről.
 - Android Chrome és asztali Chrome/Edge PWA-telepítés/frissítés.
 - Fizikai telefonos billentyűzet- és hálózatkimaradási esetek.
-- A Szerkesztő két rétegének fizikai telefonos kezelési és PNG-export próbája.
+- A Szerkesztő három rétegének, öt képkockájának és teljes projekt-visszatöltésének
+  fizikai iPhone-/Android-kezelési és PNG/GIF-export próbája.
+- Az Aseprite-szerű közös képkocka–réteg rács felületi finomítása és a következő
+  képkockát is mutató hagymahéj.
 - A régi security-advisor figyelmeztetések egyenkénti biztonsági felülvizsgálata.
 - Production JavaScript kódszétválasztása.
 
@@ -235,7 +246,8 @@ dinamikusan betölteni.
 
 1. Git-állapot és éles commit ellenőrzése.
 2. `ATADAS.md`, a `PLAN.txt` eleje és `README.md` elolvasása.
-3. A Szerkesztő két rétegét fizikai telefonon ellenőrizni álló és fekvő nézetben.
+3. A Szerkesztő egységes háromréteges/ötképkockás felületét helyi tesztszerveren,
+   majd fizikai telefonon ellenőrizni álló és fekvő nézetben.
 4. A PWA A → B frissítési próbáját iPhone-on, majd Androidon és asztali telepített
    módban lefuttatni.
 5. A felhasználó tesztje és külön jóváhagyása előtt a réteges változatot ne élesítsd.

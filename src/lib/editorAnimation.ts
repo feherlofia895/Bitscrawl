@@ -1,7 +1,7 @@
-import { emptyDrawing, isValidEditorDrawingPixels } from './drawing'
+import { emptyDrawing, isValidEditorDrawingPixels } from './drawing.ts'
 
 export const EDITOR_ANIMATION_STORAGE_KEY = 'bitscrawl-editor-animation-v1'
-export const EDITOR_ANIMATION_FRAME_LIMIT = 3
+export const EDITOR_ANIMATION_FRAME_LIMIT = 5
 export const EDITOR_ANIMATION_MIN_FPS = 1
 export const EDITOR_ANIMATION_MAX_FPS = 8
 

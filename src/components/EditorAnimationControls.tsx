@@ -79,8 +79,8 @@ export function EditorAnimationControls({
       <div className="editor-animation-heading">
         <div className="editor-animation-heading-copy">
           <p className="step-label">Legfeljebb {EDITOR_ANIMATION_FRAME_LIMIT} képkocka</p>
-          <h2 id="animation-controls-title">Animáció</h2>
-          <p>Az animáció automatikusan ezen az eszközön marad meg.</p>
+          <h2 id="animation-controls-title">Képkockák</h2>
+          <p>Egy képkocka állókép; kettőtől lejátszható animáció.</p>
         </div>
         <div className="editor-animation-preview">
           <WeeklyArtwork label="Animáció előnézete" pixels={frames[previewFrameIndex] ?? frames[0]} />

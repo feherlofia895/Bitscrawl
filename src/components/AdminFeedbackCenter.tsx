@@ -6,6 +6,7 @@ import {
   type FeedbackCategory,
   type FeedbackStatus,
 } from '../lib/adminFeedback'
+import { loadAdminStorageStatus, type AdminStorageStatus } from '../lib/adminStorage'
 
 const statusLabels: Record<FeedbackStatus, string> = {
   new: 'Új',
@@ -34,6 +35,12 @@ function formatDate(value: string) {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(value))
+}
+
+function formatBytes(value: number) {
+  if (value >= 1024 * 1024) return `${(value / 1024 / 1024).toFixed(value >= 100 * 1024 * 1024 ? 0 : 1)} MB`
+  if (value >= 1024) return `${(value / 1024).toFixed(1)} kB`
+  return `${Math.round(value)} B`
 }
 
 function technicalEntries(report: AdminFeedbackReport) {
@@ -68,6 +75,8 @@ export function AdminFeedbackCenter({ isAdmin, onBack }: { isAdmin: boolean; onB
   const [isLoading, setIsLoading] = useState(true)
   const [pendingId, setPendingId] = useState<number | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
+  const [storageStatus, setStorageStatus] = useState<AdminStorageStatus | null>(null)
+  const [storageError, setStorageError] = useState('')
 
   const refresh = useCallback(async () => {
     if (!isAdmin) return
@@ -85,6 +94,14 @@ export function AdminFeedbackCenter({ isAdmin, onBack }: { isAdmin: boolean; onB
   useEffect(() => {
     void refresh()
   }, [refresh])
+
+  useEffect(() => {
+    if (!isAdmin) return
+    setStorageError('')
+    void loadAdminStorageStatus()
+      .then(setStorageStatus)
+      .catch(error => setStorageError(error instanceof Error ? error.message : 'A tárhelyadatok most nem érhetők el.'))
+  }, [isAdmin])
 
   const counts = useMemo(() => ({
     bug: reports.filter(report => report.category !== 'idea').length,
@@ -130,6 +147,23 @@ export function AdminFeedbackCenter({ isAdmin, onBack }: { isAdmin: boolean; onB
         </div>
         <button className="home-back-button" onClick={onBack} type="button">Vissza a főmenübe</button>
       </header>
+
+      <section className="admin-storage-card" data-warning={storageStatus?.warning || undefined} aria-label="Supabase tárhely állapota">
+        <div>
+          <p className="step-label">Supabase tárhely</p>
+          {storageStatus ? <strong>{formatBytes(storageStatus.databaseBytes)} / {formatBytes(storageStatus.capacityBytes)}</strong> : <strong>Betöltés…</strong>}
+        </div>
+        {storageStatus ? <>
+          <div className="admin-storage-meter" aria-label={`${storageStatus.percentUsed.toFixed(1)} százalék használatban`} role="img">
+            <span style={{ width: `${storageStatus.percentUsed}%` }} />
+          </div>
+          <p>
+            <strong>{storageStatus.percentUsed.toFixed(1)}%</strong> használatban · figyelmeztetés {storageStatus.warningPercent}%-nál
+          </p>
+          <small>A négyhelyes Saját projektek jelenleg {storageStatus.editorProjectCount} mentést és {formatBytes(storageStatus.editorProjectBytes)} adatot használ.</small>
+          {storageStatus.warning ? <p className="admin-storage-warning" role="alert">A tárhely elérte a 70%-os figyelmeztetési küszöböt.</p> : null}
+        </> : storageError ? <p className="admin-storage-warning" role="alert">{storageError}</p> : null}
+      </section>
 
       <nav aria-label="Bejegyzések szűrése" className="admin-feedback-filters">
         {statusOptions.map(option => (

@@ -550,6 +550,16 @@ export type Database = {
           new_count: number
         }[]
       }
+      get_admin_storage_status: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          capacity_bytes: number
+          database_bytes: number
+          editor_project_bytes: number
+          editor_project_count: number
+          warning_percent: number
+        }[]
+      }
       set_admin_feedback_status: {
         Args: { requested_status: string; target_report_id: number }
         Returns: {
@@ -976,6 +986,14 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_own_editor_projects: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          document: Json
+          slot_index: number
+          updated_at: string
+        }[]
+      }
       get_own_editor_animations: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1189,6 +1207,10 @@ export type Database = {
         Args: { target_slot: number }
         Returns: boolean
       }
+      delete_own_editor_project: {
+        Args: { target_slot: number }
+        Returns: boolean
+      }
       set_room_listing: {
         Args: {
           requested_is_public: boolean
@@ -1255,6 +1277,10 @@ export type Database = {
       }
       save_own_editor_gallery_slot: {
         Args: { drawing_pixels: Json; requested_palette_size: number; target_slot: number }
+        Returns: string
+      }
+      save_own_editor_project: {
+        Args: { project_document: Json; target_slot: number }
         Returns: string
       }
       save_own_editor_animation_slot: {

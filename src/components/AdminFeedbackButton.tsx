@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { loadAdminFeedbackSummary } from '../lib/adminFeedback'
+import { loadAdminStorageStatus } from '../lib/adminStorage'
 
 type AdminFeedbackButtonProps = {
   disabled: boolean
@@ -8,11 +9,15 @@ type AdminFeedbackButtonProps = {
 
 export function AdminFeedbackButton({ disabled, onClick }: AdminFeedbackButtonProps) {
   const [newCount, setNewCount] = useState(0)
+  const [storageWarning, setStorageWarning] = useState(false)
 
   const refresh = useCallback(() => {
     void loadAdminFeedbackSummary()
       .then(summary => setNewCount(summary.newCount))
       .catch(() => setNewCount(0))
+    void loadAdminStorageStatus()
+      .then(status => setStorageWarning(status.warning))
+      .catch(() => setStorageWarning(false))
   }, [])
 
   useEffect(() => {
@@ -23,7 +28,11 @@ export function AdminFeedbackButton({ disabled, onClick }: AdminFeedbackButtonPr
 
   return (
     <button
-      aria-label={newCount ? `Admin központ, ${newCount} új bejegyzés` : 'Admin központ'}
+      aria-label={[
+        'Admin központ',
+        newCount ? `${newCount} új bejegyzés` : '',
+        storageWarning ? 'a Supabase tárhely elérte a 70 százalékot' : '',
+      ].filter(Boolean).join(', ')}
       className="topbar-settings-button topbar-admin-button"
       disabled={disabled}
       onClick={onClick}
@@ -31,7 +40,9 @@ export function AdminFeedbackButton({ disabled, onClick }: AdminFeedbackButtonPr
       type="button"
     >
       <span aria-hidden="true">◆</span>
-      {newCount ? <strong aria-hidden="true" className="topbar-admin-count">{newCount > 99 ? '99+' : newCount}</strong> : null}
+      {newCount || storageWarning ? (
+        <strong aria-hidden="true" className="topbar-admin-count">{newCount ? newCount > 99 ? '99+' : newCount : '!'}</strong>
+      ) : null}
     </button>
   )
 }

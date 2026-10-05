@@ -3,17 +3,11 @@ import { PixelCanvas } from './PixelCanvas'
 import { EditorAnimationControls } from './EditorAnimationControls'
 import { EditorAnimationThumbnail } from './EditorAnimationThumbnail'
 import { ConfirmModal } from './ConfirmModal'
-import { WeeklyArtwork } from './WeeklyArtwork'
 import {
-  composeDrawingLayers,
   compositeDrawingPixel,
   emptyDrawing,
   isValidEditorDrawingPixels,
-  parseDrawingDraft,
   rasterizeDrawing,
-  type EditorDrawingLayers,
-  type EditorLayerIndex,
-  type EditorLayerVisibility,
 } from '../lib/drawing'
 import { editorText as text } from '../lib/editorText'
 import type { EditorPaletteSize } from '../lib/palette'
@@ -29,14 +23,6 @@ import {
 import { loadWeeklyAccountState, loadWeeklyChallenges, submitWeeklyEntry } from '../lib/weekly'
 import { loadMonthlyAccountState, loadMonthlyChallenges, saveMonthlyEntry, submitMonthlyEntry } from '../lib/monthly'
 import {
-  deleteOwnEditorGallerySlot,
-  editorGalleryEndpointIsMissing,
-  loadOwnEditorGallery,
-  saveOwnEditorGallerySlot,
-  type EditorGallerySlot,
-  type EditorGallerySlotIndex,
-} from '../lib/editorGallery'
-import {
   deleteOwnEditorPalette,
   EDITOR_PALETTE_COLOR_LIMIT,
   loadLocalEditorPalettes,
@@ -48,31 +34,37 @@ import {
   type EditorCustomPalette,
   type EditorPaletteSlotIndex,
 } from '../lib/editorPalettes'
+import { EDITOR_ANIMATION_STORAGE_KEY } from '../lib/editorAnimation'
 import {
-  addAnimationFrame,
-  deleteAnimationFrame,
-  loadEditorAnimation,
-  normalizeEditorAnimation,
-  replaceAnimationFrame,
-  saveEditorAnimation,
-} from '../lib/editorAnimation'
+  addEditorProjectFrame,
+  cloneEditorProject,
+  composeEditorProjectFrame,
+  composeEditorProjectFrames,
+  createEmptyEditorProject,
+  deleteEditorProjectFrame,
+  editorProjectHasContent,
+  migrateEditorProject,
+  moveEditorProjectLayer,
+  replaceEditorProjectLayer,
+  type EditorProjectDocument,
+  type EditorProjectLayerIndex,
+  type EditorProjectLayerVisibility,
+} from '../lib/editorProject'
 import {
-  deleteOwnEditorAnimationSlot,
-  editorAnimationGalleryEndpointIsMissing,
-  loadOwnEditorAnimations,
-  saveOwnEditorAnimationSlot,
-  type EditorAnimationGallerySlot,
-  type EditorAnimationSlotIndex,
-} from '../lib/editorAnimationGallery'
+  deleteOwnEditorProject,
+  editorProjectsEndpointIsMissing,
+  loadOwnEditorProjects,
+  saveOwnEditorProject,
+  type EditorProjectSlot,
+  type EditorProjectSlotIndex,
+} from '../lib/editorProjects'
 import { createEditorAnimationGifBlob } from '../lib/editorGif'
 
 const STORAGE_KEY = 'bitscrawl-editor-v1'
 
 type EditorShareState = {
-  animationSlots: EditorAnimationGallerySlot[]
-  animationUnavailableMessage: string | null
-  gallerySlots: EditorGallerySlot[]
-  galleryUnavailableMessage: string | null
+  projectSlots: EditorProjectSlot[]
+  projectsUnavailableMessage: string | null
   feedUnavailableMessage: string | null
   feedPostCount: number
   monthly: { id: number; prompt: string; submitted: boolean } | null
@@ -82,10 +74,8 @@ type EditorShareState = {
 }
 
 const emptyShareState: EditorShareState = {
-  animationSlots: [],
-  animationUnavailableMessage: null,
-  gallerySlots: [],
-  galleryUnavailableMessage: null,
+  projectSlots: [],
+  projectsUnavailableMessage: null,
   feedUnavailableMessage: null,
   feedPostCount: 0,
   monthly: null,
@@ -93,21 +83,17 @@ const emptyShareState: EditorShareState = {
   signedIn: false,
   weekly: null,
 }
-function readDrawing() {
+function readProject() {
   try {
-    return { ...parseDrawingDraft(localStorage.getItem(STORAGE_KEY)), storageAvailable: true }
+    return {
+      ...migrateEditorProject(
+        localStorage.getItem(STORAGE_KEY),
+        localStorage.getItem(EDITOR_ANIMATION_STORAGE_KEY),
+      ),
+      storageAvailable: true,
+    }
   } catch { /* An unavailable or old draft must not prevent drawing. */ }
-  const layers: EditorDrawingLayers = [emptyDrawing(), emptyDrawing()]
-  return {
-    activeLayer: 0 as const,
-    pixels: emptyDrawing(),
-    layers,
-    layerVisibility: [true, true] as EditorLayerVisibility,
-    exported: true,
-    paletteSize: 12 as const,
-    storageAvailable: false,
-    version: 2 as const,
-  }
+  return { ...createEmptyEditorProject(), storageAvailable: false }
 }
 
 export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpenProfile, onStorageChange }: {
@@ -117,19 +103,19 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
   onOpenProfile: () => void
   onStorageChange: (available: boolean) => void
 }) {
-  const [initial] = useState(readDrawing)
-  const [initialAnimation] = useState(() => loadEditorAnimation(initial.pixels))
-  const editorLayersRef = useRef<EditorDrawingLayers>(initial.layers)
-  const activeLayerRef = useRef<EditorLayerIndex>(initial.activeLayer)
-  const layerVisibilityRef = useRef<EditorLayerVisibility>(initial.layerVisibility)
-  const staticPixelsRef = useRef(initial.pixels)
-  const pixelsRef = useRef(initial.layers[initial.activeLayer])
-  const animationFramesRef = useRef(initialAnimation.frames)
-  const activeAnimationFrameRef = useRef(initialAnimation.activeFrameIndex)
+  const [initial] = useState(readProject)
+  const projectRef = useRef<EditorProjectDocument>(initial)
+  const activeLayerRef = useRef<EditorProjectLayerIndex>(initial.activeLayer)
+  const activeFrameRef = useRef(initial.activeFrameIndex)
+  const layerVisibilityRef = useRef<EditorProjectLayerVisibility>(initial.layerVisibility)
+  const staticPixelsRef = useRef(composeEditorProjectFrame(initial, initial.activeFrameIndex))
+  const pixelsRef = useRef(initial.frames[initial.activeFrameIndex].layers[initial.activeLayer])
   const animationFlushRef = useRef<() => void>(() => undefined)
   const [revision, setRevision] = useState(0)
-  const [activeLayer, setActiveLayer] = useState<EditorLayerIndex>(initial.activeLayer)
-  const [layerVisibility, setLayerVisibility] = useState<EditorLayerVisibility>(initial.layerVisibility)
+  const [activeLayer, setActiveLayer] = useState<EditorProjectLayerIndex>(initial.activeLayer)
+  const [activeFrame, setActiveFrame] = useState(initial.activeFrameIndex)
+  const [layerVisibility, setLayerVisibility] = useState<EditorProjectLayerVisibility>(initial.layerVisibility)
+  const [projectFrames, setProjectFrames] = useState(() => composeEditorProjectFrames(initial))
   const [scale, setScale] = useState(1)
   const [paletteSize, setPaletteSize] = useState<EditorPaletteSize>(hasAdvancedAccess ? initial.paletteSize : 12)
   const [customPaletteActive, setCustomPaletteActive] = useState(hasAdvancedAccess)
@@ -137,23 +123,19 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
   const [activePaletteSlot, setActivePaletteSlot] = useState<EditorPaletteSlotIndex>(1)
   const [paletteSyncStatus, setPaletteSyncStatus] = useState('Saját paletták betöltése…')
   const [dirty, setDirty] = useState(!initial.exported)
-  const [animationMode, setAnimationMode] = useState(false)
-  const [animationFrames, setAnimationFrames] = useState(initialAnimation.frames)
-  const [activeAnimationFrame, setActiveAnimationFrame] = useState(initialAnimation.activeFrameIndex)
-  const [animationFps, setAnimationFps] = useState(initialAnimation.fps)
-  const [onionSkin, setOnionSkin] = useState(initialAnimation.onionSkin)
-  const [animationDirty, setAnimationDirty] = useState(false)
+  const [animationFps, setAnimationFps] = useState(initial.fps)
+  const [onionSkin, setOnionSkin] = useState(initial.onionSkin)
   const [status, setStatus] = useState<string>(initial.storageAvailable ? text.local : text.storageError)
   const [exporting, setExporting] = useState(false)
   const [sharing, setSharing] = useState(false)
   const [shareLoading, setShareLoading] = useState(false)
   const [feedDescription, setFeedDescription] = useState('')
   const [shareState, setShareState] = useState<EditorShareState>(emptyShareState)
-  const [galleryAction, setGalleryAction] = useState<'load' | 'save' | 'animation-load' | 'animation-save' | null>(null)
+  const [galleryAction, setGalleryAction] = useState<'load' | 'save' | null>(null)
   const [galleryActionLoading, setGalleryActionLoading] = useState(false)
   const [galleryActionError, setGalleryActionError] = useState<string | null>(null)
   const [galleryPaletteReady, setGalleryPaletteReady] = useState(
-    () => isValidEditorDrawingPixels(initial.pixels),
+    () => initial.frames.every(frame => frame.layers.every(layer => isValidEditorDrawingPixels(layer))),
   )
   const [confirmation, setConfirmation] = useState<{
     title: string
@@ -214,22 +196,11 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [confirmation, galleryAction])
 
-  const persist = useCallback((
-    layers: EditorDrawingLayers,
-    exported: boolean,
-    selectedPalette = paletteSize,
-    selectedActiveLayer = activeLayerRef.current,
-    selectedVisibility = layerVisibilityRef.current,
-  ) => {
+  const animationMode = projectFrames.length > 1
+
+  const persist = useCallback((project: EditorProjectDocument) => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        activeLayer: selectedActiveLayer,
-        exported,
-        layers,
-        layerVisibility: selectedVisibility,
-        paletteSize: selectedPalette,
-        version: 2,
-      }))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(project))
       onStorageChange(true)
       return true
     } catch {
@@ -237,261 +208,211 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
       setStatus(text.storageError)
       return false
     }
-  }, [onStorageChange, paletteSize])
-
-  const persistAnimationDraft = useCallback((
-    frames: string[][],
-    activeFrameIndex = activeAnimationFrameRef.current,
-    fps = animationFps,
-    showOnionSkin = onionSkin,
-  ) => {
-    const draft = normalizeEditorAnimation({
-      activeFrameIndex,
-      fps,
-      frames,
-      onionSkin: showOnionSkin,
-    })
-    const stored = saveEditorAnimation(draft)
-    onStorageChange(stored)
-    if (!stored) setStatus(text.storageError)
-    return stored
-  }, [animationFps, onionSkin, onStorageChange])
+  }, [onStorageChange])
 
   const handleChange = useCallback((pixels: string[]) => {
     pixelsRef.current = pixels
-    if (animationMode) {
-      setGalleryPaletteReady(isValidEditorDrawingPixels(pixels))
-      const frames = replaceAnimationFrame(
-        animationFramesRef.current,
-        activeAnimationFrameRef.current,
-        pixels,
-      )
-      animationFramesRef.current = frames
-      setAnimationFrames(frames)
-      const stored = persistAnimationDraft(frames)
-      setAnimationDirty(!stored)
-      if (stored) setStatus('Az animáció ezen az eszközön mentve.')
-      return
-    }
-    const layers = editorLayersRef.current.map((layer, index) => (
-      index === activeLayerRef.current ? [...pixels] : layer
-    )) as EditorDrawingLayers
-    editorLayersRef.current = layers
-    staticPixelsRef.current = composeDrawingLayers(layers, layerVisibilityRef.current)
-    setGalleryPaletteReady(isValidEditorDrawingPixels(staticPixelsRef.current))
+    const next = replaceEditorProjectLayer(
+      projectRef.current,
+      activeFrameRef.current,
+      activeLayerRef.current,
+      pixels,
+    )
+    projectRef.current = next
+    staticPixelsRef.current = composeEditorProjectFrame(next, activeFrameRef.current)
+    setProjectFrames(composeEditorProjectFrames(next))
+    setGalleryPaletteReady(next.frames.every(frame =>
+      frame.layers.every(layer => isValidEditorDrawingPixels(layer))))
     setDirty(true)
-    if (persist(layers, false)) setStatus(text.local)
-  }, [animationMode, persist, persistAnimationDraft])
+    if (persist(next)) setStatus(text.local)
+  }, [persist])
 
-  useEffect(() => { onDirtyChange(dirty || animationDirty) }, [animationDirty, dirty, onDirtyChange])
+  useEffect(() => { onDirtyChange(dirty) }, [dirty, onDirtyChange])
   useEffect(() => { onStorageChange(initial.storageAvailable) }, [initial.storageAvailable, onStorageChange])
   useEffect(() => {
-    if (!dirty && !animationDirty) return
+    if (!dirty) return
     const warn = (event: BeforeUnloadEvent) => {
       event.preventDefault()
       event.returnValue = ''
     }
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
-  }, [animationDirty, dirty])
+  }, [dirty])
 
-  const showAnimationFrame = (index: number) => {
+  const showAnimationFrame = useCallback((index: number) => {
     animationFlushRef.current()
-    const frames = animationFramesRef.current
-    const nextIndex = Math.max(0, Math.min(frames.length - 1, index))
-    activeAnimationFrameRef.current = nextIndex
-    setActiveAnimationFrame(nextIndex)
-    pixelsRef.current = [...frames[nextIndex]]
-    setGalleryPaletteReady(isValidEditorDrawingPixels(pixelsRef.current))
-    persistAnimationDraft(frames, nextIndex)
+    const next = cloneEditorProject(projectRef.current)
+    const nextIndex = Math.max(0, Math.min(next.frames.length - 1, index))
+    next.activeFrameIndex = nextIndex
+    projectRef.current = next
+    activeFrameRef.current = nextIndex
+    setActiveFrame(nextIndex)
+    pixelsRef.current = [...next.frames[nextIndex].layers[activeLayerRef.current]]
+    staticPixelsRef.current = composeEditorProjectFrame(next, nextIndex)
+    persist(next)
     setRevision(value => value + 1)
-  }
-
-  const switchEditorMode = (nextMode: 'drawing' | 'animation') => {
-    if (nextMode === 'animation' && !hasAdvancedAccess) {
-      setStatus('Animáció készítéséhez jelentkezz be.')
-      return
-    }
-    animationFlushRef.current()
-    const useAnimation = nextMode === 'animation'
-    setAnimationMode(useAnimation)
-    pixelsRef.current = useAnimation
-      ? [...animationFramesRef.current[activeAnimationFrameRef.current]]
-      : [...editorLayersRef.current[activeLayerRef.current]]
-    const outputPixels = useAnimation
-      ? pixelsRef.current
-      : composeDrawingLayers(editorLayersRef.current, layerVisibilityRef.current)
-    staticPixelsRef.current = useAnimation ? staticPixelsRef.current : outputPixels
-    setGalleryPaletteReady(isValidEditorDrawingPixels(outputPixels))
-    setRevision(value => value + 1)
-  }
+  }, [persist])
 
   useEffect(() => {
     if (hasAdvancedAccess) return
     setCustomPaletteActive(false)
     setPaletteSize(12)
-    if (!animationMode) return
-    animationFlushRef.current()
-    setAnimationMode(false)
-    pixelsRef.current = [...editorLayersRef.current[activeLayerRef.current]]
-    staticPixelsRef.current = composeDrawingLayers(editorLayersRef.current, layerVisibilityRef.current)
-    setGalleryPaletteReady(isValidEditorDrawingPixels(staticPixelsRef.current))
-    setStatus('A vendég módban az állókép-szerkesztő használható.')
-    setRevision(value => value + 1)
-  }, [animationMode, hasAdvancedAccess])
+    if (activeFrameRef.current !== 0) showAnimationFrame(0)
+  }, [hasAdvancedAccess, showAnimationFrame])
 
-  const selectEditorLayer = (nextLayer: EditorLayerIndex) => {
-    if (animationMode || nextLayer === activeLayerRef.current) return
+  const selectEditorLayer = (nextLayer: EditorProjectLayerIndex) => {
+    if (nextLayer === activeLayerRef.current) return
     animationFlushRef.current()
+    const next = cloneEditorProject(projectRef.current)
+    next.activeLayer = nextLayer
+    projectRef.current = next
     activeLayerRef.current = nextLayer
     setActiveLayer(nextLayer)
-    pixelsRef.current = [...editorLayersRef.current[nextLayer]]
-    if (persist(editorLayersRef.current, !dirty, paletteSize, nextLayer)) setStatus(text.local)
+    pixelsRef.current = [...next.frames[activeFrameRef.current].layers[nextLayer]]
+    if (persist(next)) setStatus(text.local)
     setRevision(value => value + 1)
   }
 
-  const toggleEditorLayerVisibility = (layer: EditorLayerIndex) => {
-    if (animationMode) return
+  const toggleEditorLayerVisibility = (layer: EditorProjectLayerIndex) => {
     animationFlushRef.current()
-    const visibility: EditorLayerVisibility = [...layerVisibilityRef.current]
-    visibility[layer] = !visibility[layer]
-    layerVisibilityRef.current = visibility
-    setLayerVisibility(visibility)
-    staticPixelsRef.current = composeDrawingLayers(editorLayersRef.current, visibility)
+    const next = cloneEditorProject(projectRef.current)
+    next.layerVisibility[layer] = !next.layerVisibility[layer]
+    next.exported = false
+    projectRef.current = next
+    layerVisibilityRef.current = [...next.layerVisibility]
+    setLayerVisibility([...next.layerVisibility])
+    staticPixelsRef.current = composeEditorProjectFrame(next, activeFrameRef.current)
+    setProjectFrames(composeEditorProjectFrames(next))
     setGalleryPaletteReady(isValidEditorDrawingPixels(staticPixelsRef.current))
     setDirty(true)
-    if (persist(editorLayersRef.current, false, paletteSize, activeLayerRef.current, visibility)) {
-      setStatus(text.local)
-    }
+    if (persist(next)) setStatus(text.local)
     setRevision(value => value + 1)
   }
 
-  const swapEditorLayers = () => {
-    if (animationMode) return
+  const moveActiveLayer = (direction: -1 | 1) => {
     animationFlushRef.current()
-    const layers: EditorDrawingLayers = [
-      [...editorLayersRef.current[1]],
-      [...editorLayersRef.current[0]],
-    ]
-    const visibility: EditorLayerVisibility = [
-      layerVisibilityRef.current[1],
-      layerVisibilityRef.current[0],
-    ]
-    const nextActiveLayer: EditorLayerIndex = activeLayerRef.current === 0 ? 1 : 0
-    editorLayersRef.current = layers
-    activeLayerRef.current = nextActiveLayer
-    layerVisibilityRef.current = visibility
-    pixelsRef.current = [...layers[nextActiveLayer]]
-    staticPixelsRef.current = composeDrawingLayers(layers, visibility)
-    setActiveLayer(nextActiveLayer)
-    setLayerVisibility(visibility)
+    const target = activeLayerRef.current + direction
+    if (target < 0 || target > 2) return
+    const next = moveEditorProjectLayer(
+      projectRef.current,
+      activeLayerRef.current,
+      target as EditorProjectLayerIndex,
+    )
+    projectRef.current = next
+    activeLayerRef.current = next.activeLayer
+    layerVisibilityRef.current = [...next.layerVisibility]
+    pixelsRef.current = [...next.frames[activeFrameRef.current].layers[next.activeLayer]]
+    staticPixelsRef.current = composeEditorProjectFrame(next, activeFrameRef.current)
+    setActiveLayer(next.activeLayer)
+    setLayerVisibility([...next.layerVisibility])
+    setProjectFrames(composeEditorProjectFrames(next))
     setGalleryPaletteReady(isValidEditorDrawingPixels(staticPixelsRef.current))
     setDirty(true)
-    if (persist(layers, false, paletteSize, nextActiveLayer, visibility)) {
-      setStatus('Az alsó és a felső réteg helyet cserélt.')
-    }
+    if (persist(next)) setStatus('A réteg új helyre került minden képkockán.')
     setRevision(value => value + 1)
   }
 
   const displayEditorLayerColor = useCallback((activeColor: string, index: number) => {
-    const visibility = layerVisibilityRef.current
-    const currentLayer = activeLayerRef.current
-    const bottom = currentLayer === 0 ? activeColor : editorLayersRef.current[0][index]
-    const top = currentLayer === 1 ? activeColor : editorLayersRef.current[1][index]
-    if (!visibility[0]) return visibility[1] ? top : 'transparent'
-    if (!visibility[1]) return bottom
-    return compositeDrawingPixel(bottom, top)
+    const frame = projectRef.current.frames[activeFrameRef.current]
+    let composite = 'transparent'
+    frame.layers.forEach((layer, layerIndex) => {
+      if (!layerVisibilityRef.current[layerIndex]) return
+      composite = compositeDrawingPixel(
+        composite,
+        layerIndex === activeLayerRef.current ? activeColor : layer[index],
+      )
+    })
+    return composite
   }, [])
 
-  const editorHasAnyLayerContent = () => editorLayersRef.current.some(layer =>
-    layer.some(color => color !== 'transparent'))
+  const editorHasAnyLayerContent = () => editorProjectHasContent(projectRef.current)
 
   const updateAnimationSettings = (nextFps: number, nextOnionSkin: boolean) => {
+    const fpsChanged = nextFps !== projectRef.current.fps
+    const next = cloneEditorProject(projectRef.current)
+    next.fps = nextFps
+    next.onionSkin = nextOnionSkin
+    if (fpsChanged) next.exported = false
+    projectRef.current = next
     setAnimationFps(nextFps)
     setOnionSkin(nextOnionSkin)
-    setAnimationDirty(!persistAnimationDraft(
-      animationFramesRef.current,
-      activeAnimationFrameRef.current,
-      nextFps,
-      nextOnionSkin,
-    ))
+    if (fpsChanged) setDirty(true)
+    persist(next)
   }
 
   const addFrame = (duplicateCurrent: boolean) => {
+    if (!hasAdvancedAccess) {
+      setStatus('Animáció készítéséhez jelentkezz be.')
+      return
+    }
     animationFlushRef.current()
-    const source = duplicateCurrent
-      ? animationFramesRef.current[activeAnimationFrameRef.current]
-      : emptyDrawing()
-    const frames = addAnimationFrame(animationFramesRef.current, source)
-    if (frames.length === animationFramesRef.current.length) return
-    animationFramesRef.current = frames
-    setAnimationFrames(frames)
-    setAnimationDirty(!persistAnimationDraft(frames, frames.length - 1))
-    showAnimationFrame(frames.length - 1)
+    const next = addEditorProjectFrame(projectRef.current, duplicateCurrent)
+    if (next.frames.length === projectRef.current.frames.length) return
+    projectRef.current = next
+    activeFrameRef.current = next.activeFrameIndex
+    pixelsRef.current = [...next.frames[next.activeFrameIndex].layers[activeLayerRef.current]]
+    staticPixelsRef.current = composeEditorProjectFrame(next, next.activeFrameIndex)
+    setActiveFrame(next.activeFrameIndex)
+    setProjectFrames(composeEditorProjectFrames(next))
+    setDirty(true)
+    if (persist(next)) setStatus(duplicateCurrent ? 'A képkocka másolata elkészült.' : 'Új üres képkocka elkészült.')
+    setRevision(value => value + 1)
   }
 
   const removeActiveFrame = () => {
     animationFlushRef.current()
-    const frames = deleteAnimationFrame(animationFramesRef.current, activeAnimationFrameRef.current)
-    if (frames.length === animationFramesRef.current.length) return
-    const nextIndex = Math.min(activeAnimationFrameRef.current, frames.length - 1)
-    animationFramesRef.current = frames
-    setAnimationFrames(frames)
-    setAnimationDirty(!persistAnimationDraft(frames, nextIndex))
-    showAnimationFrame(nextIndex)
-  }
-
-  const resetDrawing = () => {
-    const layers: EditorDrawingLayers = [emptyDrawing(), emptyDrawing()]
-    const visibility: EditorLayerVisibility = [true, true]
-    editorLayersRef.current = layers
-    activeLayerRef.current = 0
-    layerVisibilityRef.current = visibility
-    setActiveLayer(0)
-    setLayerVisibility(visibility)
-    staticPixelsRef.current = emptyDrawing()
-    pixelsRef.current = layers[0]
-    setGalleryPaletteReady(true)
-    setDirty(false)
-    if (persist(layers, true, paletteSize, 0, visibility)) setStatus(text.local)
+    const next = deleteEditorProjectFrame(projectRef.current, activeFrameRef.current)
+    if (next.frames.length === projectRef.current.frames.length) return
+    projectRef.current = next
+    activeFrameRef.current = next.activeFrameIndex
+    pixelsRef.current = [...next.frames[next.activeFrameIndex].layers[activeLayerRef.current]]
+    staticPixelsRef.current = composeEditorProjectFrame(next, next.activeFrameIndex)
+    setActiveFrame(next.activeFrameIndex)
+    setProjectFrames(composeEditorProjectFrames(next))
+    setDirty(true)
+    if (persist(next)) setStatus('A képkocka törölve.')
     setRevision(value => value + 1)
   }
 
-  const resetAnimation = () => {
-    const frames = [emptyDrawing()]
-    animationFramesRef.current = frames
-    activeAnimationFrameRef.current = 0
-    pixelsRef.current = [...frames[0]]
-    setAnimationFrames(frames)
-    setActiveAnimationFrame(0)
-    setAnimationDirty(false)
+  const resetDrawing = () => {
+    const next = createEmptyEditorProject(paletteSize)
+    projectRef.current = next
+    activeFrameRef.current = 0
+    activeLayerRef.current = 0
+    layerVisibilityRef.current = [...next.layerVisibility]
+    pixelsRef.current = [...next.frames[0].layers[0]]
+    staticPixelsRef.current = emptyDrawing()
+    setActiveFrame(0)
+    setActiveLayer(0)
+    setLayerVisibility([...next.layerVisibility])
+    setProjectFrames([emptyDrawing()])
+    setAnimationFps(next.fps)
+    setOnionSkin(next.onionSkin)
     setGalleryPaletteReady(true)
-    if (persistAnimationDraft(frames, 0)) setStatus('Új animáció indítva.')
+    setDirty(false)
+    if (persist(next)) setStatus(text.local)
     setRevision(value => value + 1)
   }
 
   const startNewDrawing = () => {
-    if (animationMode) {
-      if (animationFramesRef.current.some(frame => frame.some(color => color !== 'transparent'))) {
-        setConfirmation({
-          title: 'Új animáció indítása?',
-          message: 'A jelenlegi képkockák helyére egy üres képkocka kerül.',
-          label: 'Új animáció',
-          action: resetAnimation,
-        })
-      } else resetAnimation()
-      return
-    }
     if (editorHasAnyLayerContent()) {
-      setConfirmation({ title: text.newDrawingTitle, message: text.replace, label: text.newDrawing, action: resetDrawing })
+      setConfirmation({
+        title: 'Új projekt indítása?',
+        message: 'A jelenlegi képkockák és rétegek helyére egy üres projekt kerül.',
+        label: 'Új projekt',
+        action: resetDrawing,
+      })
     } else resetDrawing()
   }
 
   const changePalette = (nextPalette: EditorPaletteSize) => {
     if (!hasAdvancedAccess && nextPalette !== 12) return
+    const next = cloneEditorProject(projectRef.current)
+    next.paletteSize = nextPalette
+    projectRef.current = next
     setCustomPaletteActive(false)
     setPaletteSize(nextPalette)
-    if (persist(editorLayersRef.current, !dirty, nextPalette)) setStatus(text.local)
+    if (persist(next)) setStatus(text.local)
   }
 
   const activeCustomPalette = customPalettes[activePaletteSlot - 1]
@@ -590,7 +511,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
         setShareState({ ...emptyShareState, signedIn: Boolean(user), profileReady: Boolean(profile) })
         return
       }
-      const [feedResult, galleryResult, animationResult, weeklyChallenges, monthlyChallenges] = await Promise.all([
+      const [feedResult, projectsResult, weeklyChallenges, monthlyChallenges] = await Promise.all([
         loadDailyFeedAccountState()
           .then(account => ({ account, error: null as string | null }))
           .catch(error => ({
@@ -599,21 +520,13 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
               ? 'A Rajzfal adatbázis-frissítése még nincs telepítve.'
               : 'A Rajzfal most nem érhető el.',
           })),
-        loadOwnEditorGallery()
+        loadOwnEditorProjects()
           .then(slots => ({ slots, error: null as string | null }))
           .catch(error => ({
             slots: [],
-            error: editorGalleryEndpointIsMissing(error)
-              ? 'A saját galéria adatbázis-frissítése még nincs telepítve.'
-              : error instanceof Error ? error.message : 'A saját galéria most nem érhető el.',
-          })),
-        loadOwnEditorAnimations()
-          .then(slots => ({ slots, error: null as string | null }))
-          .catch(error => ({
-            slots: [],
-            error: editorAnimationGalleryEndpointIsMissing(error)
-              ? 'Az animációs galéria adatbázis-frissítése még nincs telepítve.'
-              : error instanceof Error ? error.message : 'Az animációs galéria most nem érhető el.',
+            error: editorProjectsEndpointIsMissing(error)
+              ? 'A Saját projektek adatbázis-frissítése még nincs telepítve.'
+              : error instanceof Error ? error.message : 'A Saját projektek most nem érhetők el.',
           })),
         loadWeeklyChallenges(),
         loadMonthlyChallenges(),
@@ -627,10 +540,8 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
       ])
       if (!mountedRef.current) return
       setShareState({
-        animationSlots: animationResult.slots,
-        animationUnavailableMessage: animationResult.error,
-        gallerySlots: galleryResult.slots,
-        galleryUnavailableMessage: galleryResult.error,
+        projectSlots: projectsResult.slots,
+        projectsUnavailableMessage: projectsResult.error,
         feedUnavailableMessage: feedResult.error,
         feedPostCount: feedResult.account?.todayPostCount ?? 0,
         monthly: monthly ? {
@@ -655,7 +566,12 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
   }, [])
 
   const shareDrawing = async (target: 'feed' | 'weekly' | 'monthly') => {
-    const snapshot = composeDrawingLayers(editorLayersRef.current, layerVisibilityRef.current)
+    animationFlushRef.current()
+    if (projectRef.current.frames.length > 1) {
+      setStatus('Többképkockás projektet GIF-ként vagy Saját projektként menthetsz.')
+      return
+    }
+    const snapshot = composeEditorProjectFrame(projectRef.current, activeFrameRef.current)
     if (!snapshot.some(color => color !== 'transparent')) {
       setStatus('Előbb rajzolj valamit a megosztáshoz.')
       return
@@ -683,7 +599,12 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
   }
 
   const setDrawingAsProfileAvatar = async () => {
-    const snapshot = composeDrawingLayers(editorLayersRef.current, layerVisibilityRef.current)
+    animationFlushRef.current()
+    if (projectRef.current.frames.length > 1) {
+      setStatus('Profilképnek egyképkockás projektet használhatsz.')
+      return
+    }
+    const snapshot = composeEditorProjectFrame(projectRef.current, activeFrameRef.current)
     if (!snapshot.some(color => color !== 'transparent')) {
       setStatus('Előbb rajzolj valamit a profilképedhez.')
       return
@@ -720,215 +641,132 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
     queueMicrotask(() => galleryPreviousFocusRef.current?.focus())
   }
 
-  const openGalleryAction = async (action: 'load' | 'save' | 'animation-load' | 'animation-save') => {
+  const openGalleryAction = async (action: 'load' | 'save') => {
     galleryPreviousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     setGalleryAction(action)
     setGalleryActionError(null)
     setGalleryActionLoading(true)
     try {
-      const animationAction = action.startsWith('animation-')
-      const slots = animationAction ? await loadOwnEditorAnimations() : await loadOwnEditorGallery()
+      const slots = await loadOwnEditorProjects()
       if (!mountedRef.current) return
-      setShareState(current => animationAction
-        ? { ...current, animationSlots: slots as EditorAnimationGallerySlot[], animationUnavailableMessage: null }
-        : { ...current, gallerySlots: slots as EditorGallerySlot[], galleryUnavailableMessage: null })
+      setShareState(current => ({
+        ...current,
+        projectSlots: slots,
+        projectsUnavailableMessage: null,
+      }))
     } catch (error) {
       if (!mountedRef.current) return
-      const animationAction = action.startsWith('animation-')
-      const message = animationAction && editorAnimationGalleryEndpointIsMissing(error)
-        ? 'Az animációs galéria adatbázis-frissítése még nincs telepítve.'
-        : !animationAction && editorGalleryEndpointIsMissing(error)
-          ? 'A saját galéria adatbázis-frissítése még nincs telepítve.'
-        : error instanceof Error
-          ? error.message
-          : animationAction ? 'Az animációs galéria most nem érhető el.' : 'A saját galéria most nem érhető el.'
+      const message = editorProjectsEndpointIsMissing(error)
+        ? 'A Saját projektek adatbázis-frissítése még nincs telepítve.'
+        : error instanceof Error ? error.message : 'A Saját projektek most nem érhetők el.'
       setGalleryActionError(message)
     } finally {
       if (mountedRef.current) setGalleryActionLoading(false)
     }
   }
 
-  const saveGallerySlot = async (slotIndex: EditorGallerySlotIndex) => {
-    const snapshot = composeDrawingLayers(editorLayersRef.current, layerVisibilityRef.current)
-    if (!snapshot.some(color => color !== 'transparent')) {
-      setStatus('Előbb rajzolj valamit a saját galériába mentéshez.')
+  const saveProjectSlot = async (slotIndex: EditorProjectSlotIndex) => {
+    animationFlushRef.current()
+    const snapshot = cloneEditorProject(projectRef.current)
+    if (!editorProjectHasContent(snapshot)) {
+      setStatus('Előbb rajzolj valamit a Saját projektekbe mentéshez.')
       return
     }
     if (!galleryPaletteReady) {
-      setStatus('A rajz hibás adatokat tartalmaz, ezért nem menthető.')
+      setStatus('A projekt hibás adatokat tartalmaz, ezért nem menthető.')
       return
     }
     setSharing(true)
     try {
-      await saveOwnEditorGallerySlot(slotIndex, snapshot, paletteSize)
+      await saveOwnEditorProject(slotIndex, snapshot)
       await refreshShareState()
-      setStatus(`A rajzod elmentve a saját galéria ${slotIndex}. helyére.`)
+      setStatus(`A teljes projekt elmentve a ${slotIndex}. helyre.`)
       setGalleryAction(null)
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'A rajz mentése nem sikerült.')
+      setStatus(error instanceof Error ? error.message : 'A projekt mentése nem sikerült.')
     } finally {
       if (mountedRef.current) setSharing(false)
     }
   }
 
-  const requestSaveGallerySlot = (slotIndex: EditorGallerySlotIndex, occupied: boolean) => {
+  const requestSaveProjectSlot = (slotIndex: EditorProjectSlotIndex, occupied: boolean) => {
     if (!occupied) {
-      void saveGallerySlot(slotIndex)
+      void saveProjectSlot(slotIndex)
       return
     }
     setConfirmation({
-      title: `${slotIndex}. kép felülírása?`,
-      message: 'Az ezen a helyen tárolt rajzot lecseréljük a vásznon lévőre. A régi változat nem állítható vissza.',
+      title: `${slotIndex}. projekt felülírása?`,
+      message: 'Az ezen a helyen tárolt teljes projektet lecseréljük a jelenlegire. A régi változat nem állítható vissza.',
       label: 'Felülírás',
-      action: () => { void saveGallerySlot(slotIndex) },
+      action: () => { void saveProjectSlot(slotIndex) },
     })
   }
 
-  const loadGallerySlot = (slot: EditorGallerySlot) => {
-    const pixels = [...slot.pixels]
-    const layers: EditorDrawingLayers = [pixels, emptyDrawing()]
-    const visibility: EditorLayerVisibility = [true, true]
-    editorLayersRef.current = layers
-    activeLayerRef.current = 0
-    layerVisibilityRef.current = visibility
-    staticPixelsRef.current = [...pixels]
-    pixelsRef.current = layers[0]
-    setActiveLayer(0)
-    setLayerVisibility(visibility)
-    setPaletteSize(slot.paletteSize)
+  const loadProjectSlot = (slot: EditorProjectSlot) => {
+    animationFlushRef.current()
+    const next = cloneEditorProject(slot.document)
+    next.exported = false
+    projectRef.current = next
+    activeFrameRef.current = next.activeFrameIndex
+    activeLayerRef.current = next.activeLayer
+    layerVisibilityRef.current = [...next.layerVisibility]
+    staticPixelsRef.current = composeEditorProjectFrame(next, next.activeFrameIndex)
+    pixelsRef.current = [...next.frames[next.activeFrameIndex].layers[next.activeLayer]]
+    setActiveFrame(next.activeFrameIndex)
+    setActiveLayer(next.activeLayer)
+    setLayerVisibility([...next.layerVisibility])
+    setProjectFrames(composeEditorProjectFrames(next))
+    setAnimationFps(next.fps)
+    setOnionSkin(next.onionSkin)
+    setPaletteSize(next.paletteSize)
     setCustomPaletteActive(false)
-    setGalleryPaletteReady(isValidEditorDrawingPixels(pixels))
+    setGalleryPaletteReady(true)
     setDirty(true)
-    const storedLocally = persist(layers, false, slot.paletteSize, 0, visibility)
+    const storedLocally = persist(next)
     setRevision(value => value + 1)
-    if (storedLocally) setStatus(`A saját galéria ${slot.slotIndex}. képe betöltve szerkesztésre.`)
+    if (storedLocally) setStatus(`A ${slot.slotIndex}. projekt minden réteggel és képkockával betöltve.`)
     closeShareMenu()
     setGalleryAction(null)
   }
 
-  const requestLoadGallerySlot = (slot: EditorGallerySlot) => {
+  const requestLoadProjectSlot = (slot: EditorProjectSlot) => {
     if (!editorHasAnyLayerContent()) {
-      loadGallerySlot(slot)
+      loadProjectSlot(slot)
       return
     }
     setConfirmation({
-      title: `${slot.slotIndex}. kép betöltése?`,
-      message: 'A mentett kép a vásznon lévő rajz helyére kerül. A jelenlegi rajz csak akkor marad meg, ha előbb elmented.',
+      title: `${slot.slotIndex}. projekt betöltése?`,
+      message: 'A mentett projekt minden képkockája és rétege a jelenlegi helyére kerül. A mostani változat csak akkor marad meg, ha előbb elmented.',
       label: 'Betöltés',
-      action: () => loadGallerySlot(slot),
+      action: () => loadProjectSlot(slot),
     })
   }
 
-  const deleteGallerySlot = async (slotIndex: EditorGallerySlotIndex) => {
+  const deleteProjectSlot = async (slotIndex: EditorProjectSlotIndex) => {
     setSharing(true)
     try {
-      await deleteOwnEditorGallerySlot(slotIndex)
+      await deleteOwnEditorProject(slotIndex)
       await refreshShareState()
-      setStatus(`A saját galéria ${slotIndex}. képe törölve.`)
+      setStatus(`A ${slotIndex}. Saját projekt törölve.`)
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'A mentett rajz törlése nem sikerült.')
+      setStatus(error instanceof Error ? error.message : 'A mentett projekt törlése nem sikerült.')
     } finally {
       if (mountedRef.current) setSharing(false)
     }
   }
 
-  const requestDeleteGallerySlot = (slotIndex: EditorGallerySlotIndex) => {
+  const requestDeleteProjectSlot = (slotIndex: EditorProjectSlotIndex) => {
     setConfirmation({
-      title: `${slotIndex}. kép törlése?`,
-      message: 'A saját galériából törölt rajzot nem lehet visszaállítani. A vásznon lévő rajz ettől nem változik.',
+      title: `${slotIndex}. projekt törlése?`,
+      message: 'A Saját projektekből törölt mentést nem lehet visszaállítani. A szerkesztőben lévő projekt ettől nem változik.',
       label: 'Törlés',
-      action: () => { void deleteGallerySlot(slotIndex) },
-    })
-  }
-
-  const saveAnimationSlot = async (slotIndex: EditorAnimationSlotIndex) => {
-    animationFlushRef.current()
-    const frames = animationFramesRef.current.map(frame => [...frame])
-    if (!frames.some(frame => frame.some(color => color !== 'transparent'))) {
-      setStatus('Előbb rajzolj valamit az animációs galériába mentéshez.')
-      return
-    }
-    setSharing(true)
-    try {
-      await saveOwnEditorAnimationSlot(slotIndex, frames, animationFps)
-      await refreshShareState()
-      setStatus(`Az animációd elmentve az animációs galéria ${slotIndex}. helyére.`)
-      setGalleryAction(null)
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Az animáció mentése nem sikerült.')
-    } finally {
-      if (mountedRef.current) setSharing(false)
-    }
-  }
-
-  const requestSaveAnimationSlot = (slotIndex: EditorAnimationSlotIndex, occupied: boolean) => {
-    if (!occupied) {
-      void saveAnimationSlot(slotIndex)
-      return
-    }
-    setConfirmation({
-      title: `${slotIndex}. animáció felülírása?`,
-      message: 'Az ezen a helyen tárolt animációt lecseréljük a jelenlegire. A régi változat nem állítható vissza.',
-      label: 'Felülírás',
-      action: () => { void saveAnimationSlot(slotIndex) },
-    })
-  }
-
-  const loadAnimationSlot = (slot: EditorAnimationGallerySlot) => {
-    animationFlushRef.current()
-    const frames = slot.frames.map(frame => [...frame])
-    animationFramesRef.current = frames
-    activeAnimationFrameRef.current = 0
-    pixelsRef.current = [...frames[0]]
-    setAnimationFrames(frames)
-    setActiveAnimationFrame(0)
-    setAnimationFps(slot.fps)
-    setAnimationDirty(false)
-    setGalleryPaletteReady(isValidEditorDrawingPixels(pixelsRef.current))
-    const storedLocally = persistAnimationDraft(frames, 0, slot.fps, onionSkin)
-    setRevision(value => value + 1)
-    if (storedLocally) setStatus(`Az animációs galéria ${slot.slotIndex}. animációja betöltve szerkesztésre.`)
-    setGalleryAction(null)
-  }
-
-  const requestLoadAnimationSlot = (slot: EditorAnimationGallerySlot) => {
-    if (!animationFramesRef.current.some(frame => frame.some(color => color !== 'transparent'))) {
-      loadAnimationSlot(slot)
-      return
-    }
-    setConfirmation({
-      title: `${slot.slotIndex}. animáció betöltése?`,
-      message: 'A mentett animáció a jelenlegi képkockák helyére kerül. A mostani változat csak akkor marad meg, ha előbb elmented.',
-      label: 'Betöltés',
-      action: () => loadAnimationSlot(slot),
-    })
-  }
-
-  const deleteAnimationSlot = async (slotIndex: EditorAnimationSlotIndex) => {
-    setSharing(true)
-    try {
-      await deleteOwnEditorAnimationSlot(slotIndex)
-      await refreshShareState()
-      setStatus(`Az animációs galéria ${slotIndex}. animációja törölve.`)
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'A mentett animáció törlése nem sikerült.')
-    } finally {
-      if (mountedRef.current) setSharing(false)
-    }
-  }
-
-  const requestDeleteAnimationSlot = (slotIndex: EditorAnimationSlotIndex) => {
-    setConfirmation({
-      title: `${slotIndex}. animáció törlése?`,
-      message: 'Az animációs galériából törölt mentést nem lehet visszaállítani. A szerkesztőben lévő animáció ettől nem változik.',
-      label: 'Törlés',
-      action: () => { void deleteAnimationSlot(slotIndex) },
+      action: () => { void deleteProjectSlot(slotIndex) },
     })
   }
 
   const downloadGif = async () => {
     animationFlushRef.current()
-    const frames = animationFramesRef.current.map(frame => [...frame])
+    const frames = composeEditorProjectFrames(projectRef.current)
     if (!frames.some(frame => frame.some(color => color !== 'transparent'))) {
       setStatus('Előbb rajzolj valamit a GIF exporthoz.')
       return
@@ -953,8 +791,9 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
   }
 
   const downloadPng = async () => {
+    animationFlushRef.current()
     setExporting(true)
-    const snapshot = composeDrawingLayers(editorLayersRef.current, layerVisibilityRef.current)
+    const snapshot = composeEditorProjectFrame(projectRef.current, activeFrameRef.current)
     try {
       const canvas = document.createElement('canvas')
       const raster = rasterizeDrawing(snapshot, scale)
@@ -976,10 +815,13 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
       link.remove()
       window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
       // A drawing made while encoding must remain marked as not exported.
-      const currentComposite = composeDrawingLayers(editorLayersRef.current, layerVisibilityRef.current)
+      const currentComposite = composeEditorProjectFrame(projectRef.current, activeFrameRef.current)
       if (snapshot.every((color, index) => color === currentComposite[index])) {
+        const next = cloneEditorProject(projectRef.current)
+        next.exported = true
+        projectRef.current = next
         setDirty(false)
-        if (persist(editorLayersRef.current, true)) setStatus(text.downloaded)
+        if (persist(next)) setStatus(text.downloaded)
       }
     } catch {
       if (mountedRef.current) setStatus(text.exportError)
@@ -988,8 +830,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
     }
   }
 
-  const animationGalleryAction = galleryAction?.startsWith('animation-') ?? false
-  const saveGalleryAction = galleryAction?.endsWith('save') ?? false
+  const saveGalleryAction = galleryAction === 'save'
   const openShareMenu = () => {
     if (exporting || sharing || !shareMenuRef.current) return
     shareScrollYRef.current = window.scrollY
@@ -1019,115 +860,83 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
             <summary>Megosztás</summary>
             <div className="editor-share-options">
               <button className="editor-share-close" onClick={closeShareMenu} type="button">Bezárás</button>
+              {shareLoading ? <p>Lehetőségek betöltése…</p> : !shareState.signedIn || !shareState.profileReady ? (
+                <p>A Saját projektekhez és a megosztáshoz jelentkezz be, majd mentsd el a profilodat.</p>
+              ) : <div className="editor-project-share-options">
+                <strong>Saját projektek</strong>
+                <button disabled={galleryActionLoading || sharing || Boolean(shareState.projectsUnavailableMessage)} onClick={() => void openGalleryAction('save')} type="button">
+                  Teljes projekt mentése
+                </button>
+                <button disabled={galleryActionLoading || sharing || Boolean(shareState.projectsUnavailableMessage)} onClick={() => void openGalleryAction('load')} type="button">
+                  Projekt betöltése ({shareState.projectSlots.length}/4)
+                </button>
+                {shareState.projectsUnavailableMessage ? <small>{shareState.projectsUnavailableMessage}</small> : null}
+                {!galleryPaletteReady ? <small>A projekt hibás adatokat tartalmaz, ezért nem menthető.</small> : null}
+              </div>}
               {animationMode ? (
                 <div className="editor-animation-share-options">
-                  <strong>Animáció mentése</strong>
+                  <strong>Animáció exportálása</strong>
                   <button className="primary-button" disabled={exporting} onClick={() => void downloadGif()} type="button">
                     {exporting ? 'GIF készítése…' : 'GIF export · 256×256'}
                   </button>
-                  {shareLoading ? <p>Lehetőségek betöltése…</p> : !shareState.signedIn || !shareState.profileReady ? (
-                    <p>Az animációs galériához jelentkezz be, és mentsd el a profilodat.</p>
-                  ) : <>
-                    <button disabled={galleryActionLoading || sharing} onClick={() => void openGalleryAction('animation-save')} type="button">
-                      Mentés az animációs galériába
-                    </button>
-                    <button disabled={galleryActionLoading || sharing} onClick={() => void openGalleryAction('animation-load')} type="button">
-                      Betöltés az animációs galériából ({shareState.animationSlots.length}/2)
-                    </button>
-                    {shareState.animationUnavailableMessage ? <small>{shareState.animationUnavailableMessage}</small> : null}
-                  </>}
                   <small>A GIF a részben áttetsző színeket 50% alatt teljesen átlátszóként menti.</small>
                 </div>
               ) : <>
-              <div className="editor-export-options">
-                <strong>Kép mentése</strong>
-                <label className="field">
-                  <span>{text.exportSize}</span>
-                  <select disabled={exporting} value={scale} onChange={event => setScale(Number(event.target.value))}>
-                    <option value={1}>{text.original}</option>
-                    <option value={8}>{text.enlarged}</option>
-                  </select>
-                </label>
-                <button className="primary-button" onClick={() => void downloadPng()} disabled={exporting} type="button">{text.export}</button>
-                <small>A kevert színeket a Rajzfal, a profilkép, a kihívások és a saját galéria is elfogadja.</small>
-              </div>
-              {shareLoading ? <p>Lehetőségek betöltése…</p> : !shareState.signedIn || !shareState.profileReady ? <p>Ehhez jelentkezz be, és mentsd el a profilodat.</p> : <>
-                <label className="editor-feed-description">
-                  <span>Képleírás <small>(nem kötelező)</small></span>
-                  <textarea
-                    disabled={sharing || shareState.feedPostCount >= FEED_DAILY_POST_LIMIT}
-                    maxLength={FEED_DESCRIPTION_MAX_LENGTH}
-                    onChange={event => setFeedDescription(limitFeedDescription(event.target.value))}
-                    placeholder="Legfeljebb három rövid sor…"
-                    rows={FEED_DESCRIPTION_MAX_LINES}
-                    value={feedDescription}
-                  />
-                  <small>{feedDescription.length}/{FEED_DESCRIPTION_MAX_LENGTH} karakter · legfeljebb {FEED_DESCRIPTION_MAX_LINES} sor</small>
-                </label>
-                <button disabled={sharing || Boolean(shareState.feedUnavailableMessage) || shareState.feedPostCount >= FEED_DAILY_POST_LIMIT} onClick={() => void shareDrawing('feed')} type="button">
-                  {shareState.feedUnavailableMessage ? 'Rajzfal – frissítésre vár' : shareState.feedPostCount >= FEED_DAILY_POST_LIMIT ? 'A mai három kép már megosztva' : `Megosztás a Rajzfalon (${shareState.feedPostCount}/${FEED_DAILY_POST_LIMIT})`}
-                </button>
-                <button disabled={sharing || !shareState.weekly || shareState.weekly.submitted} onClick={() => void shareDrawing('weekly')} type="button">
-                  {shareState.weekly ? shareState.weekly.submitted ? 'Heti nevezés már beküldve' : `Heti kihívás: ${shareState.weekly.prompt}` : 'Nincs aktív heti kihívás'}
-                </button>
-                <button disabled={sharing || !shareState.monthly || shareState.monthly.submitted} onClick={() => void shareDrawing('monthly')} type="button">
-                  {shareState.monthly ? shareState.monthly.submitted ? 'Havi nevezés már beküldve' : `Havi kihívás: ${shareState.monthly.prompt}` : 'Nincs aktív havi kihívás'}
-                </button>
-                <button disabled={sharing} onClick={requestProfileAvatar} type="button">
-                  Beállítás profilképnek
-                </button>
-                <details className="editor-own-gallery">
-                  <summary>Saját galéria ({shareState.gallerySlots.length}/2)</summary>
-                  {shareState.galleryUnavailableMessage ? (
-                    <small>{shareState.galleryUnavailableMessage}</small>
-                  ) : (
-                    <div className="editor-own-gallery-grid">
-                      {([1, 2] as const).map(slotIndex => {
-                        const slot = shareState.gallerySlots.find(item => item.slotIndex === slotIndex)
-                        return (
-                          <article className="editor-own-gallery-slot" key={slotIndex}>
-                            <strong>{slotIndex}. kép</strong>
-                            {slot ? (
-                              <WeeklyArtwork label={`A saját galéria ${slotIndex}. képe`} pixels={slot.pixels} />
-                            ) : <div className="editor-own-gallery-empty">Üres hely</div>}
-                            <div className="editor-own-gallery-actions">
-                              {slot ? <button disabled={sharing} onClick={() => requestLoadGallerySlot(slot)} type="button">Betöltés</button> : null}
-                              <button disabled={sharing || !galleryPaletteReady} onClick={() => requestSaveGallerySlot(slotIndex, Boolean(slot))} type="button">
-                                {slot ? 'Felülírás' : 'Ide mentem'}
-                              </button>
-                              {slot ? <button className="danger-button" disabled={sharing} onClick={() => requestDeleteGallerySlot(slotIndex)} type="button">Törlés</button> : null}
-                            </div>
-                          </article>
-                        )
-                      })}
-                    </div>
-                  )}
-                </details>
-                {shareState.feedUnavailableMessage ? <small>{shareState.feedUnavailableMessage}</small> : null}
-                {!galleryPaletteReady ? <small>A rajz hibás adatokat tartalmaz, ezért nem menthető.</small> : null}
-              </>}
+                <div className="editor-export-options">
+                  <strong>Kép mentése</strong>
+                  <label className="field">
+                    <span>{text.exportSize}</span>
+                    <select disabled={exporting} value={scale} onChange={event => setScale(Number(event.target.value))}>
+                      <option value={1}>{text.original}</option>
+                      <option value={8}>{text.enlarged}</option>
+                    </select>
+                  </label>
+                  <button className="primary-button" onClick={() => void downloadPng()} disabled={exporting} type="button">{text.export}</button>
+                  <small>A kevert színeket a Rajzfal, a profilkép, a kihívások és a Saját projektek is elfogadják.</small>
+                </div>
+                {shareState.signedIn && shareState.profileReady ? <>
+                  <label className="editor-feed-description">
+                    <span>Képleírás <small>(nem kötelező)</small></span>
+                    <textarea
+                      disabled={sharing || shareState.feedPostCount >= FEED_DAILY_POST_LIMIT}
+                      maxLength={FEED_DESCRIPTION_MAX_LENGTH}
+                      onChange={event => setFeedDescription(limitFeedDescription(event.target.value))}
+                      placeholder="Legfeljebb három rövid sor…"
+                      rows={FEED_DESCRIPTION_MAX_LINES}
+                      value={feedDescription}
+                    />
+                    <small>{feedDescription.length}/{FEED_DESCRIPTION_MAX_LENGTH} karakter · legfeljebb {FEED_DESCRIPTION_MAX_LINES} sor</small>
+                  </label>
+                  <button disabled={sharing || Boolean(shareState.feedUnavailableMessage) || shareState.feedPostCount >= FEED_DAILY_POST_LIMIT} onClick={() => void shareDrawing('feed')} type="button">
+                    {shareState.feedUnavailableMessage ? 'Rajzfal – frissítésre vár' : shareState.feedPostCount >= FEED_DAILY_POST_LIMIT ? 'A mai három kép már megosztva' : `Megosztás a Rajzfalon (${shareState.feedPostCount}/${FEED_DAILY_POST_LIMIT})`}
+                  </button>
+                  <button disabled={sharing || !shareState.weekly || shareState.weekly.submitted} onClick={() => void shareDrawing('weekly')} type="button">
+                    {shareState.weekly ? shareState.weekly.submitted ? 'Heti nevezés már beküldve' : `Heti kihívás: ${shareState.weekly.prompt}` : 'Nincs aktív heti kihívás'}
+                  </button>
+                  <button disabled={sharing || !shareState.monthly || shareState.monthly.submitted} onClick={() => void shareDrawing('monthly')} type="button">
+                    {shareState.monthly ? shareState.monthly.submitted ? 'Havi nevezés már beküldve' : `Havi kihívás: ${shareState.monthly.prompt}` : 'Nincs aktív havi kihívás'}
+                  </button>
+                  <button disabled={sharing} onClick={requestProfileAvatar} type="button">Beállítás profilképnek</button>
+                  {shareState.feedUnavailableMessage ? <small>{shareState.feedUnavailableMessage}</small> : null}
+                </> : null}
               </>}
               {status !== text.local ? <p className="status-message editor-share-status" role="status">{status}</p> : null}
             </div>
           </details>
         </div>
-        <div className="editor-animation-mode" aria-label="Szerkesztési mód">
-          <button aria-pressed={!animationMode} onClick={() => switchEditorMode('drawing')} type="button">Állókép</button>
-          <button aria-pressed={animationMode} disabled={!hasAdvancedAccess} onClick={() => switchEditorMode('animation')} title={!hasAdvancedAccess ? 'Animáció készítéséhez jelentkezz be.' : undefined} type="button">Animáció · legfeljebb 3 képkocka</button>
-        </div>
-        {!animationMode ? (
+        <section aria-label="Képkockák és rétegek" className="editor-project-structure">
           <details className="editor-layer-panel editor-collapsible-panel">
             <summary className="editor-collapsible-summary">
               <strong>Rétegek</strong>
-              <small>{activeLayer === 1 ? 'Felső aktív' : 'Alsó aktív'}</small>
+              <small>{activeLayer === 2 ? 'Felső aktív' : activeLayer === 1 ? 'Középső aktív' : 'Alsó aktív'}</small>
             </summary>
             <div className="editor-layer-content">
-              <small className="editor-layer-note">A mentés és megosztás lapított képet készít.</small>
+              <small className="editor-layer-note">A három réteg minden képkockán külön megmarad. Exportáláskor és megosztáskor egy képpé állnak össze.</small>
               <div className="editor-layer-list">
-                {([1, 0] as const).map(layer => {
+                {([2, 1, 0] as const).map(layer => {
                   const isActive = activeLayer === layer
                   const isVisible = layerVisibility[layer]
-                  const layerName = layer === 1 ? 'Felső réteg' : 'Alsó réteg'
+                  const layerName = layer === 2 ? 'Felső réteg' : layer === 1 ? 'Középső réteg' : 'Alsó réteg'
                   return (
                     <article className="editor-layer-row" data-active={isActive} key={layer}>
                       <button
@@ -1150,20 +959,39 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
                   )
                 })}
               </div>
-              <button className="editor-layer-swap" onClick={swapEditorLayers} type="button">
-                <span aria-hidden="true">⇅</span>
-                Alsó és felső réteg felcserélése
-              </button>
+              <div className="editor-layer-order-actions">
+                <button className="editor-layer-swap" disabled={activeLayer === 0} onClick={() => moveActiveLayer(-1)} type="button">
+                  <span aria-hidden="true">↓</span> Réteg lejjebb
+                </button>
+                <button className="editor-layer-swap" disabled={activeLayer === 2} onClick={() => moveActiveLayer(1)} type="button">
+                  <span aria-hidden="true">↑</span> Réteg feljebb
+                </button>
+              </div>
+              <small className="editor-layer-note">A sorrend módosítása minden képkockára érvényes.</small>
               {!layerVisibility[activeLayer] ? (
                 <p className="editor-layer-warning" role="status">Az aktív réteg rejtett; a módosításai csak újbóli megjelenítéskor látszanak.</p>
               ) : null}
             </div>
           </details>
-        ) : null}
+          {hasAdvancedAccess ? (
+            <EditorAnimationControls
+              activeFrameIndex={activeFrame}
+              fps={animationFps}
+              frames={projectFrames}
+              onionSkin={onionSkin}
+              onAddFrame={() => addFrame(false)}
+              onDeleteFrame={removeActiveFrame}
+              onDuplicateFrame={() => addFrame(true)}
+              onFpsChange={fps => updateAnimationSettings(fps, onionSkin)}
+              onOnionSkinChange={active => updateAnimationSettings(animationFps, active)}
+              onSelectFrame={showAnimationFrame}
+            />
+          ) : null}
+        </section>
         {animationMode ? (
           <p className="status-message" role="status">
             {status === text.local
-              ? 'Az animáció külön galériába menthető és GIF-ként exportálható; a Rajzfalra és kihívásba nem küldhető be.'
+              ? 'A többképkockás projekt GIF-ként exportálható; a Rajzfalra és kihívásba egyképkockás projekt küldhető.'
               : status}
           </p>
         ) : null}
@@ -1229,25 +1057,11 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
           </details>
         ) : null}
       </div>
-      {animationMode ? (
-        <EditorAnimationControls
-          activeFrameIndex={activeAnimationFrame}
-          fps={animationFps}
-          frames={animationFrames}
-          onionSkin={onionSkin}
-          onAddFrame={() => addFrame(false)}
-          onDeleteFrame={removeActiveFrame}
-          onDuplicateFrame={() => addFrame(true)}
-          onFpsChange={fps => updateAnimationSettings(fps, onionSkin)}
-          onOnionSkinChange={active => updateAnimationSettings(animationFps, active)}
-          onSelectFrame={showAnimationFrame}
-        />
-      ) : null}
       <PixelCanvas
         allowColorMixer={hasAdvancedAccess}
         allowEditorTools={hasAdvancedAccess}
         canDraw
-        clearCanvasLabel={animationMode ? 'Teljes képkocka törlése' : 'Aktív réteg törlése'}
+        clearCanvasLabel="Aktív réteg törlése"
         chosenWord={null}
         compactMobileToolbar
         drawingEndsAt={null}
@@ -1259,11 +1073,11 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
           slotIndex: palette.slotIndex,
         })) : []}
         customPaletteSlot={activePaletteSlot}
-        onionSkinPixels={animationMode && onionSkin && activeAnimationFrame > 0
-          ? animationFrames[activeAnimationFrame - 1]
+        onionSkinPixels={hasAdvancedAccess && onionSkin && activeFrame > 0
+          ? projectFrames[activeFrame - 1]
           : null}
         onError={() => setStatus(text.storageError)}
-        onLoadFromGallery={hasAdvancedAccess && !animationMode ? () => void openGalleryAction('load') : undefined}
+        onLoadFromGallery={hasAdvancedAccess ? () => void openGalleryAction('load') : undefined}
         onCustomPaletteActiveChange={hasAdvancedAccess ? setCustomPaletteActive : undefined}
         onCustomPaletteColorSave={hasAdvancedAccess ? saveCustomColor : undefined}
         onCustomPaletteColorsChange={hasAdvancedAccess ? updateCustomPaletteColors : undefined}
@@ -1271,7 +1085,7 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
           if (slotIndex === 1 || slotIndex === 2 || slotIndex === 3) setActivePaletteSlot(slotIndex)
         } : undefined}
         onPaletteSizeChange={hasAdvancedAccess ? size => changePalette(size === 32 ? 32 : 12) : undefined}
-        onSaveToGallery={hasAdvancedAccess && !animationMode ? () => void openGalleryAction('save') : undefined}
+        onSaveToGallery={hasAdvancedAccess ? () => void openGalleryAction('save') : undefined}
         onShare={openShareMenu}
         onSubmit={async () => undefined}
         paletteSize={hasAdvancedAccess ? paletteSize : 12}
@@ -1280,13 +1094,13 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
         shareDisabled={exporting || sharing}
         showDrawModeBadge={false}
         localDrawing={{
-          getDisplayColor: animationMode ? undefined : displayEditorLayerColor,
+          getDisplayColor: displayEditorLayerColor,
           initialPixels: pixelsRef.current,
           onChange: handleChange,
           onRequestFlush: flush => { animationFlushRef.current = flush },
           onRequestClear: action => setConfirmation({
-            title: animationMode ? text.clearTitle : 'Aktív réteg törlése?',
-            message: animationMode ? text.clearMessage : 'Csak a kiválasztott réteg tartalma törlődik. A másik réteg változatlan marad, és a művelet visszavonható.',
+            title: 'Aktív réteg törlése?',
+            message: 'Csak a kiválasztott réteg tartalma törlődik. A másik két réteg és a többi képkocka változatlan marad, a művelet pedig visszavonható.',
             label: text.clear,
             action,
           }),
@@ -1299,47 +1113,32 @@ export function DrawingEditor({ hasAdvancedAccess, onBack, onDirtyChange, onOpen
           <section aria-labelledby="editor-gallery-dialog-title" aria-modal="true" className="editor-gallery-dialog" role="dialog">
             <div className="editor-gallery-dialog-heading">
               <div>
-                <p className="step-label">{animationGalleryAction ? 'Animációs galéria · legfeljebb 2 mentés' : 'Saját galéria'}</p>
+                <p className="step-label">Saját projektek · legfeljebb 4 mentés</p>
                 <h2 id="editor-gallery-dialog-title">
-                  {animationGalleryAction
-                    ? saveGalleryAction ? 'Animáció mentése' : 'Animáció betöltése'
-                    : saveGalleryAction ? 'Rajz mentése' : 'Rajz betöltése'}
+                  {saveGalleryAction ? 'Teljes projekt mentése' : 'Projekt betöltése'}
                 </h2>
               </div>
               <button disabled={sharing} onClick={closeGalleryAction} ref={galleryCloseRef} type="button">Bezárás</button>
             </div>
             {galleryActionLoading ? <p>Galéria betöltése…</p> : galleryActionError ? <p className="status-message">{galleryActionError}</p> : (
               <div className="editor-gallery-dialog-grid">
-                {animationGalleryAction ? ([1, 2] as const).map(slotIndex => {
-                  const slot = shareState.animationSlots.find(item => item.slotIndex === slotIndex)
+                {([1, 2, 3, 4] as const).map(slotIndex => {
+                  const slot = shareState.projectSlots.find(item => item.slotIndex === slotIndex)
                   return (
                     <article className="editor-own-gallery-slot editor-animation-gallery-slot" key={slotIndex}>
-                      <strong>{slotIndex}. animáció</strong>
+                      <strong>{slotIndex}. projekt</strong>
                       {slot ? <>
-                        <EditorAnimationThumbnail fps={slot.fps} frames={slot.frames} label={`Az animációs galéria ${slotIndex}. mentése`} />
-                        <small>{slot.frames.length} képkocka · {slot.fps} kép/mp</small>
+                        <EditorAnimationThumbnail fps={slot.document.fps} frames={slot.previewFrames} label={`A Saját projektek ${slotIndex}. mentése`} />
+                        <small>{slot.document.frames.length} képkocka · 3 réteg</small>
                       </> : <div className="editor-own-gallery-empty">Üres hely</div>}
                       <div className="editor-own-gallery-actions">
                         {saveGalleryAction ? (
-                          <button disabled={sharing} onClick={() => requestSaveAnimationSlot(slotIndex, Boolean(slot))} type="button">{slot ? 'Felülírás' : 'Ide mentem'}</button>
+                          <button disabled={sharing || !galleryPaletteReady} onClick={() => requestSaveProjectSlot(slotIndex, Boolean(slot))} type="button">{slot ? 'Felülírás' : 'Ide mentem'}</button>
                         ) : (
-                          <button disabled={sharing || !slot} onClick={() => slot && requestLoadAnimationSlot(slot)} type="button">{slot ? 'Betöltés' : 'Üres hely'}</button>
+                          <button disabled={sharing || !slot} onClick={() => slot && requestLoadProjectSlot(slot)} type="button">{slot ? 'Betöltés' : 'Üres hely'}</button>
                         )}
-                        {slot ? <button className="danger-button" disabled={sharing} onClick={() => requestDeleteAnimationSlot(slotIndex)} type="button">Törlés</button> : null}
+                        {slot ? <button className="danger-button" disabled={sharing} onClick={() => requestDeleteProjectSlot(slotIndex)} type="button">Törlés</button> : null}
                       </div>
-                    </article>
-                  )
-                }) : ([1, 2] as const).map(slotIndex => {
-                  const slot = shareState.gallerySlots.find(item => item.slotIndex === slotIndex)
-                  return (
-                    <article className="editor-own-gallery-slot" key={slotIndex}>
-                      <strong>{slotIndex}. hely</strong>
-                      {slot ? <WeeklyArtwork label={`A saját galéria ${slotIndex}. képe`} pixels={slot.pixels} /> : <div className="editor-own-gallery-empty">Üres hely</div>}
-                      {saveGalleryAction ? (
-                        <button disabled={sharing || !galleryPaletteReady} onClick={() => requestSaveGallerySlot(slotIndex, Boolean(slot))} type="button">{slot ? 'Felülírás' : 'Ide mentem'}</button>
-                      ) : (
-                        <button disabled={sharing || !slot} onClick={() => slot && requestLoadGallerySlot(slot)} type="button">{slot ? 'Betöltés' : 'Üres hely'}</button>
-                      )}
                     </article>
                   )
                 })}
