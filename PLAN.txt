@@ -1,5 +1,5 @@
 Bitscrawl MVP – FEJLESZTÉSI TERV
-Frissítve: 2026-10-04
+Frissítve: 2026-10-05
 
 Jelölések:
 [x] elkészült
@@ -149,6 +149,54 @@ KIEMELT FEJLESZTÉS – KÉT RÉTEG A SZERKESZTŐBEN
   a láthatóságot és azt, hogy a funkció ne kerüljön be a heti/havi szerkesztőbe.
 - [ ] Fizikai telefonon még ellenőrizni kell a rétegváltást, elrejtést, rajzolást,
   visszavonást és PNG-letöltést álló és fekvő nézetben az élesítés előtt.
+
+KÖVETKEZŐ NAGY SZERKESZTŐFEJLESZTÉS – EGYESÍTETT RÉTEGEK ÉS ANIMÁCIÓ
+
+- [ ] Az állókép- és animációs mód külön adatmodellje szűnjön meg. A Szerkesztő
+  egyetlen verziózott dokumentumot kezeljen, amely 1–5 képkockából áll, és minden
+  képkockában ugyanaz a legfeljebb három, közös sorrendű réteg szerepel. Az
+  egyképkockás dokumentum állókép, a többképkockás dokumentum animáció.
+- [ ] A felület Aseprite-szerű képkocka–réteg rácsot kapjon: a képkockák idővonala
+  és a három réteg egy helyen legyen kezelhető, mindig egy képkocka és azon belül
+  egy réteg legyen aktív. A réteg láthatósága és sorrendje minden képkockára
+  vonatkozzon; a réteg felcserélése, hozzáadása vagy törlése az összes képkocka
+  megfelelő celláját együtt mozgassa.
+- [ ] Legfeljebb három réteg és öt képkocka legyen használható. Lehessen üres vagy
+  másolt képkockát létrehozni, képkockát másolni és törölni, valamint a rétegeket
+  láthatóvá/rejtetté tenni és átrendezni. A hagymahéj az előző és következő
+  képkocka összelapított, látható rétegeit mutassa.
+- [ ] A helyi mentési formátum új, verziózott dokumentumsémát kapjon, például
+  `frames[frameIndex].layers[layerIndex].pixels` felépítéssel, továbbá mentse az
+  aktív képkockát, aktív réteget, rétegláthatóságot, képkockasebességet és a
+  palettamódot. A jelenlegi két réteges állóképek és a jelenlegi egyrétegű
+  animációk automatikusan, veszteség nélkül alakuljanak át az új formátumra.
+- [ ] A saját szerkesztőgaléria ne csak lapított pixeltömböt tároljon, hanem a teljes
+  verziózott dokumentumot minden képkockával és réteggel. Visszatöltés után minden
+  réteg és képkocka külön szerkeszthető maradjon. Az adatbázis-migráció tartsa meg
+  a régi mentéseket: a régi állókép egy képkocka alsó rétegére, a régi animáció
+  képkockánként az alsó rétegre kerüljön.
+- [ ] A külön Saját galéria és Animációs galéria helyett közös „Saját projektek”
+  mentést használjunk, mert ugyanaz a dokumentum később egy képkockából több-
+  képkockássá alakítható. A régi két kép- és két animációhely egyik mentése se
+  vesszen el a migrációkor; a felület továbbra is külön jelölje az állóképet és
+  az animációt, valamint mutassa a képkockák számát.
+- [ ] A galériakártyák gyors előnézetéhez a strukturált dokumentum mellett maradjon
+  szerver által ellenőrzött lapított előnézet. A Rajzfalra, profilképnek és heti/
+  havi kihívásba küldött kép továbbra is lapított, nem szerkeszthető publikáció
+  legyen; a PNG az aktív képkockát, a GIF minden képkocka látható rétegeinek
+  kompozitját exportálja.
+- [ ] A kliens és a szerver szigorúan ellenőrizze a 3 × 5 × 32 × 32 pixeles felső
+  korlátot, a színformátumot, a dokumentumverziót és a teljes payload méretét. A
+  mobilos felület egyszerre csak az aktív vásznat renderelje; az előnézeteket
+  gyorsítótárazott, lapított bélyegképek adják.
+- [ ] Automatizált próba védje a régi mentések migrációját, a képkocka–réteg
+  szerkesztést, a rétegsorrendet és láthatóságot, a teljes dokumentum felhőmentését
+  és visszatöltését, a PNG/GIF kompozitálást, a hibás vagy túlméretes adatok
+  elutasítását, valamint azt, hogy a publikus képek továbbra is lapítottak.
+- [ ] A megvalósítás sorrendje: közös dokumentummodell és migráció; helyi szerkesztő
+  és idővonal; felhős saját galéria; export és megosztás; automatizált regresszió;
+  végül fizikai iPhone-, Android- és asztali próba. Az adatbázis-migráció csak a
+  régi és új formátum együttes visszatöltésének helyi ellenőrzése után mehet élesbe.
 
 KÖVETKEZŐ HOZZÁFÉRÉSI FELADAT – VENDÉG SZERKESZTŐ
 
