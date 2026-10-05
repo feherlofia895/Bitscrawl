@@ -385,8 +385,7 @@ export function PixelCanvas({
   const [isCustomPaletteEditing, setIsCustomPaletteEditing] = useState(false)
   const [mixedColors, setMixedColors] = useState<string[]>(() => allowColorMixer ? loadMixedColors() : [])
   const [activeTool, setActiveTool] = useState<DrawingTool>('pencil')
-  const [preferredShapeTool, setPreferredShapeTool] = useState<ShapeTool>('line')
-  const [isShapeToolMenuOpen, setIsShapeToolMenuOpen] = useState(false)
+  const [areMobileToolsOpen, setAreMobileToolsOpen] = useState(false)
   const [brushSize, setBrushSize] = useState<BrushSize>(1)
   const [isBrushSizeOpen, setIsBrushSizeOpen] = useState(true)
   const [canUndo, setCanUndo] = useState(false)
@@ -524,8 +523,7 @@ export function PixelCanvas({
   const selectDrawingTool = (tool: DrawingTool) => {
     setActiveTool(tool)
     if (!isBrushTool(tool)) setIsBrushSizeOpen(false)
-    if (isShapeTool(tool)) setPreferredShapeTool(tool)
-    setIsShapeToolMenuOpen(false)
+    setAreMobileToolsOpen(false)
     setIsPanMode(false)
     setIsPickingReplaceSource(false)
     if (tool !== 'select') {
@@ -1468,10 +1466,13 @@ export function PixelCanvas({
         </div>
       )}
 
-      <div className="canvas-view-controls canvas-view-controls-primary" aria-label="Vászon nézetének vezérlése">
+      <div
+        className={`canvas-view-controls canvas-view-controls-primary${compactMobileToolbar ? ' has-compact-mobile-toolbar' : ''}`}
+        aria-label="Vászon nézetének vezérlése"
+      >
         <button
           aria-label="Kicsinyítés"
-          className="canvas-zoom-button"
+          className="canvas-zoom-button mobile-overflow-view-control"
           disabled={zoom <= MIN_ZOOM}
           onClick={() => stepZoom(-1)}
           type="button"
@@ -1480,7 +1481,7 @@ export function PixelCanvas({
         </button>
         <button
           aria-label="Nagyítás"
-          className="canvas-zoom-button"
+          className="canvas-zoom-button mobile-overflow-view-control"
           disabled={zoom >= maximumZoom()}
           onClick={() => stepZoom(1)}
           type="button"
@@ -1500,7 +1501,7 @@ export function PixelCanvas({
         </button>
         <button
           aria-pressed={showGrid}
-          className="canvas-grid-button"
+          className="canvas-grid-button mobile-overflow-view-control"
           onClick={() => setShowGrid((current) => !current)}
           type="button"
         >
@@ -1546,18 +1547,6 @@ export function PixelCanvas({
                 {icon ? <img alt="" aria-hidden="true" src={icon} /> : null}
               </button>
             ))}
-            {compactMobileToolbar ? (
-              <button
-                aria-expanded={isShapeToolMenuOpen}
-                aria-label={`Alakzatok: ${toolButtons.find(({ tool }) => tool === preferredShapeTool)?.label ?? 'Egyenes vonal'}`}
-                aria-pressed={isShapeTool(activeTool)}
-                className="tool-sprite-button shape-tool-toggle"
-                onClick={() => setIsShapeToolMenuOpen(current => !current)}
-                style={toolSpriteStyle(toolButtons.find(({ tool }) => tool === preferredShapeTool)?.spriteRow ?? 4)}
-                title="Alakzatok"
-                type="button"
-              />
-            ) : null}
             <button
               aria-label="Visszavonás"
               className="tool-sprite-button"
@@ -1570,7 +1559,7 @@ export function PixelCanvas({
             {allowEditorTools ? (
               <button
                 aria-label="Újra"
-                className="tool-icon-button"
+                className="tool-icon-button mobile-overflow-tool"
                 disabled={!canRedo}
                 onClick={redoLastStep}
                 title="Újra"
@@ -1581,7 +1570,7 @@ export function PixelCanvas({
             ) : null}
             <button
               aria-label={clearCanvasLabel}
-              className="tool-sprite-button"
+              className="tool-sprite-button mobile-overflow-tool"
               onClick={handleClearClick}
               onPointerUp={handleClearPointerUp}
               style={toolSpriteStyle(5)}
@@ -1591,7 +1580,7 @@ export function PixelCanvas({
             <button
               aria-label="Kijelölés"
               aria-pressed={activeTool === 'select'}
-              className="tool-icon-button"
+              className="tool-icon-button mobile-overflow-tool"
               onClick={() => selectToolbarTool('select')}
               title="Kijelölés"
               type="button"
@@ -1603,7 +1592,7 @@ export function PixelCanvas({
                 aria-expanded={isColorReplaceOpen}
                 aria-label="Színcsere"
                 aria-pressed={isColorReplaceOpen}
-                className="tool-icon-button"
+                className="tool-icon-button mobile-overflow-tool"
                 onClick={() => {
                   setIsColorReplaceOpen(current => !current)
                   setIsBrushSizeOpen(false)
@@ -1616,6 +1605,23 @@ export function PixelCanvas({
                 <img alt="" aria-hidden="true" src="/icons/tools/replace-color.svg" />
               </button>
             ) : null}
+            {compactMobileToolbar ? (
+              <button
+                aria-expanded={areMobileToolsOpen}
+                aria-label="További eszközök"
+                aria-pressed={areMobileToolsOpen}
+                className="tool-icon-button mobile-more-tools-toggle"
+                onClick={() => {
+                  setAreMobileToolsOpen(current => !current)
+                  setIsBrushSizeOpen(false)
+                  setIsColorReplaceOpen(false)
+                }}
+                title="További eszközök"
+                type="button"
+              >
+                <span aria-hidden="true">•••</span>
+              </button>
+            ) : null}
             <button
               aria-label="Teljes nézet"
               className="tool-icon-button canvas-immersive-tool-button"
@@ -1626,8 +1632,8 @@ export function PixelCanvas({
               <img alt="" aria-hidden="true" src="/icons/tools/fullscreen.svg" />
             </button>
           </div>
-          {compactMobileToolbar && isShapeToolMenuOpen ? (
-            <div aria-label="Alakzat kiválasztása" className="mobile-shape-tool-options">
+          {compactMobileToolbar && areMobileToolsOpen ? (
+            <div aria-label="További eszközök" className="mobile-extra-tool-options">
               {toolButtons.filter(({ tool }) => isShapeTool(tool)).map(({ label, spriteRow, tool }) => (
                 <button
                   aria-label={label}
@@ -1640,6 +1646,95 @@ export function PixelCanvas({
                   type="button"
                 />
               ))}
+              {allowEditorTools ? (
+                <button
+                  aria-label="Újra"
+                  className="tool-icon-button"
+                  disabled={!canRedo}
+                  onClick={() => {
+                    redoLastStep()
+                    setAreMobileToolsOpen(false)
+                  }}
+                  title="Újra"
+                  type="button"
+                >
+                  <img alt="" aria-hidden="true" src="/icons/tools/redo.svg" />
+                </button>
+              ) : null}
+              <button
+                aria-label={clearCanvasLabel}
+                className="tool-sprite-button"
+                onClick={() => {
+                  handleClearClick()
+                  setAreMobileToolsOpen(false)
+                }}
+                onPointerUp={handleClearPointerUp}
+                style={toolSpriteStyle(5)}
+                title={clearCanvasLabel}
+                type="button"
+              />
+              <button
+                aria-label="Kijelölés"
+                aria-pressed={activeTool === 'select'}
+                className="tool-icon-button"
+                onClick={() => selectToolbarTool('select')}
+                title="Kijelölés"
+                type="button"
+              >
+                <img alt="" aria-hidden="true" src="/icons/tools/select.svg" />
+              </button>
+              {allowEditorTools ? (
+                <button
+                  aria-expanded={isColorReplaceOpen}
+                  aria-label="Színcsere"
+                  aria-pressed={isColorReplaceOpen}
+                  className="tool-icon-button"
+                  onClick={() => {
+                    setIsColorReplaceOpen(current => !current)
+                    setIsBrushSizeOpen(false)
+                    setIsPickingReplaceSource(false)
+                    setIsPanMode(false)
+                    setAreMobileToolsOpen(false)
+                  }}
+                  title="Színcsere"
+                  type="button"
+                >
+                  <img alt="" aria-hidden="true" src="/icons/tools/replace-color.svg" />
+                </button>
+              ) : null}
+              <button
+                aria-label="Kicsinyítés"
+                className="tool-icon-button mobile-view-tool-button"
+                disabled={zoom <= MIN_ZOOM}
+                onClick={() => {
+                  stepZoom(-1)
+                  setAreMobileToolsOpen(false)
+                }}
+                title="Kicsinyítés"
+                type="button"
+              >−</button>
+              <button
+                aria-label="Nagyítás"
+                className="tool-icon-button mobile-view-tool-button"
+                disabled={zoom >= maximumZoom()}
+                onClick={() => {
+                  stepZoom(1)
+                  setAreMobileToolsOpen(false)
+                }}
+                title="Nagyítás"
+                type="button"
+              >+</button>
+              <button
+                aria-label="Rács"
+                aria-pressed={showGrid}
+                className="tool-icon-button mobile-view-tool-button"
+                onClick={() => {
+                  setShowGrid(current => !current)
+                  setAreMobileToolsOpen(false)
+                }}
+                title="Rács"
+                type="button"
+              >#</button>
             </div>
           ) : null}
           {allowEditorTools && isBrushTool(activeTool) && isBrushSizeOpen

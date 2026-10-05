@@ -1738,16 +1738,6 @@ footer {
   height: 22px;
 }
 
-.immersive-more-tools-toggle span {
-  display: block;
-  font-family: var(--pixel-font);
-  font-size: 1rem;
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: 1px;
-  transform: translateY(-2px);
-}
-
 .immersive-color-toggle {
   outline: 4px solid var(--paper);
   outline-offset: -7px;
@@ -1904,7 +1894,7 @@ footer {
   order: 20;
 }
 
-.pixel-toolbar > .mobile-shape-tool-options {
+.pixel-toolbar > .mobile-extra-tool-options {
   order: 21;
 }
 
@@ -7101,9 +7091,20 @@ canvas.player-avatar {
   outline-offset: 1px;
 }
 
-.tool-buttons .shape-tool-toggle,
-.mobile-shape-tool-options {
+.tool-buttons .mobile-more-tools-toggle,
+.mobile-extra-tool-options {
   display: none;
+}
+
+.mobile-more-tools-toggle span,
+.immersive-more-tools-toggle span {
+  display: block;
+  font-family: var(--pixel-font);
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 1px;
+  transform: translateY(-2px);
 }
 
 .drawing-palette[data-palette-size='12'] {
@@ -7551,20 +7552,22 @@ canvas.player-avatar {
   }
 
   .tool-buttons.is-compact-mobile {
-    grid-template-columns: repeat(6, 42px);
+    grid-template-columns: repeat(7, 42px);
   }
 
-  .tool-buttons.is-compact-mobile .shape-tool-individual {
+  .canvas-view-controls-primary.has-compact-mobile-toolbar .mobile-overflow-view-control,
+  .tool-buttons.is-compact-mobile .shape-tool-individual,
+  .tool-buttons.is-compact-mobile .mobile-overflow-tool {
     display: none;
   }
 
-  .tool-buttons.is-compact-mobile .shape-tool-toggle {
+  .tool-buttons.is-compact-mobile .mobile-more-tools-toggle {
     display: grid;
   }
 
-  .mobile-shape-tool-options {
+  .mobile-extra-tool-options {
     display: grid;
-    grid-template-columns: repeat(3, 42px);
+    grid-template-columns: repeat(5, 42px);
     justify-content: center;
     gap: 8px;
     padding: 8px;
@@ -7572,7 +7575,7 @@ canvas.player-avatar {
     border: 2px solid var(--ink);
   }
 
-  .mobile-shape-tool-options .tool-sprite-button {
+  .mobile-extra-tool-options .tool-sprite-button {
     width: 42px;
     min-height: 48px;
     height: 48px;
@@ -7588,9 +7591,43 @@ canvas.player-avatar {
     image-rendering: pixelated;
   }
 
-  .mobile-shape-tool-options .tool-sprite-button[aria-pressed='true'] {
+  .mobile-extra-tool-options .tool-icon-button {
+    display: grid;
+    width: 42px;
+    min-height: 48px;
+    height: 48px;
+    padding: 6px 5px;
+    color: var(--ink);
+    background: var(--yellow);
+    border: 2px solid var(--ink);
+    box-shadow: none;
+    clip-path: none;
+    place-items: center;
+  }
+
+  .mobile-extra-tool-options .tool-icon-button img {
+    width: 27px;
+    height: 27px;
+  }
+
+  .mobile-extra-tool-options .mobile-view-tool-button {
+    font-family: var(--pixel-font);
+    font-size: 1rem;
+    font-weight: 900;
+  }
+
+  .mobile-extra-tool-options button:disabled {
+    cursor: not-allowed;
+    opacity: .45;
+  }
+
+  .mobile-extra-tool-options .tool-sprite-button[aria-pressed='true'] {
     outline: 3px solid var(--blue);
     outline-offset: 1px;
+  }
+
+  .mobile-extra-tool-options .tool-icon-button[aria-pressed='true'] {
+    background: var(--mint);
   }
 
   .feedback-triggers {

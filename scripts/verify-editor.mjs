@@ -56,8 +56,8 @@ test('canvas controls swap above the palette while fullscreen becomes the eleven
     readFile(new URL('../src/components/PixelCanvas.tsx', import.meta.url), 'utf8'),
   ])
 
-  assert.match(canvasSource, /className="canvas-zoom-button"[\s\S]*?>\s*−\s*<\/button>/)
-  assert.match(canvasSource, /className="canvas-zoom-button"[\s\S]*?>\s*\+\s*<\/button>/)
+  assert.match(canvasSource, /className="canvas-zoom-button mobile-overflow-view-control"[\s\S]*?>\s*−\s*<\/button>/)
+  assert.match(canvasSource, /className="canvas-zoom-button mobile-overflow-view-control"[\s\S]*?>\s*\+\s*<\/button>/)
   assert.match(canvasSource, />\s*Rács\s*<\/button>/)
   assert.doesNotMatch(canvasSource, /Koordináták|showCoordinates|PIXEL_COORDINATES/)
   const primaryControls = canvasSource.indexOf('canvas-view-controls canvas-view-controls-primary')
@@ -87,7 +87,7 @@ test('canvas controls swap above the palette while fullscreen becomes the eleven
     /\.canvas-view-controls \.canvas-zoom-button,[\s\S]*?width:\s*34px/,
   )
   assert.match(css, /\.pixel-toolbar > \.tool-buttons\s*\{[^}]*order:\s*20/)
-  assert.match(css, /\.tool-buttons\.is-compact-mobile\s*\{[^}]*grid-template-columns:\s*repeat\(6, 42px\)/)
+  assert.match(css, /\.tool-buttons\.is-compact-mobile\s*\{[^}]*grid-template-columns:\s*repeat\(7, 42px\)/)
   assert.match(css, /\.immersive-floating-palette\s*\{[^}]*position:\s*fixed[^}]*grid-template-columns:\s*repeat\(12, 22px\)/)
   assert.match(css, /\.immersive-quick-tools\s*\{[^}]*position:\s*fixed[^}]*grid-template-columns:\s*repeat\(5, 42px\)/)
 })
@@ -511,8 +511,22 @@ test('compact mobile tools and the unified timeline stay out of challenges', asy
   assert.match(editorSource, /compactMobileToolbar/)
   assert.match(editorSource, /showDrawModeBadge=\{false\}/)
   assert.match(pixelCanvasSource, /compactMobileToolbar = true/)
-  assert.match(pixelCanvasSource, /className="tool-sprite-button shape-tool-toggle"/)
-  assert.match(pixelCanvasSource, /className="mobile-shape-tool-options"/)
+  assert.match(pixelCanvasSource, /className="tool-icon-button mobile-more-tools-toggle"/)
+  assert.match(pixelCanvasSource, /className="mobile-extra-tool-options"/)
+  assert.match(pixelCanvasSource, /className="canvas-zoom-button mobile-overflow-view-control"/)
+  assert.match(pixelCanvasSource, /className="canvas-grid-button mobile-overflow-view-control"/)
+  assert.match(
+    pixelCanvasSource,
+    /aria-label="Visszavonás"[\s\S]*?className="tool-icon-button mobile-more-tools-toggle"[\s\S]*?aria-label="Teljes nézet"/,
+  )
+  assert.match(
+    pixelCanvasSource,
+    /className="mobile-extra-tool-options"[\s\S]*?isShapeTool\(tool\)[\s\S]*?aria-label="Újra"[\s\S]*?aria-label=\{clearCanvasLabel\}[\s\S]*?aria-label="Kijelölés"[\s\S]*?aria-label="Színcsere"[\s\S]*?aria-label="Kicsinyítés"[\s\S]*?aria-label="Nagyítás"[\s\S]*?aria-label="Rács"/,
+  )
+  assert.match(
+    await readFile(new URL('../src/App.css', import.meta.url), 'utf8'),
+    /\.canvas-view-controls-primary\.has-compact-mobile-toolbar \.mobile-overflow-view-control,[\s\S]*?display:\s*none/,
+  )
   assert.match(pixelCanvasSource, /className="canvas-palette-button"/)
   assert.doesNotMatch(pixelCanvasSource, /editor-palette-actions|editor-color-mixer-note/)
   assert.match(editorSource, /getDisplayColor: displayEditorLayerColor/)
