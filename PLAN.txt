@@ -6,6 +6,16 @@ Jelölések:
 [>] folyamatban
 [ ] még hátra van
 
+2026-10-11-i kihívászárás:
+- [x] A `2026-W41 – Szellem` heti szavazás a tervezett 20:00-s határidő után
+  admin-ellenőrzött, idempotens RPC-vel lezárult. Hat nevező 11 szavazata és a
+  részvételi pontok egyszer kerültek be a Dicsőségfalba.
+- [x] A dobogó: Kinga és zolika megosztott 1. hely 3–3 szavazattal, martinteteme
+  3. hely 2 szavazattal. Csilla, Ricso és szoki182 1–1 szavazatot kapott.
+- [x] A következő `2026-W42` heti téma a még el nem kezdődött rekordban Kastélyról
+  Tökre változott. A témarotációban is a Tök váltotta a Kastélyt; a hét 2026.
+  október 12. 00:00-tól október 18. 20:00-ig tart Europe/Budapest szerint.
+
 2026-10-04-i aktuális állapot:
 - [x] A Párhuzamos rajzverseny teljes éles visszaellenőrzése elkészült. Három és
   hat külön anonim játékossal is végigment a rajzolás, névtelen szavazás, módosított

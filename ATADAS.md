@@ -1,6 +1,6 @@
 # Bitscrawl – aktuális átadó
 
-Frissítve: 2026. október 4.
+Frissítve: 2026. október 11.
 
 Ez az egyetlen aktuális átadó dokumentum. Új beszélgetésben először ezt a fájlt,
 utána a `PLAN.txt` elejét és a `README.md` fájlt olvasd el. A korábbi package-,
@@ -68,7 +68,25 @@ Titkot vagy `service_role` kulcsot soha ne tegyél kliensoldali fájlba, commitb
   bejelentkezett profillal látható.
 - A fontos mobilfelületek 320–390 px szélességre igazítva lettek. A fizikai iPhone-
   próba, a telepítés, az indítás és az egyedi ikon ellenőrzése sikeres.
-- Az éles heti kihívás Boszorkány, a havi kihívás Halloween és 128×128 pixeles.
+- A `2026-W41 – Szellem` heti kihívás 2026. október 11-én lezárult, a pontjai
+  bekerültek a Dicsőségfalba. A következő hét témája Tök, 2026. október 12. 00:00
+  és október 18. 20:00 között. A havi kihívás Halloween és 128×128 pixeles.
+
+## Legutóbbi éles adatváltozás: Szellem lezárás és Tök hét
+
+- A Szellem hét 6 nevezővel és 11 szavazattal, a meglévő admin-ellenőrzött,
+  idempotens `finalize_weekly_challenge` RPC-vel zárult le.
+- Kinga: 1 részvételi + 3 szavazati pont, 1. hely.
+- zolika: 1 részvételi + 3 szavazati pont, 1. hely.
+- martinteteme: 1 részvételi + 2 szavazati pont, 3. hely.
+- Csilla, Ricso és szoki182: fejenként 1 részvételi + 1 szavazati pont.
+- A `2026-W42` rekord és a generáló témarotáció Kastélyról Tökre változott.
+- Migráció: `supabase/migrations/20261011203343_weekly_w42_pumpkin.sql`.
+- Az éles migrációtörténetben kizárólag a `20261011203343` verzió lett újonnan
+  alkalmazottként rögzítve; vak `db push` továbbra sem futott.
+- A heti, pontintegritási és scoreboard-regressziók sikeresek. Az éles advisor nem
+  jelzett a változásból eredő új hibát; csak a már ismert vendég-multiplayer,
+  Supabase cron és Free csomagos kiszivárgottjelszó-védelmi figyelmeztetések maradtak.
 
 ## Legutóbbi változás: vendég Szerkesztő és közösségi adatok
 
