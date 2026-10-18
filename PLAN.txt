@@ -1,10 +1,21 @@
 Bitscrawl MVP – FEJLESZTÉSI TERV
-Frissítve: 2026-10-05
+Frissítve: 2026-10-18
 
 Jelölések:
 [x] elkészült
 [>] folyamatban
 [ ] még hátra van
+
+2026-10-18-i kihívászárás:
+- [x] A `2026-W42 – Tök` heti szavazás a tervezett 20:00-s határidő után
+  admin-ellenőrzött, idempotens RPC-vel lezárult. Hét nevező 16 szavazata és a
+  részvételi pontok egyszer kerültek be a Dicsőségfalba.
+- [x] A dobogó: Csilla és Ricso megosztott 1. hely 4–4 szavazattal, martinteteme
+  3. hely 3 szavazattal. Kinga 2, ALillus, Kispapi95 és szoki182 1–1 szavazatot
+  kapott; minden nevező egy részvételi pontot is kapott.
+- [x] A teljesen üres `2026-W43` heti téma Macskáról Vámpírra változott. A
+  témarotációban is a Vámpír váltotta a Macskát; a hét 2026. október 19. 00:00-tól
+  október 25. 20:00-ig tart Europe/Budapest szerint.
 
 2026-10-11-i kihívászárás:
 - [x] A `2026-W41 – Szellem` heti szavazás a tervezett 20:00-s határidő után

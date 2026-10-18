@@ -68,9 +68,26 @@ Titkot vagy `service_role` kulcsot soha ne tegyél kliensoldali fájlba, commitb
   bejelentkezett profillal látható.
 - A fontos mobilfelületek 320–390 px szélességre igazítva lettek. A fizikai iPhone-
   próba, a telepítés, az indítás és az egyedi ikon ellenőrzése sikeres.
-- A `2026-W41 – Szellem` heti kihívás 2026. október 11-én lezárult, a pontjai
-  bekerültek a Dicsőségfalba. A következő hét témája Tök, 2026. október 12. 00:00
-  és október 18. 20:00 között. A havi kihívás Halloween és 128×128 pixeles.
+- A `2026-W42 – Tök` heti kihívás 2026. október 18-án lezárult, a pontjai
+  bekerültek a Dicsőségfalba. A következő hét témája Vámpír, 2026. október 19.
+  00:00 és október 25. 20:00 között. A havi kihívás Halloween és 128×128 pixeles.
+
+## Legutóbbi éles adatváltozás: Tök lezárás és Vámpír hét
+
+- A Tök hét 7 nevezővel és 16 szavazattal, a meglévő admin-ellenőrzött,
+  idempotens `finalize_weekly_challenge` RPC-vel zárult le.
+- Csilla: 1 részvételi + 4 szavazati pont, megosztott 1. hely.
+- Ricso: 1 részvételi + 4 szavazati pont, megosztott 1. hely.
+- martinteteme: 1 részvételi + 3 szavazati pont, 3. hely.
+- Kinga 1 részvételi + 2 szavazati pontot, ALillus, Kispapi95 és szoki182
+  fejenként 1 részvételi + 1 szavazati pontot kapott.
+- A teljesen üres `2026-W43` rekord és a generáló témarotáció Macskáról Vámpírra
+  változott.
+- Migráció: `supabase/migrations/20261018195853_weekly_w43_vampire.sql`.
+- A szóbank-, heti-, pontintegritási és scoreboard-regressziók 36/36 teszttel
+  sikeresek. Az éles advisor nem jelzett a változásból eredő új hibát; a korábban
+  ismert RLS-, vendég-multiplayer-, Supabase cron-, index- és Free csomagos
+  kiszivárgottjelszó-védelmi figyelmeztetések maradtak.
 
 ## Legutóbbi éles adatváltozás: Szellem lezárás és Tök hét
 
